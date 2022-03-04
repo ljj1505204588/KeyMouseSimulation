@@ -1,0 +1,37 @@
+package recordAndPlayBack
+
+type ServerStatus int
+
+const (
+	SERVER_TYPE_FREE ServerStatus = 1 << iota
+	SERVER_TYPE_RECORD
+	SERVER_TYPE_RECORD_PAUSE
+	SERVER_TYPE_PLAYBACK
+	SERVER_TYPE_PLAYBACK_PAUSE
+)
+
+type HotKey int
+
+const (
+	HOT_KEY_STOP HotKey = iota
+	HOT_KEY_PUASE
+	HOT_KEY_RECORD_START
+	HOT_KEY_PLAYBACK_START
+)
+
+type PlaybackEvent int8
+
+const (
+	PLAYBACK_EVENT_STATUS_CHANGE PlaybackEvent = 1 << iota
+	PLAYBACK_EVENT_CURRENT_TIMES_CHANGE
+	PLAYBACK_EVENT_ERROR
+)
+
+type RecordEvent int8
+
+const (
+	RECORD_EVENT_STATUS_CHANGE RecordEvent = 1 << iota
+	RECORD_EVENT_HOTKEY_DOWN
+	RECORD_SAVE_FILE_ERROR
+	RECORD_EVENT_ERROR
+)
