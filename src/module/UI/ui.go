@@ -213,8 +213,8 @@ func MainWindows() {
 			}},
 
 			//鼠标路径
-			Label{AssignTo: &c.ifMouseTrackLabel,ColumnSpan: 4,Text:MouseTrackStr },
-			CheckBox{AssignTo: &c.ifMouseTrackCheck,ColumnSpan: 4,Checked: true,Alignment:AlignHCenterVCenter,OnCheckedChanged: func() {
+			Label{AssignTo: &c.ifMouseTrackLabel, ColumnSpan: 4, Text: MouseTrackStr},
+			CheckBox{AssignTo: &c.ifMouseTrackCheck, ColumnSpan: 4, Checked: true, Alignment: AlignHCenterVCenter, OnCheckedChanged: func() {
 				c.wc.SetIfTrackMouseMove(c.ifMouseTrackCheck.Checked())
 			}},
 
@@ -234,7 +234,7 @@ func MainWindows() {
 
 			//回放次数与当前次数
 			Label{AssignTo: &c.playbackTimesLabel, Text: PlayBackTimesLabelStr, ColumnSpan: 2},
-			NumberEdit{AssignTo: &c.playbackTimesEdit, ColumnSpan: 3, MinValue: -1, MaxValue: float64(math.MaxInt64), StretchFactor: 0, Suffix: " times", Decimals: 0, OnValueChanged: func() {
+			NumberEdit{AssignTo: &c.playbackTimesEdit, ColumnSpan: 3, MinValue: -1, MaxValue: float64(math.MaxInt64), Value: float64(1), StretchFactor: 0, Suffix: " times", Decimals: 0, OnValueChanged: func() {
 				c.wc.SetPlaybackTimes(int(c.playbackTimesEdit.Value()))
 			}},
 			Label{AssignTo: &c.currentTimesLabel, Text: CurrentTimesLabelStr, ColumnSpan: 2},
@@ -290,7 +290,7 @@ func MainWindows() {
 	}.Run()
 	if err != nil {
 		fmt.Println(err.Error())
-		time.Sleep(5*time.Second)
+		time.Sleep(5 * time.Second)
 	}
 }
 

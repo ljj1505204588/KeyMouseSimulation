@@ -1,11 +1,11 @@
 package recordAndPlayBack
 
 import (
-	"encoding/json"
-	"fmt"
 	"KeyMouseSimulation/common/windowsApiTool/windowsHook"
 	"KeyMouseSimulation/common/windowsApiTool/windowsInput/keyMouTool"
 	"KeyMouseSimulation/module/language"
+	"encoding/json"
+	"fmt"
 	"os"
 	"time"
 )
@@ -21,7 +21,7 @@ type RecordServerI interface {
 }
 
 /*
-*	RecordServerI 实现接口
+*	RecordServerI 实现接口  
  */
 
 func GetRecordServer() *RecordServerT {
