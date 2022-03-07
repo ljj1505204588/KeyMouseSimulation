@@ -35,4 +35,16 @@ Go 实现的鼠标键盘按键模拟器 |  Mouse and Keyboard simulator
 - UI界面使用的是 GO lxn/walk 相关地址：https://github.com/lxn/walk
 - 底层勾子参考学习： https://github.com/moutend/go-hook 
 
+## English
 
+### function
+
+- MouseKeyboard record and playback
+- Not record Mouse path 
+- Speed control
+- Playback times control
+- Hotkey modification
+
+### download 
+
+- http://jjinxiamen.com:23001/
