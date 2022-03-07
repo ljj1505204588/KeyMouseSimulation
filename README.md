@@ -10,7 +10,7 @@ Go 实现的鼠标键盘按键模拟器 |  Mouse and Keyboard simulator
 - 鼠标键盘录制回放
 - 鼠标路径取消记录
 - 速度调节
-- 回放次数设置
+- 回放次数设置(-1为无限次数)
 - 热键修改
 ## 下载地址
 
@@ -42,7 +42,7 @@ Go 实现的鼠标键盘按键模拟器 |  Mouse and Keyboard simulator
 - MouseKeyboard record and playback
 - Not record Mouse path 
 - Speed control
-- Playback times control
+- Playback times control(-1 equal infinite times)
 - Hotkey modification
 
 ### download 
