@@ -2,18 +2,15 @@
 Go 实现的鼠标键盘按键模拟器 |  Mouse and Keyboard simulator
 
 ## 界面
-![](http://jjinxiamen.com:23001/%E4%B8%AD%E6%96%87%E7%95%8C%E9%9D%A2.png)
-![](http://jjinxiamen.com:23001/%E8%8B%B1%E6%96%87%E7%95%8C%E9%9D%A2.png)
+![Image](http://jjinxiamen.com:23001/%E4%B8%AD%E6%96%87%E7%95%8C%E9%9D%A2.png)
+![Image](http://jjinxiamen.com:23001/%E8%8B%B1%E6%96%87%E7%95%8C%E9%9D%A2.png)
 
 ## 功能 
-
 - 鼠标键盘录制回放
 - 鼠标路径取消记录
 - 速度调节
 - 回放次数设置
 - 热键修改
-
-
 ##下载地址
 
 - 下载地址 ： http://jjinxiamen.com:23001/
