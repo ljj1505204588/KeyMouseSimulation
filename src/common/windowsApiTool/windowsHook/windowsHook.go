@@ -1,8 +1,8 @@
 package windowsHook
 
 import (
-	"fmt"
 	windowsApi "KeyMouseSimulation/common/windowsApiTool"
+	"fmt"
 	"sync"
 	"syscall"
 	"unsafe"
@@ -95,13 +95,13 @@ type keyBoardHookHandler func() (HOOKPROC, chan KeyboardEvent)
 
 func keyBoardDefaultHookHandler() (HOOKPROC, chan KeyboardEvent) {
 	c := make(chan KeyboardEvent, 3000)
+	keyboardEvent := KeyboardEvent{}
 	return func(code int32, wParam, lParam uintptr) uintptr {
 		if lParam != 0 {
+			keyboardEvent.Message = Message(wParam)
+			keyboardEvent.STRUCT_KBDLLHOOKSTRUCT = *(*STRUCT_KBDLLHOOKSTRUCT)(unsafe.Pointer(lParam))
 			select {
-			case c <- KeyboardEvent{
-				Message:                Message(wParam),
-				STRUCT_KBDLLHOOKSTRUCT: *(*STRUCT_KBDLLHOOKSTRUCT)(unsafe.Pointer(lParam)),
-			}:
+			case c <- keyboardEvent:
 				r, _, _ := windowsApi.DllUser.Call(windowsApi.FuncCallNextHookEx, 0, uintptr(code), wParam, lParam)
 				return r
 			default:
@@ -147,13 +147,13 @@ type mouseHookHandler func() (HOOKPROC, chan MouseEvent)
 
 func mouseDefaultHookHandler() (HOOKPROC, chan MouseEvent) {
 	c := make(chan MouseEvent, 3000)
+	mouseEvent := MouseEvent{}
 	return func(code int32, wParam, lParam uintptr) uintptr {
 		if lParam != 0 {
+			mouseEvent.Message = Message(wParam)
+			mouseEvent.STRUCT_MSLLHOOKSTRUCT = *(*STRUCT_MSLLHOOKSTRUCT)(unsafe.Pointer(lParam))
 			select {
-			case c <- MouseEvent{
-				Message:               Message(wParam),
-				STRUCT_MSLLHOOKSTRUCT: *(*STRUCT_MSLLHOOKSTRUCT)(unsafe.Pointer(lParam)),
-			}:
+			case c <- mouseEvent:
 				r, _, _ := windowsApi.DllUser.Call(windowsApi.FuncCallNextHookEx, 0, uintptr(code), wParam, lParam)
 				return r
 			default:
