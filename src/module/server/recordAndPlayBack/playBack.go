@@ -1,12 +1,13 @@
 package recordAndPlayBack
 
 import (
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
 	windowsApi "KeyMouseSimulation/common/windowsApiTool"
 	"KeyMouseSimulation/common/windowsApiTool/windowsInput/keyMouTool"
 	"KeyMouseSimulation/module/language"
+	"context"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"os"
 	"time"
 )
@@ -35,7 +36,7 @@ func GetPlaybackServer() *PlayBackServerT {
 	}
 
 	p.GetWindowRect()
-	go p.playBack()
+	go p.loop()
 	return &p
 }
 
@@ -51,14 +52,26 @@ type PlayBackServerT struct {
 	messageChan chan PlaybackMessageT
 }
 
-func (p *PlayBackServerT) changeStatus(s ServerStatus) {
-	p.status = s
-	p.sendMessage(PLAYBACK_EVENT_STATUS_CHANGE, s)
+//Start 开始
+func (p *PlayBackServerT) Start(name string) error {
+	p.name = name
+
+	return p.changeStatus(SERVER_TYPE_PLAYBACK)
 }
-func (p *PlayBackServerT) judgeStatus(s ServerStatus) error {
+
+//Pause 暂停
+func (p *PlayBackServerT) Pause() error {
+	return p.changeStatus(SERVER_TYPE_PLAYBACK_PAUSE)
+}
+
+//Stop 停止
+func (p *PlayBackServerT) Stop() error {
+	return p.changeStatus(SERVER_TYPE_FREE)
+}
+func (p *PlayBackServerT) changeStatus(status ServerStatus) error {
 	switch p.status {
 	case SERVER_TYPE_FREE:
-		if s == SERVER_TYPE_PLAYBACK_PAUSE {
+		if status == SERVER_TYPE_PLAYBACK_PAUSE {
 			return fmt.Errorf(language.ErrorFreeToPlaybackPause)
 		}
 	case SERVER_TYPE_PLAYBACK:
@@ -66,34 +79,20 @@ func (p *PlayBackServerT) judgeStatus(s ServerStatus) error {
 	case SERVER_TYPE_PLAYBACK_PAUSE:
 		return nil
 	}
+
+	p.status = status
+	p.sendMessage(PLAYBACK_EVENT_STATUS_CHANGE, status)
+
 	return nil
 }
-func (p *PlayBackServerT) Start(name string) error {
-	if err := p.judgeStatus(SERVER_TYPE_PLAYBACK); err != nil {
-		return err
+
+//GetPlayBackMessageChan 获取消息反馈通道
+func (p *PlayBackServerT) GetPlayBackMessageChan() chan PlaybackMessageT {
+	if p.messageChan == nil {
+		p.messageChan = make(chan PlaybackMessageT)
 	}
-
-	p.changeStatus(SERVER_TYPE_PLAYBACK)
-	p.name = name
-	return nil
+	return p.messageChan
 }
-func (p *PlayBackServerT) Pause() error {
-	if err := p.judgeStatus(SERVER_TYPE_PLAYBACK_PAUSE); err != nil {
-		return err
-	}
-
-	p.changeStatus(SERVER_TYPE_PLAYBACK_PAUSE)
-	return nil
-}
-func (p *PlayBackServerT) Stop() error {
-	if err := p.judgeStatus(SERVER_TYPE_FREE); err != nil {
-		return err
-	}
-
-	p.changeStatus(SERVER_TYPE_FREE)
-	return nil
-}
-
 func (p *PlayBackServerT) sendMessage(event PlaybackEvent, value interface{}) {
 	if p.messageChan == nil {
 		p.messageChan = make(chan PlaybackMessageT, 100)
@@ -104,15 +103,13 @@ func (p *PlayBackServerT) sendMessage(event PlaybackEvent, value interface{}) {
 		Value: value,
 	}
 }
-func (p *PlayBackServerT) GetPlayBackMessageChan() chan PlaybackMessageT {
-	if p.messageChan == nil {
-		p.messageChan = make(chan PlaybackMessageT)
-	}
-	return p.messageChan
-}
+
+//SetSpeed 设置回放速度
 func (p *PlayBackServerT) SetSpeed(speed float64) {
 	p.speed = speed
 }
+
+//SetPlaybackTimes 设置回放次数
 func (p *PlayBackServerT) SetPlaybackTimes(playbackTimes int) {
 	if playbackTimes > 0 || playbackTimes == -1 {
 		p.playbackTimes = playbackTimes
@@ -123,10 +120,10 @@ func (p *PlayBackServerT) SetPlaybackTimes(playbackTimes int) {
 
 // ----------------------- playback 模块主体循环 -----------------------
 
-func (p *PlayBackServerT) playBack() {
+func (p *PlayBackServerT) loop() {
 	defer func() {
 		if info := recover(); info != nil {
-			go p.playBack()
+			go p.loop()
 		} else {
 			panic("playback 错误退出")
 		}
@@ -142,100 +139,123 @@ func (p *PlayBackServerT) playBack() {
 		os.Exit(1)
 	}
 
-	//窗口大小
-	x,y := int32(p.windowsX),int32(p.windowsY)
+	//主循环所需参数
+	ctx, done := context.WithCancel(context.Background())
+	nowStatus := p.status
 
-	notes := make([]noteT, 100)
-	pos := 0
 	p.currentTimes = p.playbackTimes
-	keyInput, mouInput := keyMouTool.KeyInputChanT{}, keyMouTool.MouseInputChanT{}
 	for {
-		switch p.status {
-		case SERVER_TYPE_FREE:
-			//warning GC 协作式抢占，如果没有time.sleep的话，在函数前后的检查抢占信号将不会被发现，GC时候会发生假死现象
-			if len(notes) != 0 {
-				notes = []noteT{}
-				pos = 0
-				p.currentTimes = p.playbackTimes
-				p.sendMessage(PLAYBACK_EVENT_CURRENT_TIMES_CHANGE, p.currentTimes)
+		if nowStatus != p.status {
+			nowStatus = p.status
+			done()
+			ctx, done = context.WithCancel(context.Background())
+			switch p.status {
+			case SERVER_TYPE_FREE:
+				go p.free(ctx)
+			case SERVER_TYPE_PLAYBACK:
+				go p.playback(ctx, kSend, mSend)
+			case SERVER_TYPE_PLAYBACK_PAUSE:
+				go p.pause(ctx)
 			}
-			time.Sleep(10 * time.Nanosecond)
-		case SERVER_TYPE_PLAYBACK:
-			if len(notes) == 0 {
-				if notes,err = p.playbackNotes(p.name); err != nil {
-					p.changeStatus(SERVER_TYPE_FREE)
-					p.sendMessage(PLAYBACK_EVENT_ERROR,err.Error())
-					continue
-				}
-				p.currentTimes = p.playbackTimes
-			}
-			if pos >= len(notes) {
-				if p.currentTimes != -1 {
-					p.currentTimes--
-					p.sendMessage(PLAYBACK_EVENT_CURRENT_TIMES_CHANGE, p.currentTimes)
-					if p.currentTimes <= 0 {
-						p.changeStatus(SERVER_TYPE_FREE)
-					}
-				}
-				pos = 0
-				continue
-			}
-			switch notes[pos].NoteType {
-			case keyMouTool.TYPE_INPUT_KEYBOARD:
-				//TODO 考虑这样转化会不会耗时很久
-				time.Sleep(time.Duration(int64((float64(notes[pos].TimeGap)) / p.speed)))
-				keyInput.VK = notes[pos].KeyNote.Vk
-				keyInput.DwFlags = notes[pos].KeyNote.DWFlags
-
-				kSend <- keyInput
-			case keyMouTool.TYPE_INPUT_MOUSE:
-				time.Sleep(time.Duration(int(float64(notes[pos].TimeGap) / p.speed)))
-				mouInput.X = notes[pos].MouseNote.X * 65535 / x
-				mouInput.Y = notes[pos].MouseNote.Y * 65535 / y
-				mouInput.DWFlags = notes[pos].MouseNote.DWFlags
-
-				mSend <- mouInput
-			}
-			pos += 1
-		case SERVER_TYPE_PLAYBACK_PAUSE:
-			time.Sleep(50 * time.Nanosecond)
-		default:
-			time.Sleep(50 * time.Nanosecond)
 		}
+		time.Sleep(10 * time.Millisecond)
 	}
 
 }
-func (p *PlayBackServerT) playbackNotes(name string) ([]noteT,error) {
-	file, err := os.OpenFile(name, os.O_RDWR, 0772)
+func (p *PlayBackServerT) free(ctx context.Context) {
+	p.currentTimes = p.playbackTimes
+	p.sendMessage(PLAYBACK_EVENT_CURRENT_TIMES_CHANGE, p.currentTimes)
+	<-ctx.Done()
+}
+func (p *PlayBackServerT) pause(ctx context.Context) {
+	<-ctx.Done() // 哈哈进来就等着走！！！
+}
+func (p *PlayBackServerT) playback(ctx context.Context, kSend chan keyMouTool.KeyInputChanT, mSend chan keyMouTool.MouseInputChanT) {
+	var pos = -1
+	var err error
+	var notes = make([]noteT, 100)
+
+	if notes, err = p.loadPlaybackNotes(p.name); err != nil || len(notes) == 0 {
+		_ = p.changeStatus(SERVER_TYPE_FREE)
+		p.sendMessage(PLAYBACK_EVENT_ERROR, err.Error())
+		return
+	}
+	p.currentTimes = p.playbackTimes
+
+	for {
+		select {
+		//TODO 说实话觉得这样好傻，有啥子更好的办法么
+		case <-ctx.Done():
+			return
+		default:
+			pos += 1
+
+			if pos >= len(notes) {
+				pos = 0
+				p.dealPlayBackTimes()
+			}
+			switch notes[pos].NoteType {
+			case keyMouTool.TYPE_INPUT_KEYBOARD:
+				time.Sleep(time.Duration(int(notes[pos].timeGap / p.speed)))
+				kSend <- notes[pos].KeyNote
+			case keyMouTool.TYPE_INPUT_MOUSE:
+				time.Sleep(time.Duration(int(notes[pos].timeGap / p.speed)))
+				mSend <- notes[pos].MouseNote
+			}
+		}
+	}
+}
+func (p *PlayBackServerT) dealPlayBackTimes() {
+	if p.currentTimes == -1 {
+		return
+	}
+	p.currentTimes--
+	p.sendMessage(PLAYBACK_EVENT_CURRENT_TIMES_CHANGE, p.currentTimes)
+	if p.currentTimes <= 0 {
+		_ = p.changeStatus(SERVER_TYPE_FREE)
+	}
+}
+
+//loadPlaybackNotes 加载回放记录
+func (p *PlayBackServerT) loadPlaybackNotes(name string) ([]noteT, error) {
+	file, err := os.OpenFile(name, os.O_RDONLY, 0772)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 
 	b, err := ioutil.ReadAll(file)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 
-	n := make([]noteT, 100)
-	_ = json.Unmarshal(b, &n)
-	return n,err
+	nodes := make([]noteT, 100)
+	err = json.Unmarshal(b, &nodes)
+
+	for nodePos := range nodes {
+		nodes[nodePos].timeGap = float64(nodes[nodePos].TimeGap)
+		if nodes[nodePos].NoteType == keyMouTool.TYPE_INPUT_MOUSE {
+			nodes[nodePos].MouseNote.X = nodes[nodePos].MouseNote.X * 65535 / int32(p.windowsX)
+			nodes[nodePos].MouseNote.Y = nodes[nodePos].MouseNote.Y * 65535 / int32(p.windowsY)
+		}
+	}
+	return nodes, err
 }
 
 /*
 	获取信息
 */
 
-func (p *PlayBackServerT)GetWindowRect(){
-	p.windowsX,p.windowsY =  1920,1080
-	x,_,err := windowsApi.DllUser.Call(windowsApi.FuncGetSystemMetrics,windowsApi.SM_CXSCREEN)
+func (p *PlayBackServerT) GetWindowRect() {
+	p.windowsX, p.windowsY = 1920, 1080
+	x, _, err := windowsApi.DllUser.Call(windowsApi.FuncGetSystemMetrics, windowsApi.SM_CXSCREEN)
 	if err != nil {
-		p.sendMessage(PLAYBACK_EVENT_ERROR,err.Error())
+		p.sendMessage(PLAYBACK_EVENT_ERROR, err.Error())
 		return
 	}
-	y,_,err := windowsApi.DllUser.Call(windowsApi.FuncGetSystemMetrics,windowsApi.SM_CYSCREEN)
+	y, _, err := windowsApi.DllUser.Call(windowsApi.FuncGetSystemMetrics, windowsApi.SM_CYSCREEN)
 	if err != nil {
-		p.sendMessage(PLAYBACK_EVENT_ERROR,err.Error())
+		p.sendMessage(PLAYBACK_EVENT_ERROR, err.Error())
 		return
 	}
-	p.windowsX,p.windowsY =  int(x),int(y)
+	p.windowsX, p.windowsY = int(x), int(y)
 }

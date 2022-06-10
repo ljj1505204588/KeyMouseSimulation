@@ -4,20 +4,10 @@ import "KeyMouseSimulation/common/windowsApiTool/windowsInput/keyMouTool"
 
 type noteT struct {
 	NoteType  keyMouTool.InputType
-	KeyNote   keyBoardNoteT
-	MouseNote mouseNoteT
+	KeyNote   keyMouTool.KeyInputChanT
+	MouseNote keyMouTool.MouseInputChanT
 	TimeGap   int64 //Nanosecond
-}
-
-type keyBoardNoteT struct {
-	Vk      keyMouTool.VKCode
-	DWFlags keyMouTool.KeyBoardInputDW
-}
-
-type mouseNoteT struct {
-	X       int32
-	Y       int32
-	DWFlags keyMouTool.MouseInputDW
+	timeGap   float64
 }
 
 // ------------------ 消息 ------------------
