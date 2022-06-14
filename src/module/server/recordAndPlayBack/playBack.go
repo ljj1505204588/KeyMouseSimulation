@@ -1,14 +1,15 @@
 package recordAndPlayBack
 
 import (
+	"KeyMouseSimulation/common/logTool"
 	windowsApi "KeyMouseSimulation/common/windowsApiTool"
 	"KeyMouseSimulation/common/windowsApiTool/windowsInput/keyMouTool"
 	"KeyMouseSimulation/module/language"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -41,15 +42,18 @@ func GetPlaybackServer() *PlayBackServerT {
 }
 
 type PlayBackServerT struct {
-	name          string
-	speed         float64
-	playbackTimes int
-	currentTimes  int
-	windowsX      int
-	windowsY      int
-	status        ServerStatus
+	name        string //读取文件名称
+	playbackPod int    //当前回放在文件内容位置
 
-	messageChan chan PlaybackMessageT
+	speed         float64 //回放速度
+	playbackTimes int     //回放次数
+	currentTimes  int     //当前回放次数
+
+	windowsX int          //电脑屏幕宽度
+	windowsY int          //电脑屏幕长度
+	status   ServerStatus //状态
+
+	messageChan chan PlaybackMessageT //消息反馈通道
 }
 
 //Start 开始
@@ -75,9 +79,7 @@ func (p *PlayBackServerT) changeStatus(status ServerStatus) error {
 			return fmt.Errorf(language.ErrorFreeToPlaybackPause)
 		}
 	case SERVER_TYPE_PLAYBACK:
-		return nil
 	case SERVER_TYPE_PLAYBACK_PAUSE:
-		return nil
 	}
 
 	p.status = status
@@ -94,6 +96,8 @@ func (p *PlayBackServerT) GetPlayBackMessageChan() chan PlaybackMessageT {
 	return p.messageChan
 }
 func (p *PlayBackServerT) sendMessage(event PlaybackEvent, value interface{}) {
+	logTool.DebugAJ(" playback 发送变动消息：", event.String())
+
 	if p.messageChan == nil {
 		p.messageChan = make(chan PlaybackMessageT, 100)
 	}
@@ -140,60 +144,70 @@ func (p *PlayBackServerT) loop() {
 	}
 
 	//主循环所需参数
-	ctx, done := context.WithCancel(context.Background())
+	exit := make(chan struct{}, 0)
 	nowStatus := p.status
+	go p.free(exit)
 
 	p.currentTimes = p.playbackTimes
 	for {
 		if nowStatus != p.status {
+			logTool.DebugAJ("playback 状态变动:" + nowStatus.String() + "->" + p.status.String())
+
 			nowStatus = p.status
-			done()
-			ctx, done = context.WithCancel(context.Background())
+			exit <- struct{}{}
 			switch p.status {
 			case SERVER_TYPE_FREE:
-				go p.free(ctx)
+				go p.free(exit)
 			case SERVER_TYPE_PLAYBACK:
-				go p.playback(ctx, kSend, mSend)
+				go p.playback(exit, kSend, mSend)
 			case SERVER_TYPE_PLAYBACK_PAUSE:
-				go p.pause(ctx)
+				go p.pause(exit)
 			}
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
 
 }
-func (p *PlayBackServerT) free(ctx context.Context) {
+func (p *PlayBackServerT) free(exit chan struct{}) {
+	//回放节点设为初始、回放次数恢复设置次数
+	p.playbackPod = 0
 	p.currentTimes = p.playbackTimes
 	p.sendMessage(PLAYBACK_EVENT_CURRENT_TIMES_CHANGE, p.currentTimes)
-	<-ctx.Done()
+
+	<-exit
+	logTool.DebugAJ("playback 退出回放空闲状态")
 }
-func (p *PlayBackServerT) pause(ctx context.Context) {
-	<-ctx.Done() // 哈哈进来就等着走！！！
+func (p *PlayBackServerT) pause(exit chan struct{}) {
+	<-exit // 哈哈进来就等着走！！！
+	logTool.DebugAJ("playback 退出回放暂停状态")
 }
-func (p *PlayBackServerT) playback(ctx context.Context, kSend chan keyMouTool.KeyInputChanT, mSend chan keyMouTool.MouseInputChanT) {
-	var pos = -1
+func (p *PlayBackServerT) playback(exit chan struct{}, kSend chan keyMouTool.KeyInputChanT, mSend chan keyMouTool.MouseInputChanT) {
 	var err error
-	var notes = make([]noteT, 100)
+	var notes = make([]noteT, 0)
 
 	if notes, err = p.loadPlaybackNotes(p.name); err != nil || len(notes) == 0 {
 		_ = p.changeStatus(SERVER_TYPE_FREE)
-		p.sendMessage(PLAYBACK_EVENT_ERROR, err.Error())
+		if err != nil {
+			p.sendMessage(PLAYBACK_EVENT_ERROR, err.Error())
+		}
+		<-exit
 		return
 	}
-	p.currentTimes = p.playbackTimes
 
 	for {
 		select {
-		//TODO 说实话觉得这样好傻，有啥子更好的办法么
-		case <-ctx.Done():
+		case <-exit:
+			logTool.DebugAJ("playback 退出回放状态")
 			return
 		default:
-			pos += 1
-
-			if pos >= len(notes) {
-				pos = 0
-				p.dealPlayBackTimes()
+			if p.playbackPod >= len(notes) {
+				p.playbackPod = 0
+				if p.dealPlayBackTimes() {
+					<-exit
+					return
+				}
 			}
+			pos := p.playbackPod
 			switch notes[pos].NoteType {
 			case keyMouTool.TYPE_INPUT_KEYBOARD:
 				time.Sleep(time.Duration(int(notes[pos].timeGap / p.speed)))
@@ -202,10 +216,11 @@ func (p *PlayBackServerT) playback(ctx context.Context, kSend chan keyMouTool.Ke
 				time.Sleep(time.Duration(int(notes[pos].timeGap / p.speed)))
 				mSend <- notes[pos].MouseNote
 			}
+			p.playbackPod += 1
 		}
 	}
 }
-func (p *PlayBackServerT) dealPlayBackTimes() {
+func (p *PlayBackServerT) dealPlayBackTimes() (isReturn bool) {
 	if p.currentTimes == -1 {
 		return
 	}
@@ -213,7 +228,9 @@ func (p *PlayBackServerT) dealPlayBackTimes() {
 	p.sendMessage(PLAYBACK_EVENT_CURRENT_TIMES_CHANGE, p.currentTimes)
 	if p.currentTimes <= 0 {
 		_ = p.changeStatus(SERVER_TYPE_FREE)
+		isReturn = true
 	}
+	return
 }
 
 //loadPlaybackNotes 加载回放记录
@@ -238,6 +255,11 @@ func (p *PlayBackServerT) loadPlaybackNotes(name string) ([]noteT, error) {
 			nodes[nodePos].MouseNote.Y = nodes[nodePos].MouseNote.Y * 65535 / int32(p.windowsY)
 		}
 	}
+
+	if err == nil {
+		logTool.DebugAJ("playback 加载文件成功：" + "名称:" + name + " 长度：" + strconv.Itoa(len(nodes)))
+	}
+
 	return nodes, err
 }
 

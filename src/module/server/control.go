@@ -1,11 +1,11 @@
 package server
 
 import (
-	"fmt"
-	"io/ioutil"
 	"KeyMouseSimulation/common/windowsApiTool/windowsInput/keyMouTool"
 	"KeyMouseSimulation/module/language"
 	"KeyMouseSimulation/module/server/recordAndPlayBack"
+	"fmt"
+	"io/ioutil"
 	"path/filepath"
 	"sort"
 	"time"
@@ -229,8 +229,8 @@ func (c *WinControlT) Monitor() {
 			case recordAndPlayBack.RECORD_EVENT_STATUS_CHANGE:
 				continue
 			case recordAndPlayBack.RECORD_SAVE_FILE_ERROR:
-				if value,ok := recordMsg.Value.(string);ok {
-					c.sendMessage(CONTROL_EVENT_SAVE_FILE_ERROR,value)
+				if value, ok := recordMsg.Value.(string); ok {
+					c.sendMessage(CONTROL_EVENT_SAVE_FILE_ERROR, value)
 				}
 			case recordAndPlayBack.RECORD_EVENT_HOTKEY_DOWN:
 				if time.Now().UnixNano()-lastHotkeyEvenTime < 200*int64(time.Millisecond) {
@@ -301,6 +301,7 @@ func (c *WinControlT) SetHotKey(hk HotKey, k string) {
 	}
 }
 func (c *WinControlT) SetFileName(fileName string) {
+
 	if fileName != "" {
 		fileName += FILE_EXT
 	}
@@ -313,7 +314,7 @@ func (c *WinControlT) SetSpeed(speed float64) {
 func (c *WinControlT) SetPlaybackTimes(times int) {
 	c.playBack.SetPlaybackTimes(times)
 }
-func (c *WinControlT) SetIfTrackMouseMove(sign bool){
+func (c *WinControlT) SetIfTrackMouseMove(sign bool) {
 	c.record.SetIfTrackMouseMove(sign)
 }
 

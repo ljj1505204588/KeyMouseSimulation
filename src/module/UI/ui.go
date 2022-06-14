@@ -1,15 +1,15 @@
 package ui
 
 import (
+	"KeyMouseSimulation/common/logTool"
 	. "KeyMouseSimulation/module/language"
 	"KeyMouseSimulation/module/server"
-	"fmt"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
 	"github.com/lxn/win"
 	"math"
 	"os"
-	"strconv"
+	"sort"
 	"time"
 )
 
@@ -78,10 +78,29 @@ func createControl() *controlT {
 
 	//文件信息获取
 	var err error
-	c.fileNames = c.wc.ScanFile()
 	if c.basePath, err = os.Getwd(); err != nil {
 		panic(err.Error())
 	}
+	c.fileNames = c.wc.ScanFile()
+	sort.Strings(c.fileNames)
+	go func() {
+		for {
+			if len(c.fileNames) == 0 {
+				break
+			}
+			if c.fileBox != nil {
+				_ = c.fileBox.SetText(c.fileNames[0])
+				break
+			}
+			time.Sleep(200 * time.Millisecond)
+		}
+		ticker := time.NewTicker(10 * time.Second)
+		for range ticker.C {
+			c.fileNames = c.wc.ScanFile()
+			sort.Strings(c.fileNames)
+			_ = c.fileBox.SetModel(c.fileNames)
+		}
+	}()
 
 	//key列表获取
 	c.keyList = c.wc.GetKeyList()
@@ -196,12 +215,14 @@ func MainWindows() {
 					} else if cmd == walk.DlgCmdOK {
 						for _, v := range c.fileNames {
 							if v == fileName {
-								fileName += "-" + strconv.Itoa(int(time.Now().Unix()))
+								fileName += "-" + time.Now().String()
 							}
 						}
 						c.wc.SetFileName(fileName)
 						_ = c.fileBox.SetText(fileName)
+
 						c.fileNames = append(c.fileNames, fileName)
+						sort.Strings(c.fileNames)
 						_ = c.fileBox.SetModel(c.fileNames)
 					}
 				}
@@ -289,7 +310,7 @@ func MainWindows() {
 		},
 	}.Run()
 	if err != nil {
-		fmt.Println(err.Error())
+		logTool.ErrorAJ(err)
 		time.Sleep(5 * time.Second)
 	}
 }

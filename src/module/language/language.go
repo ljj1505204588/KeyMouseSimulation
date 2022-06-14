@@ -110,7 +110,7 @@ func UiChange(l language) {
 		FileLabelStr = "文件"
 		SpeedLabelStr = "速度"
 		PlayBackTimesLabelStr = "回放次数"
-		CurrentTimesLabelStr = "当前时间"
+		CurrentTimesLabelStr = "剩余次数"
 		StatusLabelStr = "状态"
 		ErrorLabelStr = "错误"
 		SetFileLabelStr = "文件名称："
@@ -161,7 +161,7 @@ func ServerChange(l language) {
 		ErrorSetHotkeyInFreeStatusStr = "Only set hotkey in free status . "
 		ErrorSetHotkeyWithoutHotkeyStr = "Hotkey is nil. "
 		ErrorSaveFileNameNilStr = "File name is nil. "
-	}else if l == Chinese {
+	} else if l == Chinese {
 		ControlTypeFreeStr = "空闲"
 		ControlTypeRecordingStr = "录制"
 		ControlTypeRecordPauseStr = "录制暂停"
