@@ -103,12 +103,12 @@ func (c *WinControlT) judgeStatus(s ControlStatus) error {
 			return fmt.Errorf(language.ErrorRecordPauseToPlaybackOrPlaybackPause)
 		}
 	}
-	fmt.Println("control", c.getControlStatusStr(s))
+	fmt.Println("control", s.String())
 	return nil
 }
 func (c *WinControlT) changeStatus(s ControlStatus) {
 	c.status = s
-	c.sendMessage(CONTROL_EVENT_STATUS_CHANGE, int(c.status), c.getControlStatusStr(s))
+	c.sendMessage(CONTROL_EVENT_STATUS_CHANGE, int(c.status), s.String())
 }
 
 func (c *WinControlT) StartRecord() error {
@@ -242,7 +242,7 @@ func (c *WinControlT) Monitor() {
 						c.sendMessage(CONTROL_EVENT_HOTKEY_DOWN, HOT_KEY_PLAYBACK_START)
 					case recordAndPlayBack.HOT_KEY_RECORD_START:
 						c.sendMessage(CONTROL_EVENT_HOTKEY_DOWN, HOT_KEY_RECORD_START)
-					case recordAndPlayBack.HOT_KEY_PUASE:
+					case recordAndPlayBack.HOT_KEY_PAUSE:
 						c.sendMessage(CONTROL_EVENT_HOTKEY_DOWN, HOT_KEY_PUASE)
 					case recordAndPlayBack.HOT_KEY_STOP:
 						c.sendMessage(CONTROL_EVENT_HOTKEY_DOWN, HOT_KEY_STOP)
@@ -338,22 +338,6 @@ func (c *WinControlT) ScanFile() (result []string) {
 	return
 }
 
-func (c *WinControlT) getControlStatusStr(s ControlStatus) string {
-	switch s {
-	case CONTROL_TYPE_FREE:
-		return language.ControlTypeFreeStr
-	case CONTROL_TYPE_RECORDING:
-		return language.ControlTypeRecordingStr
-	case CONTROL_TYPE_RECORD_PAUSE:
-		return language.ControlTypeRecordPauseStr
-	case CONTROL_TYPE_PLAYBACK:
-		return language.ControlTypePlaybackStr
-	case CONTROL_TYPE_PLAYBACK_PAUSE:
-		return language.ControlTypePlaybackPauseStr
-	default:
-		return ""
-	}
-}
 func getKeyM() map[string]keyMouTool.VKCode {
 	return map[string]keyMouTool.VKCode{
 		"0":   keyMouTool.VK_0,

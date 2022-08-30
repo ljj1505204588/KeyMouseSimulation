@@ -167,7 +167,6 @@ func mouseDefaultHookHandler() (HOOKPROC, chan MouseEvent) {
 	}, c
 }
 func MouseHook(h mouseHookHandler) (chan MouseEvent, error) {
-	return make(chan MouseEvent, 0), nil
 	hook.Lock()
 	defer hook.Unlock()
 

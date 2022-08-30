@@ -47,7 +47,8 @@ const (
 	WM_MOUSELEFTUP       Message = 0x0202
 	WM_MOUSELEFTSICEDOWN Message = 0x020B
 	WM_MOUSELEFTSICEUP   Message = 0x020C
-	WM_MOUSEPULLEY       Message = 0x020A
+	WM_MOUSEWHEEL        Message = 0x020A
+	WM_MOUSEHWHEEL       Message = 0x020E
 
 	WM_KEYDOWN    Message = 0x0100
 	WM_KEYUP      Message = 0x0101

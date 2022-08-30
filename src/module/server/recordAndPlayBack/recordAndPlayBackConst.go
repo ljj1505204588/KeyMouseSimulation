@@ -1,5 +1,7 @@
 package recordAndPlayBack
 
+import "KeyMouseSimulation/module/language"
+
 //ServerStatus -------------------------------------- 服务状态 --------------------------------------
 type ServerStatus int
 
@@ -33,20 +35,20 @@ type HotKey int
 func (t HotKey) String() (str string) {
 	switch t {
 	case HOT_KEY_STOP:
-		str = "HOT_KEY_STOP"
-	case HOT_KEY_PUASE:
-		str = "HOT_KEY_PUASE"
+		str = language.HotKeyStopStr
+	case HOT_KEY_PAUSE:
+		str = language.HotKeyPauseStr
 	case HOT_KEY_RECORD_START:
-		str = "HOT_KEY_RECORD_START"
+		str = language.HotKeyRecordStartStr
 	case HOT_KEY_PLAYBACK_START:
-		str = "HOT_KEY_PLAYBACK_START"
+		str = language.HotKeyPlaybackStartStr
 	}
 	return
 }
 
 const (
 	HOT_KEY_STOP HotKey = iota
-	HOT_KEY_PUASE
+	HOT_KEY_PAUSE
 	HOT_KEY_RECORD_START
 	HOT_KEY_PLAYBACK_START
 )

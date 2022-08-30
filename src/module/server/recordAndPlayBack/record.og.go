@@ -34,14 +34,33 @@ func GetRecordServer() *RecordServerT {
 		messageChan:      make(chan RecordMessageT, 100),
 	}
 
+	R.mouseDwMap = map[windowsHook.Message]keyMouTool.MouseInputDW{
+		windowsHook.WM_MOUSEMOVE:         keyMouTool.DW_MOUSEEVENTF_MOVE,
+		windowsHook.WM_MOUSELEFTDOWN:     keyMouTool.DW_MOUSEEVENTF_LEFTDOWN,
+		windowsHook.WM_MOUSELEFTUP:       keyMouTool.DW_MOUSEEVENTF_LEFTUP,
+		windowsHook.WM_MOUSERIGHTDOWN:    keyMouTool.DW_MOUSEEVENTF_RIGHTDOWN,
+		windowsHook.WM_MOUSERIGHTUP:      keyMouTool.DW_MOUSEEVENTF_RIGHTUP,
+		windowsHook.WM_MOUSEMIDDLEDOWN:   keyMouTool.DW_MOUSEEVENTF_MIDDLEDOWN,
+		windowsHook.WM_MOUSEMIDDLEUP:     keyMouTool.DW_MOUSEEVENTF_MIDDLEUP,
+		windowsHook.WM_MOUSELEFTSICEDOWN: keyMouTool.DW_MOUSEEVENTF_XDOWN,
+		windowsHook.WM_MOUSELEFTSICEUP:   keyMouTool.DW_MOUSEEVENTF_XUP,
+		windowsHook.WM_MOUSEWHEEL:        keyMouTool.DW_MOUSEEVENTF_WHEEL,
+		windowsHook.WM_MOUSEHWHEEL:       keyMouTool.DW_MOUSEEVENTF_HWHEEL,
+	}
+	R.keyDwMap = map[windowsHook.Message]keyMouTool.KeyBoardInputDW{
+		windowsHook.WM_KEYUP: keyMouTool.DW_KEYEVENTF_KEYUP,
+	}
+
 	go R.loop()
 	return &R
 }
 
 type RecordServerT struct {
-	status   ServerStatus //状态
-	noteName string       //记录名称
-	notes    []noteT      //记录
+	status     ServerStatus //状态
+	noteName   string       //记录名称
+	notes      []noteT      //记录
+	mouseDwMap map[windowsHook.Message]keyMouTool.MouseInputDW
+	keyDwMap   map[windowsHook.Message]keyMouTool.KeyBoardInputDW
 
 	recordMouseTrack bool                   //是否记录鼠标移动路径使用
 	lastMoveEven     windowsHook.MouseEvent //最后移动事件，配合是否记录鼠标移动路径使用
@@ -94,16 +113,19 @@ func (R *RecordServerT) GetRecordMessageChan() chan RecordMessageT {
 	return R.messageChan
 }
 func (R *RecordServerT) sendMessage(event RecordEvent, value interface{}) {
-	logTool.DebugAJ(" record 发送变动消息：", event.String())
-	// 发送变动消息
-	if R.messageChan == nil {
-		R.messageChan = make(chan RecordMessageT, 100)
-	}
+	go func() {
+		logTool.DebugAJ(" record 发送变动消息：", event.String())
+		// 发送变动消息
+		if R.messageChan == nil {
+			R.messageChan = make(chan RecordMessageT, 100)
+		}
 
-	R.messageChan <- RecordMessageT{
-		Event: event,
-		Value: value,
-	}
+		R.messageChan <- RecordMessageT{
+			Event: event,
+			Value: value,
+		}
+	}()
+
 }
 
 //SetHotKey 设置热键
@@ -150,7 +172,7 @@ func (R *RecordServerT) loop() {
 	}
 
 	defer func() { _ = windowsHook.KeyBoardUnhook() }()
-	//defer func() { _ = windowsHook.MouseUnhook() }()
+	defer func() { _ = windowsHook.MouseUnhook() }()
 
 	exit := make(chan struct{}, 0)
 	go R.free(exit, kHook, mHook)
@@ -213,7 +235,7 @@ func (R *RecordServerT) record(exit chan struct{}, kHook chan windowsHook.Keyboa
 			st, timeGap = timeGap, timeGap-st
 			R.notes = append(R.notes, noteT{
 				NoteType: keyMouTool.TYPE_INPUT_KEYBOARD,
-				KeyNote:  keyMouTool.KeyInputChanT{VK: keyMouTool.VKCode(kEvent.VkCode), DwFlags: transKeyDwFlags(kEvent.Message)},
+				KeyNote:  keyMouTool.KeyInputChanT{VK: keyMouTool.VKCode(kEvent.VkCode), DwFlags: R.transKeyDwFlags(kEvent.Message)},
 				TimeGap:  timeGap,
 			})
 		case mEvent := <-mHook:
@@ -224,7 +246,7 @@ func (R *RecordServerT) record(exit chan struct{}, kHook chan windowsHook.Keyboa
 				} else if R.lastMoveEven.Message == windowsHook.WM_MOUSEMOVE {
 					R.notes = append(R.notes, noteT{
 						NoteType:  keyMouTool.TYPE_INPUT_MOUSE,
-						MouseNote: keyMouTool.MouseInputChanT{X: R.lastMoveEven.X, Y: R.lastMoveEven.Y, DWFlags: transMouseDwFlags(R.lastMoveEven.Message)},
+						MouseNote: keyMouTool.MouseInputChanT{X: R.lastMoveEven.X, Y: R.lastMoveEven.Y, DWFlags: R.transMouseDwFlags(R.lastMoveEven.Message)},
 						TimeGap:   0,
 					})
 				}
@@ -233,9 +255,9 @@ func (R *RecordServerT) record(exit chan struct{}, kHook chan windowsHook.Keyboa
 			st, timeGap = timeGap, timeGap-st
 			R.notes = append(R.notes, noteT{
 				NoteType:  keyMouTool.TYPE_INPUT_MOUSE,
-				MouseNote: keyMouTool.MouseInputChanT{X: mEvent.X, Y: mEvent.Y, DWFlags: transMouseDwFlags(mEvent.Message)},
-				TimeGap:   timeGap})
-
+				MouseNote: keyMouTool.MouseInputChanT{X: mEvent.X, Y: mEvent.Y, DWFlags: R.transMouseDwFlags(mEvent.Message)},
+				TimeGap:   timeGap,
+			})
 		}
 	}
 
@@ -284,7 +306,6 @@ func (R *RecordServerT) recordNote(name string, notes []noteT) {
 		R.sendMessage(RECORD_SAVE_FILE_ERROR, err.Error())
 		return
 	}
-
 	_, err = file.Write(js)
 	if err != nil {
 		R.sendMessage(RECORD_SAVE_FILE_ERROR, err.Error())
@@ -293,29 +314,9 @@ func (R *RecordServerT) recordNote(name string, notes []noteT) {
 }
 
 // ----------------------- 被调用模块 -----------------------
-func transMouseDwFlags(message windowsHook.Message) (dw keyMouTool.MouseInputDW) {
-	//TODO 这个变更考虑做到加载时候
-	switch message {
-	case windowsHook.WM_MOUSEMOVE:
-		dw = keyMouTool.DW_MOUSEEVENTF_MOVE
-	case windowsHook.WM_MOUSELEFTDOWN:
-		dw = keyMouTool.DW_MOUSEEVENTF_LEFTDOWN
-	case windowsHook.WM_MOUSELEFTUP:
-		dw = keyMouTool.DW_MOUSEEVENTF_LEFTUP
-	case windowsHook.WM_MOUSERIGHTDOWN:
-		dw = keyMouTool.DW_MOUSEEVENTF_RIGHTDOWN
-	case windowsHook.WM_MOUSERIGHTUP:
-		dw = keyMouTool.DW_MOUSEEVENTF_RIGHTUP
-	case windowsHook.WM_MOUSEMIDDLEDOWN:
-		dw = keyMouTool.DW_MOUSEEVENTF_MIDDLEDOWN
-	case windowsHook.WM_MOUSEMIDDLEUP:
-		dw = keyMouTool.DW_MOUSEEVENTF_MIDDLEUP
-	}
-	return dw | keyMouTool.DW_MOUSEEVENTF_ABSOLUTE
+func (R *RecordServerT) transMouseDwFlags(message windowsHook.Message) (dw keyMouTool.MouseInputDW) {
+	return R.mouseDwMap[message] //| keyMouTool.DW_MOUSEEVENTF_ABSOLUTE
 }
-func transKeyDwFlags(message windowsHook.Message) keyMouTool.KeyBoardInputDW {
-	if message == windowsHook.WM_KEYUP {
-		return keyMouTool.DW_KEYEVENTF_KEYUP
-	}
-	return 0
+func (R *RecordServerT) transKeyDwFlags(message windowsHook.Message) keyMouTool.KeyBoardInputDW {
+	return R.keyDwMap[message]
 }

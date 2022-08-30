@@ -56,6 +56,7 @@ type controlT struct {
 
 	//系统状态
 	status      int
+	inFightBox  bool
 	statusLabel *walk.Label
 	statusEdit  *walk.LineEdit
 	errorLabel  *walk.Label
@@ -77,30 +78,7 @@ func createControl() *controlT {
 	c.wc = server.GetWinControl()
 
 	//文件信息获取
-	var err error
-	if c.basePath, err = os.Getwd(); err != nil {
-		panic(err.Error())
-	}
-	c.fileNames = c.wc.ScanFile()
-	sort.Strings(c.fileNames)
-	go func() {
-		for {
-			if len(c.fileNames) == 0 {
-				break
-			}
-			if c.fileBox != nil {
-				_ = c.fileBox.SetText(c.fileNames[0])
-				break
-			}
-			time.Sleep(200 * time.Millisecond)
-		}
-		ticker := time.NewTicker(10 * time.Second)
-		for range ticker.C {
-			c.fileNames = c.wc.ScanFile()
-			sort.Strings(c.fileNames)
-			_ = c.fileBox.SetModel(c.fileNames)
-		}
-	}()
+	c.fileRefresh()
 
 	//key列表获取
 	c.keyList = c.wc.GetKeyList()
@@ -118,14 +96,6 @@ func (c *controlT) Monitor() {
 
 	if c.monitorChan == nil {
 		c.monitorChan = c.wc.GetMessageChan()
-	}
-
-	//等待初始化
-	for {
-		if c.statusEdit != nil && c.playbackTimesEdit != nil && c.errorEdit != nil {
-			break
-		}
-		time.Sleep(200 * time.Millisecond)
 	}
 
 	//监听，修改
@@ -203,6 +173,12 @@ func MainWindows() {
 				}
 			}},
 			PushButton{AssignTo: &c.stopButton, ColumnSpan: 4, Text: StopStr + " " + c.hKList[3], OnClicked: func() {
+				//避免多个文件弹窗
+				if c.inFightBox {
+					return
+				}
+				defer func() { c.inFightBox = false }()
+				c.inFightBox = true
 				//记录中，弹窗
 				if c.status == UI_TYPE_RECORDING || c.status == UI_TYPE_RECORD_PAUSE {
 					if err := c.wc.Pause(); err != nil {
@@ -432,4 +408,39 @@ func (c *controlT) ChangeLanguage() {
 	c.mw.SetVisible(true)
 
 	time.Sleep(100 * time.Millisecond)
+}
+func (c *controlT) waitWidgetLoading() {
+	//等待初始化
+	for {
+		if c.statusEdit != nil && c.playbackTimesEdit != nil && c.errorEdit != nil && c.fileBox != nil {
+			break
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+}
+func (c *controlT) fileRefresh() {
+	var err error
+	if c.basePath, err = os.Getwd(); err != nil {
+		panic(err.Error())
+	}
+	c.fileNames = c.wc.ScanFile()
+	sort.Strings(c.fileNames)
+	go func() {
+		for {
+			if len(c.fileNames) != 0 {
+				break
+			}
+			if c.fileBox != nil {
+				_ = c.fileBox.SetText(c.fileNames[0])
+				break
+			}
+			time.Sleep(200 * time.Millisecond)
+		}
+		ticker := time.NewTicker(10 * time.Second)
+		for range ticker.C {
+			c.fileNames = c.wc.ScanFile()
+			sort.Strings(c.fileNames)
+			_ = c.fileBox.SetModel(c.fileNames)
+		}
+	}()
 }

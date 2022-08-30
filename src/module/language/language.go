@@ -130,6 +130,11 @@ var ControlTypeRecordPauseStr string
 var ControlTypePlaybackStr string
 var ControlTypePlaybackPauseStr string
 
+var HotKeyStopStr string
+var HotKeyPauseStr string
+var HotKeyRecordStartStr string
+var HotKeyPlaybackStartStr string
+
 var ErrorFreeToRecordPause string
 var ErrorFreeToPlaybackPause string
 var ErrorFreeToFree string
@@ -151,6 +156,11 @@ func ServerChange(l language) {
 		ControlTypePlaybackStr = "PLAYBACK"
 		ControlTypePlaybackPauseStr = "PLAYBACK_PAUSE"
 
+		HotKeyStopStr = "HotKeyStop"
+		HotKeyPauseStr = "HotKeyPause"
+		HotKeyRecordStartStr = "HotKeyRecordStart"
+		HotKeyPlaybackStartStr = "HotKeyPlaybackStart"
+
 		ErrorFreeToRecordPause = "Not in record. "
 		ErrorFreeToPlaybackPause = "Not in playback. "
 		ErrorFreeToFree = "In free status already "
@@ -167,6 +177,11 @@ func ServerChange(l language) {
 		ControlTypeRecordPauseStr = "录制暂停"
 		ControlTypePlaybackStr = "回放"
 		ControlTypePlaybackPauseStr = "回放暂停"
+
+		HotKeyStopStr = "热键停止"
+		HotKeyPauseStr = "热键暂停"
+		HotKeyRecordStartStr = "热键记录"
+		HotKeyPlaybackStartStr = "热键回放"
 
 		ErrorFreeToRecordPause = "当前不在录制中。"
 		ErrorFreeToPlaybackPause = "当前不在回放中。"

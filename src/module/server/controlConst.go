@@ -1,12 +1,32 @@
 package server
 
-import "KeyMouseSimulation/module/server/recordAndPlayBack"
+import (
+	"KeyMouseSimulation/module/language"
+	"KeyMouseSimulation/module/server/recordAndPlayBack"
+)
 
 const (
 	FILE_EXT = ".recordPlayback"
 )
 
+//ControlStatus -------------------------------------- 控制器状态 --------------------------------------
 type ControlStatus int
+
+func (t ControlStatus) String() string {
+	switch t {
+	case CONTROL_TYPE_FREE:
+		return language.ControlTypeFreeStr
+	case CONTROL_TYPE_RECORDING:
+		return language.ControlTypeRecordingStr
+	case CONTROL_TYPE_RECORD_PAUSE:
+		return language.ControlTypeRecordPauseStr
+	case CONTROL_TYPE_PLAYBACK:
+		return language.ControlTypePlaybackStr
+	case CONTROL_TYPE_PLAYBACK_PAUSE:
+		return language.ControlTypePlaybackPauseStr
+	}
+	return ""
+}
 
 const (
 	CONTROL_TYPE_FREE ControlStatus = 1 << iota
@@ -16,6 +36,7 @@ const (
 	CONTROL_TYPE_PLAYBACK_PAUSE
 )
 
+//Event -------------------------------------- 控制器事件 --------------------------------------
 type Event int8
 
 const (
@@ -26,11 +47,16 @@ const (
 	CONTROL_EVENT_ERROR
 )
 
-type HotKey int
+//HotKey -------------------------------------- 控制器热键 --------------------------------------
+type HotKey recordAndPlayBack.HotKey
+
+func (t HotKey) String() string {
+	return t.String()
+}
 
 const (
 	HOT_KEY_STOP           = HotKey(recordAndPlayBack.HOT_KEY_STOP)
-	HOT_KEY_PUASE          = HotKey(recordAndPlayBack.HOT_KEY_PUASE)
+	HOT_KEY_PUASE          = HotKey(recordAndPlayBack.HOT_KEY_PAUSE)
 	HOT_KEY_RECORD_START   = HotKey(recordAndPlayBack.HOT_KEY_RECORD_START)
 	HOT_KEY_PLAYBACK_START = HotKey(recordAndPlayBack.HOT_KEY_PLAYBACK_START)
 )

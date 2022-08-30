@@ -96,16 +96,18 @@ func (p *PlayBackServerT) GetPlayBackMessageChan() chan PlaybackMessageT {
 	return p.messageChan
 }
 func (p *PlayBackServerT) sendMessage(event PlaybackEvent, value interface{}) {
-	logTool.DebugAJ(" playback 发送变动消息：", event.String())
+	go func() {
+		logTool.DebugAJ(" playback 发送变动消息：", event.String())
 
-	if p.messageChan == nil {
-		p.messageChan = make(chan PlaybackMessageT, 100)
-	}
+		if p.messageChan == nil {
+			p.messageChan = make(chan PlaybackMessageT, 100)
+		}
 
-	p.messageChan <- PlaybackMessageT{
-		Event: event,
-		Value: value,
-	}
+		p.messageChan <- PlaybackMessageT{
+			Event: event,
+			Value: value,
+		}
+	}()
 }
 
 //SetSpeed 设置回放速度
