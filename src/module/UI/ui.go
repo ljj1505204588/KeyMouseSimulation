@@ -427,7 +427,7 @@ func (c *controlT) fileRefresh() {
 	sort.Strings(c.fileNames)
 	go func() {
 		for {
-			if len(c.fileNames) != 0 {
+			if len(c.fileNames) == 0 {
 				break
 			}
 			if c.fileBox != nil {

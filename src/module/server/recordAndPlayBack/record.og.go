@@ -315,7 +315,7 @@ func (R *RecordServerT) recordNote(name string, notes []noteT) {
 
 // ----------------------- 被调用模块 -----------------------
 func (R *RecordServerT) transMouseDwFlags(message windowsHook.Message) (dw keyMouTool.MouseInputDW) {
-	return R.mouseDwMap[message] //| keyMouTool.DW_MOUSEEVENTF_ABSOLUTE
+	return R.mouseDwMap[message] | keyMouTool.DW_MOUSEEVENTF_ABSOLUTE
 }
 func (R *RecordServerT) transKeyDwFlags(message windowsHook.Message) keyMouTool.KeyBoardInputDW {
 	return R.keyDwMap[message]
