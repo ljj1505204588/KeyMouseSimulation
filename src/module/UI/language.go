@@ -1,4 +1,4 @@
-package language
+package ui
 
 type language string
 

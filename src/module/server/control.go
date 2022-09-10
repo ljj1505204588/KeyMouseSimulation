@@ -1,14 +1,16 @@
 package server
 
 import (
+	eventCenter "KeyMouseSimulation/common/Event"
 	"KeyMouseSimulation/common/windowsApiTool/windowsInput/keyMouTool"
-	"KeyMouseSimulation/module/language"
+	"KeyMouseSimulation/module/UI"
 	"KeyMouseSimulation/module/server/recordAndPlayBack"
+	"KeyMouseSimulation/share/enum"
+	"KeyMouseSimulation/share/events"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"sort"
-	"time"
 )
 
 /*
@@ -21,9 +23,8 @@ type ControlI interface {
 	Pause() error
 	Stop() error
 
-	GetMessageChan() chan MessageT
-	GetKeyList() []string
-	SetHotKey(k HotKey, key string)
+	GetKeyList() (hotKeyList [4]string, keyList []string)
+	SetHotKey(k enum.HotKey, key string)
 	SetFileName(fileName string)
 	SetSpeed(speed float64)
 	SetPlaybackTimes(times int)
@@ -37,22 +38,19 @@ type ControlI interface {
 
 func GetWinControl() *WinControlT {
 	c := WinControlT{
-		playBack:    recordAndPlayBack.GetPlaybackServer(),
-		record:      recordAndPlayBack.GetRecordServer(),
-		messageChan: make(chan MessageT, 100),
-		keyM:        getKeyM(),
-		status:      CONTROL_TYPE_FREE,
-		fileName:    "",
+		playBack: recordAndPlayBack.GetPlaybackServer(),
+		record:   recordAndPlayBack.GetRecordServer(),
+		keyM:     getKeyM(),
+		status:   enum.FREE,
+		fileName: "",
 	}
 
-	c.SetHotKey(HOT_KEY_RECORD_START, "F7")
-	c.SetHotKey(HOT_KEY_PLAYBACK_START, "F8")
-	c.SetHotKey(HOT_KEY_PUASE, "F9")
-	c.SetHotKey(HOT_KEY_STOP, "F10")
+	c.SetHotKey(enum.HOT_KEY_RECORD_START, "F7")
+	c.SetHotKey(enum.HOT_KEY_PLAYBACK_START, "F8")
+	c.SetHotKey(enum.HOT_KEY_PAUSE, "F9")
+	c.SetHotKey(enum.HOT_KEY_STOP, "F10")
 
 	c.changeStatus(c.status)
-
-	go c.Monitor()
 
 	return &c
 }
@@ -62,57 +60,53 @@ type WinControlT struct {
 	playBack recordAndPlayBack.PlayBackServerI
 	record   recordAndPlayBack.RecordServerI
 
-	//事件 监听通道
-	messageChan         chan MessageT
-	recordMonitorChan   chan recordAndPlayBack.RecordMessageT
-	playbackMonitorChan chan recordAndPlayBack.PlaybackMessageT
-
 	keyM map[string]keyMouTool.VKCode
 
-	status   ControlStatus
+	status   enum.Status
 	fileName string
 }
 
-func (c *WinControlT) judgeStatus(s ControlStatus) error {
+func (c *WinControlT) checkStatusChange(s enum.Status) error {
 
 	ns := c.status
 
 	switch ns {
-	case CONTROL_TYPE_FREE:
-		if s == CONTROL_TYPE_RECORD_PAUSE {
-			return fmt.Errorf(language.ErrorFreeToRecordPause)
-		} else if s == CONTROL_TYPE_PLAYBACK_PAUSE {
-			return fmt.Errorf(language.ErrorFreeToPlaybackPause)
-		} else if s == CONTROL_TYPE_FREE {
-			return fmt.Errorf(language.ErrorFreeToFree)
+	case enum.FREE:
+		if s == enum.RECORD_PAUSE {
+			return fmt.Errorf(ui.ErrorFreeToRecordPause)
+		} else if s == enum.PLAYBACK_PAUSE {
+			return fmt.Errorf(ui.ErrorFreeToPlaybackPause)
+		} else if s == enum.FREE {
+			return fmt.Errorf(ui.ErrorFreeToFree)
 		}
-	case CONTROL_TYPE_PLAYBACK:
-		if s == CONTROL_TYPE_RECORDING || s == CONTROL_TYPE_RECORD_PAUSE {
-			return fmt.Errorf(language.ErrorPlaybackToRecordOrRecordPause)
+	case enum.PLAYBACK:
+		if s == enum.RECORDING || s == enum.RECORD_PAUSE {
+			return fmt.Errorf(ui.ErrorPlaybackToRecordOrRecordPause)
 		}
-	case CONTROL_TYPE_PLAYBACK_PAUSE:
-		if s == CONTROL_TYPE_RECORDING || s == CONTROL_TYPE_RECORD_PAUSE {
-			return fmt.Errorf(language.ErrorPlaybackPauseToRecordOrRecordPause)
+	case enum.PLAYBACK_PAUSE:
+		if s == enum.RECORDING || s == enum.RECORD_PAUSE {
+			return fmt.Errorf(ui.ErrorPlaybackPauseToRecordOrRecordPause)
 		}
-	case CONTROL_TYPE_RECORDING:
-		if s == CONTROL_TYPE_PLAYBACK || s == CONTROL_TYPE_PLAYBACK_PAUSE {
-			return fmt.Errorf(language.ErrorRecordToPlaybackOrPlaybackPause)
+	case enum.RECORDING:
+		if s == enum.PLAYBACK || s == enum.PLAYBACK_PAUSE {
+			return fmt.Errorf(ui.ErrorRecordToPlaybackOrPlaybackPause)
 		}
-	case CONTROL_TYPE_RECORD_PAUSE:
-		if s == CONTROL_TYPE_PLAYBACK || s == CONTROL_TYPE_PLAYBACK_PAUSE {
-			return fmt.Errorf(language.ErrorRecordPauseToPlaybackOrPlaybackPause)
+	case enum.RECORD_PAUSE:
+		if s == enum.PLAYBACK || s == enum.PLAYBACK_PAUSE {
+			return fmt.Errorf(ui.ErrorRecordPauseToPlaybackOrPlaybackPause)
 		}
 	}
-	fmt.Println("control", s.String())
+	fmt.Println("control ", s)
 	return nil
 }
-func (c *WinControlT) changeStatus(s ControlStatus) {
+func (c *WinControlT) changeStatus(s enum.Status) {
 	c.status = s
-	c.sendMessage(CONTROL_EVENT_STATUS_CHANGE, int(c.status), s.String())
+
+	_ = eventCenter.Event.SyncPublish(events.ServerStatusChange, events.ServerStatusChangeData{Status: s})
 }
 
 func (c *WinControlT) StartRecord() error {
-	if err := c.judgeStatus(CONTROL_TYPE_RECORDING); err != nil {
+	if err := c.checkStatusChange(enum.RECORDING); err != nil {
 		return err
 	}
 
@@ -121,11 +115,11 @@ func (c *WinControlT) StartRecord() error {
 		return err
 	}
 
-	c.changeStatus(CONTROL_TYPE_RECORDING)
+	c.changeStatus(enum.RECORDING)
 	return nil
 }
 func (c *WinControlT) StartPlayback() error {
-	if err := c.judgeStatus(CONTROL_TYPE_PLAYBACK); err != nil {
+	if err := c.checkStatusChange(enum.PLAYBACK); err != nil {
 		return err
 	}
 
@@ -134,29 +128,29 @@ func (c *WinControlT) StartPlayback() error {
 		return err
 	}
 
-	c.changeStatus(CONTROL_TYPE_PLAYBACK)
+	c.changeStatus(enum.PLAYBACK)
 	return nil
 }
 func (c *WinControlT) Pause() error {
 
-	var status = CONTROL_TYPE_FREE
-	if c.status == CONTROL_TYPE_RECORDING {
-		status = CONTROL_TYPE_RECORD_PAUSE
-	} else if c.status == CONTROL_TYPE_PLAYBACK {
-		status = CONTROL_TYPE_PLAYBACK_PAUSE
+	var status = enum.FREE
+	if c.status == enum.RECORDING {
+		status = enum.RECORD_PAUSE
+	} else if c.status == enum.PLAYBACK {
+		status = enum.PLAYBACK_PAUSE
 	} else {
 		return nil
 	}
 
 	var err error
-	if err = c.judgeStatus(status); err != nil {
+	if err = c.checkStatusChange(status); err != nil {
 		return err
 	}
 
 	switch status {
-	case CONTROL_TYPE_PLAYBACK_PAUSE:
+	case enum.PLAYBACK_PAUSE:
 		err = c.playBack.Pause()
-	case CONTROL_TYPE_RECORD_PAUSE:
+	case enum.RECORD_PAUSE:
 		err = c.record.Pause()
 	}
 
@@ -169,135 +163,42 @@ func (c *WinControlT) Pause() error {
 }
 func (c *WinControlT) Stop() error {
 
-	if err := c.judgeStatus(CONTROL_TYPE_FREE); err != nil {
+	if err := c.checkStatusChange(enum.FREE); err != nil {
 		return err
 	}
 
 	switch {
-	case c.status == CONTROL_TYPE_RECORDING || c.status == CONTROL_TYPE_RECORD_PAUSE:
+	case c.status == enum.RECORDING || c.status == enum.RECORD_PAUSE:
 		if err := c.record.Stop(c.fileName); err != nil {
 			return err
 		}
-	case c.status == CONTROL_TYPE_PLAYBACK || c.status == CONTROL_TYPE_PLAYBACK_PAUSE:
+	case c.status == enum.PLAYBACK || c.status == enum.PLAYBACK_PAUSE:
 		if err := c.playBack.Stop(); err != nil {
 			return err
 		}
 	}
 
-	c.changeStatus(CONTROL_TYPE_FREE)
+	c.changeStatus(enum.FREE)
 	return nil
 }
 
-func (c *WinControlT) Monitor() {
-	defer func() {
-		if info := recover(); info != nil {
-			go func() { c.Monitor() }()
-		}
-	}()
-
-	if c.playbackMonitorChan == nil {
-		c.playbackMonitorChan = c.playBack.GetPlayBackMessageChan()
-	}
-	if c.recordMonitorChan == nil {
-		c.recordMonitorChan = c.record.GetRecordMessageChan()
-	}
-
-	lastHotkeyEvenTime := time.Now().UnixNano()
-	for {
-		select {
-		case playbackMsg, ok := <-c.playbackMonitorChan:
-			if !ok {
-				c.playbackMonitorChan = c.playBack.GetPlayBackMessageChan()
-			}
-			switch playbackMsg.Event {
-			case recordAndPlayBack.PLAYBACK_EVENT_STATUS_CHANGE:
-				if value, ok := playbackMsg.Value.(recordAndPlayBack.ServerStatus); ok {
-					if c.status == CONTROL_TYPE_PLAYBACK && value == recordAndPlayBack.SERVER_TYPE_FREE {
-						c.changeStatus(CONTROL_TYPE_FREE)
-					}
-				}
-			case recordAndPlayBack.PLAYBACK_EVENT_CURRENT_TIMES_CHANGE:
-				if value, ok := playbackMsg.Value.(int); ok {
-					c.sendMessage(CONTROL_EVENT_PLAYBACK_TIMES_CHANGE, value)
-				}
-			}
-		case recordMsg, ok := <-c.recordMonitorChan:
-			if !ok {
-				c.recordMonitorChan = c.record.GetRecordMessageChan()
-			}
-			switch recordMsg.Event {
-			case recordAndPlayBack.RECORD_EVENT_STATUS_CHANGE:
-				continue
-			case recordAndPlayBack.RECORD_SAVE_FILE_ERROR:
-				if value, ok := recordMsg.Value.(string); ok {
-					c.sendMessage(CONTROL_EVENT_SAVE_FILE_ERROR, value)
-				}
-			case recordAndPlayBack.RECORD_EVENT_HOTKEY_DOWN:
-				if time.Now().UnixNano()-lastHotkeyEvenTime < 200*int64(time.Millisecond) {
-					continue
-				}
-				if value, ok := recordMsg.Value.(recordAndPlayBack.HotKey); ok {
-					switch value {
-					case recordAndPlayBack.HOT_KEY_PLAYBACK_START:
-						c.sendMessage(CONTROL_EVENT_HOTKEY_DOWN, HOT_KEY_PLAYBACK_START)
-					case recordAndPlayBack.HOT_KEY_RECORD_START:
-						c.sendMessage(CONTROL_EVENT_HOTKEY_DOWN, HOT_KEY_RECORD_START)
-					case recordAndPlayBack.HOT_KEY_PAUSE:
-						c.sendMessage(CONTROL_EVENT_HOTKEY_DOWN, HOT_KEY_PUASE)
-					case recordAndPlayBack.HOT_KEY_STOP:
-						c.sendMessage(CONTROL_EVENT_HOTKEY_DOWN, HOT_KEY_STOP)
-					}
-				}
-				lastHotkeyEvenTime = time.Now().UnixNano()
-			}
-		}
-	}
-}
-func (c *WinControlT) sendMessage(event Event, values ...interface{}) {
-	if c.messageChan == nil {
-		c.messageChan = make(chan MessageT, 100)
-	}
-	if len(values) == 1 {
-		c.messageChan <- MessageT{
-			Event: event,
-			Value: values[0],
-		}
-	} else if len(values) == 2 {
-		c.messageChan <- MessageT{
-			Event:  event,
-			Value:  values[0],
-			Value2: values[1],
-		}
-	}
-
-}
-func (c *WinControlT) GetMessageChan() chan MessageT {
-	if c.messageChan == nil {
-		c.messageChan = make(chan MessageT, 100)
-	}
-	return c.messageChan
-}
-
-func (c *WinControlT) GetKeyList() (result []string) {
-	return []string{
+func (c *WinControlT) GetKeyList() (hotKeyList [4]string, keyList []string) {
+	return [4]string{"F7", "F8", "F9", "F10"}, []string{
 		"F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12",
 		"0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
 		"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
 	}
 }
-func (c *WinControlT) SetHotKey(hk HotKey, k string) {
+func (c *WinControlT) SetHotKey(hk enum.HotKey, k string) {
 
-	if c.status != CONTROL_TYPE_FREE {
-		c.sendMessage(CONTROL_EVENT_ERROR, language.ErrorSetHotkeyInFreeStatusStr)
+	if c.status != enum.FREE {
 		return
 	}
 	if k == "" {
-		c.sendMessage(CONTROL_EVENT_ERROR, language.ErrorSetHotkeyWithoutHotkeyStr)
 		return
 	}
 
-	if err := c.record.SetHotKey(recordAndPlayBack.HotKey(hk), c.keyM[k]); err != nil {
-		c.sendMessage(CONTROL_EVENT_ERROR, err.Error())
+	if err := c.record.SetHotKey(hk, c.keyM[k]); err != nil {
 	}
 }
 func (c *WinControlT) SetFileName(fileName string) {
@@ -320,7 +221,6 @@ func (c *WinControlT) SetIfTrackMouseMove(sign bool) {
 
 func (c *WinControlT) ScanFile() (result []string) {
 	if fs, err := ioutil.ReadDir("./"); err != nil {
-		c.sendMessage(CONTROL_EVENT_ERROR, err.Error())
 		return
 	} else {
 		for _, v := range fs {

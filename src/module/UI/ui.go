@@ -2,8 +2,9 @@ package ui
 
 import (
 	"KeyMouseSimulation/common/logTool"
-	. "KeyMouseSimulation/module/language"
+	"KeyMouseSimulation/module/UI/subEvent"
 	"KeyMouseSimulation/module/server"
+	"KeyMouseSimulation/share/enum"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
 	"github.com/lxn/win"
@@ -13,7 +14,7 @@ import (
 	"time"
 )
 
-type controlT struct {
+type ControlT struct {
 	wc server.ControlI
 	mw *walk.MainWindow
 
@@ -55,8 +56,7 @@ type controlT struct {
 	speedEdit  *walk.NumberEdit
 
 	//系统状态
-	status      int
-	inFightBox  bool
+	inFileBox   bool
 	statusLabel *walk.Label
 	statusEdit  *walk.LineEdit
 	errorLabel  *walk.Label
@@ -71,76 +71,29 @@ type controlT struct {
 	aboutAction  *walk.Action
 }
 
-var c *controlT
+var c *ControlT
 
-func createControl() *controlT {
-	c = &controlT{}
+func createControl() *ControlT {
+	c = &ControlT{}
 	c.wc = server.GetWinControl()
 
-	//文件信息获取
-	c.fileRefresh()
-
 	//key列表获取
-	c.keyList = c.wc.GetKeyList()
-	c.hKList = [4]string{"F7", "F8", "F9", "F10"}
+	c.hKList, c.keyList = c.wc.GetKeyList()
 
-	go c.Monitor()
-	return c
-}
-func (c *controlT) Monitor() {
-	defer func() {
-		if info := recover(); info != nil {
-			go c.Monitor()
-		}
+	//文件信息获取
+	go func() {
+		c.waitWidgetLoading()
+		c.fileRefresh()
 	}()
 
-	if c.monitorChan == nil {
-		c.monitorChan = c.wc.GetMessageChan()
-	}
+	//注册事件订阅
+	subEvent.NewServerCurrentTimesChangeSub(*c)
+	subEvent.NewServerErrorSub(*c)
+	subEvent.NewServerFileErrorSub(*c)
+	subEvent.NewServerStatusChangeSub(*c)
+	subEvent.NewServerHotKeyDownSub(*c)
 
-	//监听，修改
-	for msg := range c.monitorChan {
-		switch msg.Event {
-		case server.CONTROL_EVENT_PLAYBACK_TIMES_CHANGE:
-			if value, ok := msg.Value.(int); ok {
-				_ = c.currentTimesEdit.SetValue(float64(value))
-			}
-		case server.CONTROL_EVENT_STATUS_CHANGE:
-			if value, ok := msg.Value.(int); ok {
-				c.status = value
-			}
-			if value2, ok := msg.Value2.(string); ok {
-				_ = c.statusEdit.SetText(value2)
-			}
-		case server.CONTROL_EVENT_ERROR:
-			if value, ok := msg.Value.(string); ok {
-				_ = c.errorEdit.SetText(value)
-			}
-		case server.CONTROL_EVENT_SAVE_FILE_ERROR:
-			if value, ok := msg.Value.(string); ok {
-				_ = c.errorEdit.SetText(value)
-			}
-		case server.CONTROL_EVENT_HOTKEY_DOWN:
-			if value, ok := msg.Value.(server.HotKey); ok {
-				switch value {
-				case server.HOT_KEY_PLAYBACK_START:
-					c.mw.WndProc(c.playbackButton.Handle(), win.WM_LBUTTONDOWN, 0, 0)
-					c.mw.WndProc(c.playbackButton.Handle(), win.WM_LBUTTONUP, 0, 0)
-				case server.HOT_KEY_RECORD_START:
-					c.mw.WndProc(c.recordButton.Handle(), win.WM_LBUTTONDOWN, 0, 0)
-					c.mw.WndProc(c.recordButton.Handle(), win.WM_LBUTTONUP, 0, 0)
-				case server.HOT_KEY_PUASE:
-					c.mw.WndProc(c.pauseButton.Handle(), win.WM_LBUTTONDOWN, 0, 0)
-					c.mw.WndProc(c.pauseButton.Handle(), win.WM_LBUTTONUP, 0, 0)
-				case server.HOT_KEY_STOP:
-					c.mw.WndProc(c.stopButton.Handle(), win.WM_LBUTTONDOWN, 0, 0)
-					c.mw.WndProc(c.stopButton.Handle(), win.WM_LBUTTONUP, 0, 0)
-				}
-			}
-		}
-	}
-
-	go c.Monitor()
+	return c
 }
 
 // ----------------------- 主窗口 -----------------------
@@ -173,34 +126,28 @@ func MainWindows() {
 				}
 			}},
 			PushButton{AssignTo: &c.stopButton, ColumnSpan: 4, Text: StopStr + " " + c.hKList[3], OnClicked: func() {
-				//避免多个文件弹窗
-				if c.inFightBox {
-					return
-				}
-				defer func() { c.inFightBox = false }()
-				c.inFightBox = true
+				c.inFileBox = true
+				defer func() { c.inFileBox = false }()
 				//记录中，弹窗
-				if c.status == UI_TYPE_RECORDING || c.status == UI_TYPE_RECORD_PAUSE {
-					if err := c.wc.Pause(); err != nil {
-						_ = c.errorEdit.SetText(err.Error())
-					}
+				if err := c.wc.Pause(); err != nil {
+					_ = c.errorEdit.SetText(err.Error())
+				}
 
-					if fileName, cmd, err := c.setFileName(c.mw); err != nil {
-						_ = c.errorEdit.SetText(err.Error())
-						return
-					} else if cmd == walk.DlgCmdOK {
-						for _, v := range c.fileNames {
-							if v == fileName {
-								fileName += "-" + time.Now().String()
-							}
+				if fileName, cmd, err := c.setFileName(c.mw); err != nil {
+					_ = c.errorEdit.SetText(err.Error())
+					return
+				} else if cmd == walk.DlgCmdOK {
+					for _, v := range c.fileNames {
+						if v == fileName {
+							fileName += "-" + time.Now().String()
 						}
-						c.wc.SetFileName(fileName)
-						_ = c.fileBox.SetText(fileName)
-
-						c.fileNames = append(c.fileNames, fileName)
-						sort.Strings(c.fileNames)
-						_ = c.fileBox.SetModel(c.fileNames)
 					}
+					c.wc.SetFileName(fileName)
+					_ = c.fileBox.SetText(fileName)
+
+					c.fileNames = append(c.fileNames, fileName)
+					sort.Strings(c.fileNames)
+					_ = c.fileBox.SetModel(c.fileNames)
 				}
 
 				if err := c.wc.Stop(); err != nil {
@@ -251,10 +198,10 @@ func MainWindows() {
 			Menu{AssignActionTo: &c.settingMenu, Text: "&" + MenuSettingStr, Items: []MenuItem{
 				Action{AssignTo: &c.setHotkeyAction, Text: ActionSetHotKeyStr, OnTriggered: func() {
 					if cmd, _ := c.setHotKey(c.mw); cmd == walk.DlgCmdOK {
-						c.wc.SetHotKey(server.HOT_KEY_RECORD_START, c.hKList[0])
-						c.wc.SetHotKey(server.HOT_KEY_PLAYBACK_START, c.hKList[1])
-						c.wc.SetHotKey(server.HOT_KEY_PUASE, c.hKList[2])
-						c.wc.SetHotKey(server.HOT_KEY_STOP, c.hKList[3])
+						c.wc.SetHotKey(enum.HOT_KEY_RECORD_START, c.hKList[0])
+						c.wc.SetHotKey(enum.HOT_KEY_PLAYBACK_START, c.hKList[1])
+						c.wc.SetHotKey(enum.HOT_KEY_PAUSE, c.hKList[2])
+						c.wc.SetHotKey(enum.HOT_KEY_STOP, c.hKList[3])
 
 						_ = c.recordButton.SetText(RecordStr + " " + c.hKList[0])
 						_ = c.playbackButton.SetText(PlaybackStr + " " + c.hKList[1])
@@ -266,13 +213,13 @@ func MainWindows() {
 					Action{Text: string(English), OnTriggered: func() {
 						UiChange(English)
 						ServerChange(English)
-						c.ChangeLanguage()
+						c.changeLanguage()
 						//c.showLanguageBoxAction(c.mw)
 					}},
 					Action{Text: string(Chinese), OnTriggered: func() {
 						UiChange(Chinese)
 						ServerChange(Chinese)
-						c.ChangeLanguage()
+						c.changeLanguage()
 						//c.showLanguageBoxAction(c.mw)
 					}},
 				},
@@ -293,7 +240,7 @@ func MainWindows() {
 
 // ----------------------- 弹窗 -----------------------
 
-func (c *controlT) setFileName(owner walk.Form) (string, int, error) {
+func (c *ControlT) setFileName(owner walk.Form) (string, int, error) {
 	var nameEdit *walk.LineEdit
 	filename := ""
 	var dlg *walk.Dialog
@@ -313,7 +260,7 @@ func (c *controlT) setFileName(owner walk.Form) (string, int, error) {
 	return filename, cmd, err
 }
 
-func (c *controlT) setHotKey(owner walk.Form) (int, error) {
+func (c *ControlT) setHotKey(owner walk.Form) (int, error) {
 	var dlg *walk.Dialog
 	var acceptPB, cancelPB *walk.PushButton
 	var tmpList = c.hKList
@@ -372,17 +319,17 @@ func (c *controlT) setHotKey(owner walk.Form) (int, error) {
 
 // ----------------------- 工具 -----------------------
 
-func (c *controlT) showAboutBoxAction(owner walk.Form) {
+func (c *ControlT) showAboutBoxAction(owner walk.Form) {
 	walk.MsgBox(owner, AboutWindowTitleStr, AboutMessageStr, walk.MsgBoxIconInformation)
 }
 
-func (c *controlT) showLanguageBoxAction(owner walk.Form) {
+func (c *ControlT) showLanguageBoxAction(owner walk.Form) {
 	walk.MsgBox(owner, SetLanguageWindowTitleStr, SetLanguageChangeMessageStr, walk.MsgBoxIconInformation)
 }
 
 // ----------------------- 其他 -----------------------
 
-func (c *controlT) ChangeLanguage() {
+func (c *ControlT) changeLanguage() {
 	_ = c.mw.SetTitle(MainWindowTitleStr)
 
 	_ = c.recordButton.SetText(RecordStr + " " + c.hKList[0])
@@ -409,7 +356,7 @@ func (c *controlT) ChangeLanguage() {
 
 	time.Sleep(100 * time.Millisecond)
 }
-func (c *controlT) waitWidgetLoading() {
+func (c *ControlT) waitWidgetLoading() {
 	//等待初始化
 	for {
 		if c.statusEdit != nil && c.playbackTimesEdit != nil && c.errorEdit != nil && c.fileBox != nil {
@@ -418,7 +365,7 @@ func (c *controlT) waitWidgetLoading() {
 		time.Sleep(200 * time.Millisecond)
 	}
 }
-func (c *controlT) fileRefresh() {
+func (c *ControlT) fileRefresh() {
 	var err error
 	if c.basePath, err = os.Getwd(); err != nil {
 		panic(err.Error())
@@ -443,4 +390,56 @@ func (c *controlT) fileRefresh() {
 			_ = c.fileBox.SetModel(c.fileNames)
 		}
 	}()
+}
+
+func (c *ControlT) clickButton(button *walk.PushButton) {
+	if c.inFileBox {
+		return
+	}
+
+	c.mw.WndProc(button.Handle(), win.WM_LBUTTONDOWN, 0, 0)
+	c.mw.WndProc(button.Handle(), win.WM_LBUTTONUP, 0, 0)
+}
+
+// ----------------------- Sub -----------------------
+func (c *ControlT) SetCurrentTimes(currentTimes int) (err error) {
+	if c.currentTimesEdit == nil {
+		return
+	}
+
+	return c.currentTimesEdit.SetValue(float64(currentTimes))
+}
+func (c *ControlT) ShowError(errInfo string) (err error) {
+	if c.errorEdit == nil {
+		return
+	}
+
+	return c.errorEdit.SetText(errInfo)
+}
+func (c *ControlT) ShowFileError(errInfo string) (err error) {
+	if c.errorEdit == nil {
+		return
+	}
+
+	return c.errorEdit.SetText(errInfo)
+}
+func (c *ControlT) HotKeyDown(key enum.HotKey) (err error) {
+	switch key {
+	case enum.HOT_KEY_PLAYBACK_START:
+		go c.clickButton(c.playbackButton)
+	case enum.HOT_KEY_RECORD_START:
+		go c.clickButton(c.recordButton)
+	case enum.HOT_KEY_PAUSE:
+		go c.clickButton(c.pauseButton)
+	case enum.HOT_KEY_STOP:
+		go c.clickButton(c.stopButton)
+	}
+	return
+}
+func (c *ControlT) StageChange(status enum.Status) (err error) {
+	if c.statusEdit == nil {
+		return
+	}
+
+	return c.statusEdit.SetText(string(status))
 }

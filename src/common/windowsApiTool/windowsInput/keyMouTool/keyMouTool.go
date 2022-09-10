@@ -111,6 +111,8 @@ func mouseRoutine(c chan MouseInputChanT) {
 		MouseInput.Type = uint32(TYPE_INPUT_MOUSE)
 		MouseInput.Mi.X, MouseInput.Mi.Y = even.X, even.Y
 		MouseInput.Mi.DwFlags = uint32(even.DWFlags)
+		MouseInput.Mi.MouseData = even.MouseData
+		MouseInput.Mi.Time = even.Time
 
 		_, err := KeyboardMouseInput.MouseInput(*MouseInput)
 		if err != nil {

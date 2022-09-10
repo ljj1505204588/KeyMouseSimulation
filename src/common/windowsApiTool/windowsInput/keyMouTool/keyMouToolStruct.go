@@ -6,7 +6,9 @@ type KeyInputChanT struct {
 }
 
 type MouseInputChanT struct {
-	X int32
-	Y int32
-	DWFlags MouseInputDW
+	X         int32
+	Y         int32
+	DWFlags   MouseInputDW
+	MouseData uint32
+	Time      uint32
 }
