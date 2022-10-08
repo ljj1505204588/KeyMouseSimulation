@@ -102,7 +102,7 @@ func (c *WinControlT) checkStatusChange(s enum.Status) error {
 func (c *WinControlT) changeStatus(s enum.Status) {
 	c.status = s
 
-	_ = eventCenter.Event.SyncPublish(events.ServerStatusChange, events.ServerStatusChangeData{Status: s})
+	_ = eventCenter.Event.Publish(events.ServerStatusChange, events.ServerStatusChangeData{Status: s})
 }
 
 func (c *WinControlT) StartRecord() error {

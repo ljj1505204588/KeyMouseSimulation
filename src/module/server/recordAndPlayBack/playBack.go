@@ -1,9 +1,11 @@
 package recordAndPlayBack
 
 import (
+	eventCenter "KeyMouseSimulation/common/Event"
 	"KeyMouseSimulation/common/logTool"
 	windowsApi "KeyMouseSimulation/common/windowsApiTool"
 	"KeyMouseSimulation/common/windowsApiTool/windowsInput/keyMouTool"
+	"KeyMouseSimulation/share/events"
 	"encoding/json"
 	"io/ioutil"
 	"os"
@@ -169,7 +171,14 @@ func (p *PlayBackServerT) dealPlayBackTimes() (isReturn bool) {
 	if p.currentTimes <= 0 {
 		isReturn = true
 	}
-	//TODO 发布次数变动事件
+
+	//发布事件
+	err := eventCenter.Event.Publish(events.ServerCurrentTimesChange, events.ServerCurrentTimesChangeData{
+		CurrentTimes: p.currentTimes,
+	})
+	if err != nil {
+		logTool.ErrorAJ(err)
+	}
 	return
 }
 func (p *PlayBackServerT) exitNowDeal() (exit chan struct{}) {

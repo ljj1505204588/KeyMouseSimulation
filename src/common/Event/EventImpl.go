@@ -21,8 +21,8 @@ func (e *factory) Register(topic Topic, handler handler) {
 	e.eventMap[topic] = append(e.eventMap[topic], handler)
 }
 
-//SyncPublish 同步
-func (e *factory) SyncPublish(topic Topic, data interface{}) (err error) {
+//Publish 同步
+func (e *factory) Publish(topic Topic, data interface{}) (err error) {
 	handlers, ok := e.eventMap[topic]
 	if !ok {
 		return errors.New("Topic Unregistered. ")

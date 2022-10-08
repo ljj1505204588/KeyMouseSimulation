@@ -3,7 +3,6 @@ package subEvent
 import (
 	eventCenter "KeyMouseSimulation/common/Event"
 	ui "KeyMouseSimulation/module/UI"
-	"KeyMouseSimulation/module/server"
 	"KeyMouseSimulation/share/events"
 )
 

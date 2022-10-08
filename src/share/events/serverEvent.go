@@ -12,14 +12,14 @@ type ServerCurrentTimesChangeData struct {
 	CurrentTimes int
 }
 
-//StatusChange 回放状态变动
+//StatusChange 状态变动
 const ServerStatusChange eventCenter.Topic = "server_status_change"
 
 type ServerStatusChangeData struct {
 	Status enum.Status
 }
 
-//ServerError 回放错误
+//ServerError 错误
 const ServerError eventCenter.Topic = "server_error"
 
 type ServerErrorData struct {
