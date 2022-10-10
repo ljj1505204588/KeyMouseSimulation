@@ -1,5 +1,3 @@
 package eventCenter
 
-type handler interface {
-	Handler(data interface{}) (err error)
-}
+type Handler func(data interface{}) (err error)

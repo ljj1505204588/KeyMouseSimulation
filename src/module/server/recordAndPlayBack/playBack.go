@@ -130,6 +130,9 @@ func (p *PlayBackServerT) playback(exit chan struct{}) {
 
 	if notes, err = p.loadPlaybackNotes(p.name); err != nil || len(notes) == 0 {
 		if err != nil {
+			_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{
+				ErrInfo: err.Error(),
+			})
 		}
 		<-exit
 		return
@@ -177,6 +180,9 @@ func (p *PlayBackServerT) dealPlayBackTimes() (isReturn bool) {
 		CurrentTimes: p.currentTimes,
 	})
 	if err != nil {
+		_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{
+			ErrInfo: err.Error(),
+		})
 		logTool.ErrorAJ(err)
 	}
 	return

@@ -5,19 +5,19 @@ import "errors"
 type Topic string
 
 type factory struct {
-	eventMap map[Topic][]handler
+	eventMap map[Topic][]Handler
 }
 
 var Event factory
 
 func init() {
 	Event = factory{
-		make(map[Topic][]handler),
+		make(map[Topic][]Handler),
 	}
 }
 
 //Register 注册
-func (e *factory) Register(topic Topic, handler handler) {
+func (e *factory) Register(topic Topic, handler Handler) {
 	e.eventMap[topic] = append(e.eventMap[topic], handler)
 }
 
@@ -28,8 +28,8 @@ func (e *factory) Publish(topic Topic, data interface{}) (err error) {
 		return errors.New("Topic Unregistered. ")
 	}
 
-	for p := range handlers {
-		if err = handlers[p].Handler(data); err != nil {
+	for _, h := range handlers {
+		if err = h(data); err != nil {
 			return
 		}
 	}
@@ -45,8 +45,8 @@ func (e *factory) ASyncPublish(topic Topic, data interface{}) (err error) {
 
 	}
 
-	for p := range handlers {
-		go handlers[p].Handler(data)
+	for _, h := range handlers {
+		go h(data)
 	}
 
 	return

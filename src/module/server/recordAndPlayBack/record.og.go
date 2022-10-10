@@ -49,7 +49,13 @@ func GetRecordServer() *RecordServerT {
 		windowsHook.WM_KEYUP: keyMouTool.DW_KEYEVENTF_KEYUP,
 	}
 
-	go R.loop()
+	if R.hotKeyM == nil {
+		R.hotKeyM = make(map[keyMouTool.VKCode]enum.HotKey)
+	}
+
+	exit := make(chan struct{}, 0)
+	go R.free(exit)
+
 	return &R
 }
 
@@ -115,26 +121,8 @@ func (R *RecordServerT) SetIfTrackMouseMove(sign bool) {
 	R.recordMouseTrack = sign
 }
 
-// ----------------------- record 模块主体循环 -----------------------
+// ----------------------- record 模块主体功能 -----------------------
 
-func (R *RecordServerT) loop() {
-	defer func() {
-		if info := recover(); info != nil {
-			go R.loop()
-		} else {
-			panic("record 错误退出")
-		}
-	}()
-
-	if R.hotKeyM == nil {
-		R.hotKeyM = make(map[keyMouTool.VKCode]enum.HotKey)
-	}
-
-	exit := make(chan struct{}, 0)
-	go R.free(exit)
-
-	return
-}
 func (R *RecordServerT) free(exit chan struct{}) {
 	//记录文件
 	if len(R.notes) != 0 {
@@ -253,7 +241,9 @@ func (R *RecordServerT) hotKeyDeal(event windowsHook.KeyboardEvent) (isHotKey bo
 			HotKey: hotKey,
 		})
 		if err != nil {
-
+			_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{
+				ErrInfo: err.Error(),
+			})
 		}
 	}
 	return
@@ -271,16 +261,25 @@ func (R *RecordServerT) recordNote(name string, notes []noteT) {
 
 	file, err := os.OpenFile(name, os.O_CREATE|os.O_RDWR|os.O_APPEND|os.O_TRUNC, 0772)
 	if err != nil {
+		_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{
+			ErrInfo: err.Error(),
+		})
 		return
 	}
 	defer func() { _ = file.Close() }()
 
 	js, err := json.Marshal(notes)
 	if err != nil {
+		_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{
+			ErrInfo: err.Error(),
+		})
 		return
 	}
 	_, err = file.Write(js)
 	if err != nil {
+		_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{
+			ErrInfo: err.Error(),
+		})
 		return
 	}
 }

@@ -3,10 +3,10 @@ package server
 import (
 	eventCenter "KeyMouseSimulation/common/Event"
 	"KeyMouseSimulation/common/windowsApiTool/windowsInput/keyMouTool"
-	"KeyMouseSimulation/module/UI"
 	"KeyMouseSimulation/module/server/recordAndPlayBack"
 	"KeyMouseSimulation/share/enum"
 	"KeyMouseSimulation/share/events"
+	"KeyMouseSimulation/share/language"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
@@ -73,27 +73,27 @@ func (c *WinControlT) checkStatusChange(s enum.Status) error {
 	switch ns {
 	case enum.FREE:
 		if s == enum.RECORD_PAUSE {
-			return fmt.Errorf(ui.ErrorFreeToRecordPause)
+			return fmt.Errorf(language.ErrorFreeToRecordPause)
 		} else if s == enum.PLAYBACK_PAUSE {
-			return fmt.Errorf(ui.ErrorFreeToPlaybackPause)
+			return fmt.Errorf(language.ErrorFreeToPlaybackPause)
 		} else if s == enum.FREE {
-			return fmt.Errorf(ui.ErrorFreeToFree)
+			return fmt.Errorf(language.ErrorFreeToFree)
 		}
 	case enum.PLAYBACK:
 		if s == enum.RECORDING || s == enum.RECORD_PAUSE {
-			return fmt.Errorf(ui.ErrorPlaybackToRecordOrRecordPause)
+			return fmt.Errorf(language.ErrorPlaybackToRecordOrRecordPause)
 		}
 	case enum.PLAYBACK_PAUSE:
 		if s == enum.RECORDING || s == enum.RECORD_PAUSE {
-			return fmt.Errorf(ui.ErrorPlaybackPauseToRecordOrRecordPause)
+			return fmt.Errorf(language.ErrorPlaybackPauseToRecordOrRecordPause)
 		}
 	case enum.RECORDING:
 		if s == enum.PLAYBACK || s == enum.PLAYBACK_PAUSE {
-			return fmt.Errorf(ui.ErrorRecordToPlaybackOrPlaybackPause)
+			return fmt.Errorf(language.ErrorRecordToPlaybackOrPlaybackPause)
 		}
 	case enum.RECORD_PAUSE:
 		if s == enum.PLAYBACK || s == enum.PLAYBACK_PAUSE {
-			return fmt.Errorf(ui.ErrorRecordPauseToPlaybackOrPlaybackPause)
+			return fmt.Errorf(language.ErrorRecordPauseToPlaybackOrPlaybackPause)
 		}
 	}
 	fmt.Println("control ", s)
@@ -107,6 +107,7 @@ func (c *WinControlT) changeStatus(s enum.Status) {
 
 func (c *WinControlT) StartRecord() error {
 	if err := c.checkStatusChange(enum.RECORDING); err != nil {
+		_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{ErrInfo: err.Error()})
 		return err
 	}
 
@@ -120,6 +121,8 @@ func (c *WinControlT) StartRecord() error {
 }
 func (c *WinControlT) StartPlayback() error {
 	if err := c.checkStatusChange(enum.PLAYBACK); err != nil {
+		_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{ErrInfo: err.Error()})
+
 		return err
 	}
 
@@ -144,6 +147,8 @@ func (c *WinControlT) Pause() error {
 
 	var err error
 	if err = c.checkStatusChange(status); err != nil {
+		_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{ErrInfo: err.Error()})
+
 		return err
 	}
 
@@ -164,6 +169,8 @@ func (c *WinControlT) Pause() error {
 func (c *WinControlT) Stop() error {
 
 	if err := c.checkStatusChange(enum.FREE); err != nil {
+		_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{ErrInfo: err.Error()})
+
 		return err
 	}
 
