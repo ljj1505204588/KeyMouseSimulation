@@ -7,11 +7,11 @@ import (
 	"KeyMouseSimulation/share/enum"
 	"KeyMouseSimulation/share/events"
 	"KeyMouseSimulation/share/language"
+	"errors"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
 	"github.com/lxn/win"
 	"math"
-	"os"
 	"sort"
 	"time"
 )
@@ -39,7 +39,6 @@ type ControlT struct {
 
 	//文件选择
 	fileLabel *walk.Label
-	basePath  string
 	fileNames []string
 	fileBox   *walk.ComboBox
 
@@ -79,18 +78,10 @@ func createControl() *ControlT {
 	//key列表获取
 	c.hKList, c.keyList = c.wc.GetKeyList()
 
-	//文件信息获取
-	go func() {
-		c.waitWidgetLoading()
-		c.fileRefresh()
-	}()
-
 	//注册事件订阅
-	eventCenter.Event.Register(events.ServerCurrentTimesChange, c.SetCurrentTimes)
 	eventCenter.Event.Register(events.ServerError, c.ShowError)
-	eventCenter.Event.Register(events.ServerFileError, c.ShowFileError)
 	eventCenter.Event.Register(events.ServerHotKeyDown, c.HotKeyDown)
-	eventCenter.Event.Register(events.ServerStatusChange, c.StatusChange)
+	eventCenter.Event.Register(events.ServerChange, c.ServerChange)
 
 	return c
 }
@@ -125,8 +116,6 @@ func MainWindows() {
 				}
 			}},
 			PushButton{AssignTo: &c.stopButton, ColumnSpan: 4, Text: language.StopStr + " " + c.hKList[3], OnClicked: func() {
-				c.inFileBox = true
-				defer func() { c.inFileBox = false }()
 				//记录中，弹窗
 				if err := c.wc.Pause(); err != nil {
 					_ = c.errorEdit.SetText(err.Error())
@@ -239,24 +228,30 @@ func MainWindows() {
 
 // ----------------------- 弹窗 -----------------------
 
-func (c *ControlT) setFileName(owner walk.Form) (string, int, error) {
+func (c *ControlT) setFileName(owner walk.Form) (fileName string, cmd int, err error) {
+	//判断是否已经在弹窗中
+	if c.inFileBox {
+		return fileName, cmd, errors.New("Already In Set File. ")
+	}
+	defer func() { c.inFileBox = false }()
+	c.inFileBox = true
+
 	var nameEdit *walk.LineEdit
-	filename := ""
 	var dlg *walk.Dialog
 	var acceptPB, cancelPB *walk.PushButton
 
-	cmd, err := Dialog{AssignTo: &dlg, Title: language.SetFileWindowTitleStr,
+	cmd, err = Dialog{AssignTo: &dlg, Title: language.SetFileWindowTitleStr,
 		DefaultButton: &acceptPB, CancelButton: &cancelPB,
 		Size: Size{Width: 350, Height: 200}, Layout: Grid{Columns: 4},
 		Children: []Widget{
 			TextLabel{Text: language.SetFileLabelStr, ColumnSpan: 4},
-			LineEdit{AssignTo: &nameEdit, ColumnSpan: 4, OnTextChanged: func() { filename = nameEdit.Text() }},
+			LineEdit{AssignTo: &nameEdit, ColumnSpan: 4, OnTextChanged: func() { fileName = nameEdit.Text() }},
 			PushButton{AssignTo: &acceptPB, ColumnSpan: 2, Text: language.OKStr, OnClicked: func() { dlg.Accept() }},
 			PushButton{AssignTo: &cancelPB, ColumnSpan: 2, Text: language.CancelStr, OnClicked: func() { dlg.Cancel() }},
 		},
 	}.Run(owner)
 
-	return filename, cmd, err
+	return
 }
 
 func (c *ControlT) setHotKey(owner walk.Form) (int, error) {
@@ -364,32 +359,6 @@ func (c *ControlT) waitWidgetLoading() {
 		time.Sleep(200 * time.Millisecond)
 	}
 }
-func (c *ControlT) fileRefresh() {
-	var err error
-	if c.basePath, err = os.Getwd(); err != nil {
-		panic(err.Error())
-	}
-	c.fileNames = c.wc.ScanFile()
-	sort.Strings(c.fileNames)
-	go func() {
-		for {
-			if len(c.fileNames) == 0 {
-				break
-			}
-			if c.fileBox != nil {
-				_ = c.fileBox.SetText(c.fileNames[0])
-				break
-			}
-			time.Sleep(200 * time.Millisecond)
-		}
-		ticker := time.NewTicker(10 * time.Second)
-		for range ticker.C {
-			c.fileNames = c.wc.ScanFile()
-			sort.Strings(c.fileNames)
-			_ = c.fileBox.SetModel(c.fileNames)
-		}
-	}()
-}
 
 func (c *ControlT) clickButton(button *walk.PushButton) {
 	if c.inFileBox {
@@ -401,15 +370,7 @@ func (c *ControlT) clickButton(button *walk.PushButton) {
 }
 
 // ----------------------- Sub -----------------------
-func (c *ControlT) SetCurrentTimes(data interface{}) (err error) {
-	d := data.(events.ServerCurrentTimesChangeData)
 
-	if c.currentTimesEdit == nil {
-		return
-	}
-
-	return c.currentTimesEdit.SetValue(float64(d.CurrentTimes))
-}
 func (c *ControlT) ShowError(data interface{}) (err error) {
 	d := data.(events.ServerErrorData)
 
@@ -419,15 +380,7 @@ func (c *ControlT) ShowError(data interface{}) (err error) {
 
 	return c.errorEdit.SetText(d.ErrInfo)
 }
-func (c *ControlT) ShowFileError(data interface{}) (err error) {
-	d := data.(events.ServerFileErrorData)
 
-	if c.errorEdit == nil {
-		return
-	}
-
-	return c.errorEdit.SetText(d.ErrInfo)
-}
 func (c *ControlT) HotKeyDown(data interface{}) (err error) {
 	d := data.(events.ServerHotKeyDownData)
 
@@ -443,12 +396,26 @@ func (c *ControlT) HotKeyDown(data interface{}) (err error) {
 	}
 	return
 }
-func (c *ControlT) StatusChange(data interface{}) (err error) {
-	d := data.(events.ServerStatusChangeData)
+func (c *ControlT) ServerChange(data interface{}) (err error) {
+	d := data.(events.ServerChangeData)
 
-	if c.statusEdit == nil {
+	if c.statusEdit == nil || c.currentTimesEdit == nil || c.fileBox == nil {
 		return
 	}
 
-	return c.statusEdit.SetText(string(d.Status))
+	if err = c.statusEdit.SetText(string(d.Status)); err != nil {
+		return
+	}
+	if err = c.currentTimesEdit.SetValue(float64(d.CurrentTimes)); err != nil {
+		return
+	}
+	if d.FileNamesData.Change {
+		c.fileNames = d.FileNamesData.FileNames
+		if err = c.fileBox.SetModel(d.FileNamesData.FileNames); err != nil {
+			return
+		}
+	}
+
+	return
+
 }

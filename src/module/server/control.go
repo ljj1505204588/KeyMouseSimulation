@@ -10,7 +10,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
-	"sort"
+	"reflect"
+	"time"
 )
 
 /*
@@ -29,7 +30,6 @@ type ControlI interface {
 	SetSpeed(speed float64)
 	SetPlaybackTimes(times int)
 	SetIfTrackMouseMove(sign bool)
-	ScanFile() []string
 }
 
 /*
@@ -102,7 +102,10 @@ func (c *WinControlT) checkStatusChange(s enum.Status) error {
 func (c *WinControlT) changeStatus(s enum.Status) {
 	c.status = s
 
-	_ = eventCenter.Event.Publish(events.ServerStatusChange, events.ServerStatusChangeData{Status: s})
+	_ = eventCenter.Event.Publish(events.ServerChange, events.ServerChangeData{
+		Status:       s,
+		CurrentTimes: 0,
+	})
 }
 
 func (c *WinControlT) StartRecord() error {
@@ -226,23 +229,28 @@ func (c *WinControlT) SetIfTrackMouseMove(sign bool) {
 	c.record.SetIfTrackMouseMove(sign)
 }
 
-func (c *WinControlT) ScanFile() (result []string) {
-	if fs, err := ioutil.ReadDir("./"); err != nil {
-		return
-	} else {
-		for _, v := range fs {
-			if filepath.Ext(v.Name()) == FILE_EXT {
-				baseName := filepath.Base(v.Name())
-				baseName = baseName[:len(baseName)-len(FILE_EXT)]
-				result = append(result, baseName)
+func (c *WinControlT) scanFile() {
+	go func() {
+		var lastTimeNames []string
+		for {
+			var names []string
+			//遍历存储当前文件名字
+			if fs, err := ioutil.ReadDir("./"); err == nil {
+				for _, f := range fs {
+					if filepath.Ext(f.Name()) == FILE_EXT {
+						name := filepath.Base(f.Name())
+						name = name[:len(name)-len(FILE_EXT)]
+						names = append(names, name)
+					}
+				}
 			}
+			if !reflect.DeepEqual(lastTimeNames, names) {
+				lastTimeNames = names
+				c.publishServerChange(lastTimeNames...)
+			}
+			time.Sleep(2 * time.Second)
 		}
-	}
-
-	sort.Slice(result, func(i, j int) bool {
-		return len(result[i]) < len(result[j])
-	})
-	return
+	}()
 }
 
 func getKeyM() map[string]keyMouTool.VKCode {
@@ -296,4 +304,20 @@ func getKeyM() map[string]keyMouTool.VKCode {
 		"F11": keyMouTool.VK_F11,
 		"F12": keyMouTool.VK_F12,
 	}
+}
+
+// --------------------------------------- publishEvent ---------------------------------------
+
+func (c *WinControlT) publishServerChange(fileNames ...string) {
+	var fileNamesData events.FileNamesData
+	if len(fileNames) != 0 {
+		fileNamesData.Change = true
+		fileNamesData.FileNames = c.ScanFile()
+	}
+
+	_ = eventCenter.Event.Publish(events.ServerChange, events.ServerChangeData{
+		Status:        c.status,
+		CurrentTimes:  0, //TODO 将当前回放次数存储到这
+		FileNamesData: fileNamesData,
+	})
 }

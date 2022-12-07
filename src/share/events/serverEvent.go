@@ -5,31 +5,23 @@ import (
 	"KeyMouseSimulation/share/enum"
 )
 
-//CurrentTimesChange 回放次数变动
-const ServerCurrentTimesChange eventCenter.Topic = "server_current_times_change"
+//ServerChange 服务变动
+const ServerChange eventCenter.Topic = "server_change"
 
-type ServerCurrentTimesChangeData struct {
-	CurrentTimes int
+type ServerChangeData struct {
+	Status        enum.Status   // 服务状态
+	CurrentTimes  int           // 当前回放次数
+	FileNamesData FileNamesData // 文件名称结构体
 }
-
-//StatusChange 状态变动
-const ServerStatusChange eventCenter.Topic = "server_status_change"
-
-type ServerStatusChangeData struct {
-	Status enum.Status
+type FileNamesData struct {
+	Change    bool     // 是否变动
+	FileNames []string // 文件名称
 }
 
 //ServerError 错误
 const ServerError eventCenter.Topic = "server_error"
 
 type ServerErrorData struct {
-	ErrInfo string
-}
-
-//ServerFileError 文件记录错误
-const ServerFileError eventCenter.Topic = "server_file_error"
-
-type ServerFileErrorData struct {
 	ErrInfo string
 }
 
