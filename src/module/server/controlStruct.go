@@ -46,6 +46,7 @@ func (t *statusT) changeStatus(changeStatus enum.Status) (err error) {
 		}
 	}
 
+	t.statusEnum = changeStatus
 	return nil
 }
 
