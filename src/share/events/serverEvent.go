@@ -31,3 +31,8 @@ const ServerHotKeyDown eventCenter.Topic = "server_hot_key_down"
 type ServerHotKeyDownData struct {
 	HotKey enum.HotKey
 }
+
+//PlayBackFinish 回放结束
+const PlayBackFinish eventCenter.Topic = "playback_finish"
+
+type PlayBackFinishData struct{}

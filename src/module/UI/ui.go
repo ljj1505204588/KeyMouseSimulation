@@ -73,15 +73,15 @@ var c *ControlT
 
 func createControl() *ControlT {
 	c = &ControlT{}
-	c.wc = server.GetWinControl()
+	c.wc = server.NewWinControl()
 
 	//key列表获取
 	c.hKList, c.keyList = c.wc.GetKeyList()
 
 	//注册事件订阅
-	eventCenter.Event.Register(events.ServerError, c.ShowError)
-	eventCenter.Event.Register(events.ServerHotKeyDown, c.HotKeyDown)
-	eventCenter.Event.Register(events.ServerChange, c.ServerChange)
+	eventCenter.Event.Register(events.ServerError, c.SubShowError)
+	eventCenter.Event.Register(events.ServerHotKeyDown, c.SubHotKeyDown)
+	eventCenter.Event.Register(events.ServerChange, c.SubServerChange)
 
 	return c
 }
@@ -98,33 +98,26 @@ func MainWindows() {
 		Children: []Widget{
 			//基础按钮
 			PushButton{AssignTo: &c.recordButton, ColumnSpan: 4, Text: language.RecordStr + " " + c.hKList[0], OnClicked: func() {
-				err := c.wc.StartRecord()
-				if err != nil {
-					_ = c.errorEdit.SetText(err.Error())
-				}
+				c.wc.Record()
 			}},
 			PushButton{AssignTo: &c.playbackButton, ColumnSpan: 4, Text: language.PlaybackStr + " " + c.hKList[1], OnClicked: func() {
-				err := c.wc.StartPlayback()
-				if err != nil {
-					_ = c.errorEdit.SetText(err.Error())
-				}
+				c.wc.Playback()
 			}},
 			PushButton{AssignTo: &c.pauseButton, ColumnSpan: 4, Text: language.PauseStr + " " + c.hKList[2], OnClicked: func() {
-				err := c.wc.Pause()
-				if err != nil {
-					_ = c.errorEdit.SetText(err.Error())
-				}
+				_ = c.wc.Pause()
 			}},
 			PushButton{AssignTo: &c.stopButton, ColumnSpan: 4, Text: language.StopStr + " " + c.hKList[3], OnClicked: func() {
-				//记录中，弹窗
 				if err := c.wc.Pause(); err != nil {
-					_ = c.errorEdit.SetText(err.Error())
+					return
 				}
 
-				if fileName, cmd, err := c.setFileName(c.mw); err != nil {
+				fileName, cmd, err := c.setFileName(c.mw)
+				if err != nil {
 					_ = c.errorEdit.SetText(err.Error())
 					return
-				} else if cmd == walk.DlgCmdOK {
+				}
+
+				if cmd == walk.DlgCmdOK {
 					for _, v := range c.fileNames {
 						if v == fileName {
 							fileName += "-" + time.Now().String()
@@ -138,10 +131,8 @@ func MainWindows() {
 					_ = c.fileBox.SetModel(c.fileNames)
 				}
 
-				if err := c.wc.Stop(); err != nil {
-					_ = c.errorEdit.SetText(err.Error())
-					return
-				}
+				c.wc.Stop(fileName)
+
 			}},
 
 			//鼠标路径
@@ -371,7 +362,7 @@ func (c *ControlT) clickButton(button *walk.PushButton) {
 
 // ----------------------- Sub -----------------------
 
-func (c *ControlT) ShowError(data interface{}) (err error) {
+func (c *ControlT) SubShowError(data interface{}) (err error) {
 	d := data.(events.ServerErrorData)
 
 	if c.errorEdit == nil {
@@ -381,7 +372,7 @@ func (c *ControlT) ShowError(data interface{}) (err error) {
 	return c.errorEdit.SetText(d.ErrInfo)
 }
 
-func (c *ControlT) HotKeyDown(data interface{}) (err error) {
+func (c *ControlT) SubHotKeyDown(data interface{}) (err error) {
 	d := data.(events.ServerHotKeyDownData)
 
 	switch d.HotKey {
@@ -396,11 +387,11 @@ func (c *ControlT) HotKeyDown(data interface{}) (err error) {
 	}
 	return
 }
-func (c *ControlT) ServerChange(data interface{}) (err error) {
+func (c *ControlT) SubServerChange(data interface{}) (err error) {
 	d := data.(events.ServerChangeData)
 
-	if c.statusEdit == nil || c.currentTimesEdit == nil || c.fileBox == nil {
-		return
+	for c.statusEdit == nil || c.currentTimesEdit == nil || c.fileBox == nil {
+
 	}
 
 	if err = c.statusEdit.SetText(string(d.Status)); err != nil {

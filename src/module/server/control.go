@@ -6,8 +6,6 @@ import (
 	"KeyMouseSimulation/module/server/recordAndPlayBack"
 	"KeyMouseSimulation/share/enum"
 	"KeyMouseSimulation/share/events"
-	"KeyMouseSimulation/share/language"
-	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"reflect"
@@ -19,10 +17,10 @@ import (
  */
 
 type ControlI interface {
-	StartRecord() error
-	StartPlayback() error
-	Pause() error
-	Stop() error
+	Record()
+	Playback()
+	Pause() (err error)
+	Stop(name string)
 
 	GetKeyList() (hotKeyList [4]string, keyList []string)
 	SetHotKey(k enum.HotKey, key string)
@@ -36,12 +34,23 @@ type ControlI interface {
 	windows 实现接口
 */
 
-func GetWinControl() *WinControlT {
+type WinControlT struct {
+	playBack recordAndPlayBack.PlayBackServerI // playback 实例
+	record   recordAndPlayBack.RecordServerI   // record 实例
+
+	keyM          map[string]keyMouTool.VKCode // 热键
+	status        statusT                      // 状态
+	fileName      string                       // 存储文件名称
+	playBackTimes int                          // 回放次数
+	lastTimes     int                          // 当前剩余次数
+}
+
+func NewWinControl() *WinControlT {
 	c := WinControlT{
 		playBack: recordAndPlayBack.GetPlaybackServer(),
 		record:   recordAndPlayBack.GetRecordServer(),
 		keyM:     getKeyM(),
-		status:   enum.FREE,
+		status:   statusT{statusEnum: enum.FREE},
 		fileName: "",
 	}
 
@@ -50,148 +59,77 @@ func GetWinControl() *WinControlT {
 	c.SetHotKey(enum.HOT_KEY_PAUSE, "F9")
 	c.SetHotKey(enum.HOT_KEY_STOP, "F10")
 
-	c.changeStatus(c.status)
+	c.scanFile()
+	eventCenter.Event.Register(events.PlayBackFinish, c.SubPlayBackFinish)
 
 	return &c
 }
 
-type WinControlT struct {
-	//绑定 playback record 实例
-	playBack recordAndPlayBack.PlayBackServerI
-	record   recordAndPlayBack.RecordServerI
+// --------------------------------------- 基础功能 ---------------------------------------
 
-	keyM map[string]keyMouTool.VKCode
-
-	status   enum.Status
-	fileName string
-}
-
-func (c *WinControlT) checkStatusChange(s enum.Status) error {
-
-	ns := c.status
-
-	switch ns {
-	case enum.FREE:
-		if s == enum.RECORD_PAUSE {
-			return fmt.Errorf(language.ErrorFreeToRecordPause)
-		} else if s == enum.PLAYBACK_PAUSE {
-			return fmt.Errorf(language.ErrorFreeToPlaybackPause)
-		} else if s == enum.FREE {
-			return fmt.Errorf(language.ErrorFreeToFree)
-		}
-	case enum.PLAYBACK:
-		if s == enum.RECORDING || s == enum.RECORD_PAUSE {
-			return fmt.Errorf(language.ErrorPlaybackToRecordOrRecordPause)
-		}
-	case enum.PLAYBACK_PAUSE:
-		if s == enum.RECORDING || s == enum.RECORD_PAUSE {
-			return fmt.Errorf(language.ErrorPlaybackPauseToRecordOrRecordPause)
-		}
-	case enum.RECORDING:
-		if s == enum.PLAYBACK || s == enum.PLAYBACK_PAUSE {
-			return fmt.Errorf(language.ErrorRecordToPlaybackOrPlaybackPause)
-		}
-	case enum.RECORD_PAUSE:
-		if s == enum.PLAYBACK || s == enum.PLAYBACK_PAUSE {
-			return fmt.Errorf(language.ErrorRecordPauseToPlaybackOrPlaybackPause)
-		}
-	}
-	fmt.Println("control ", s)
-	return nil
-}
-func (c *WinControlT) changeStatus(s enum.Status) {
-	c.status = s
-
-	_ = eventCenter.Event.Publish(events.ServerChange, events.ServerChangeData{
-		Status:       s,
-		CurrentTimes: 0,
-	})
-}
-
-func (c *WinControlT) StartRecord() error {
-	if err := c.checkStatusChange(enum.RECORDING); err != nil {
-		_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{ErrInfo: err.Error()})
-		return err
+//Record 记录
+func (c *WinControlT) Record() {
+	if err := c.changeStatus(enum.RECORDING); err == nil {
+		c.record.Start()
 	}
 
-	err := c.record.Start()
+	return
+}
+
+//Playback 回放
+func (c *WinControlT) Playback() {
+
+	if err := c.changeStatus(enum.PLAYBACK); err == nil {
+		c.playBack.Start(c.fileName)
+	}
+
+	return
+}
+
+//Pause 暂停
+func (c *WinControlT) Pause() (err error) {
+
+	//获取暂停状态
+	status, err := c.status.getAfterPauseStatus()
 	if err != nil {
-		return err
+		c.tryPublishServerErr(err)
+		return
 	}
 
-	c.changeStatus(enum.RECORDING)
-	return nil
-}
-func (c *WinControlT) StartPlayback() error {
-	if err := c.checkStatusChange(enum.PLAYBACK); err != nil {
-		_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{ErrInfo: err.Error()})
-
-		return err
+	if err = c.status.changeStatus(status); err != nil {
+		return
 	}
 
-	err := c.playBack.Start(c.fileName)
-	if err != nil {
-		return err
+	if status == enum.PLAYBACK_PAUSE {
+		c.playBack.Pause()
+	} else if status == enum.RECORD_PAUSE {
+		c.record.Pause()
 	}
 
-	c.changeStatus(enum.PLAYBACK)
-	return nil
-}
-func (c *WinControlT) Pause() error {
-
-	var status = enum.FREE
-	if c.status == enum.RECORDING {
-		status = enum.RECORD_PAUSE
-	} else if c.status == enum.PLAYBACK {
-		status = enum.PLAYBACK_PAUSE
-	} else {
-		return nil
-	}
-
-	var err error
-	if err = c.checkStatusChange(status); err != nil {
-		_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{ErrInfo: err.Error()})
-
-		return err
-	}
-
-	switch status {
-	case enum.PLAYBACK_PAUSE:
-		err = c.playBack.Pause()
-	case enum.RECORD_PAUSE:
-		err = c.record.Pause()
-	}
-
-	if err != nil {
-		return err
-	}
-
-	c.changeStatus(status)
-	return nil
-}
-func (c *WinControlT) Stop() error {
-
-	if err := c.checkStatusChange(enum.FREE); err != nil {
-		_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{ErrInfo: err.Error()})
-
-		return err
-	}
-
-	switch {
-	case c.status == enum.RECORDING || c.status == enum.RECORD_PAUSE:
-		if err := c.record.Stop(c.fileName); err != nil {
-			return err
-		}
-	case c.status == enum.PLAYBACK || c.status == enum.PLAYBACK_PAUSE:
-		if err := c.playBack.Stop(); err != nil {
-			return err
-		}
-	}
-
-	c.changeStatus(enum.FREE)
-	return nil
+	return
 }
 
+//Stop 停止
+func (c *WinControlT) Stop(name string) {
+	//校验 & 改动
+	if err := c.changeStatus(enum.FREE); err != nil {
+		return
+	}
+
+	//修改回放 & 记录状态
+	status := c.status.statusEnum
+	if status == enum.PLAYBACK || status == enum.PLAYBACK_PAUSE {
+		c.playBack.Stop()
+	}
+	if status == enum.RECORDING || status == enum.RECORD_PAUSE {
+		c.record.Stop(name)
+	}
+
+}
+
+// --------------------------------------- 额外功能 ---------------------------------------
+
+//GetKeyList 获取热键数组
 func (c *WinControlT) GetKeyList() (hotKeyList [4]string, keyList []string) {
 	return [4]string{"F7", "F8", "F9", "F10"}, []string{
 		"F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12",
@@ -199,18 +137,15 @@ func (c *WinControlT) GetKeyList() (hotKeyList [4]string, keyList []string) {
 		"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
 	}
 }
+
+//SetHotKey 设置热键
 func (c *WinControlT) SetHotKey(hk enum.HotKey, k string) {
-
-	if c.status != enum.FREE {
-		return
-	}
-	if k == "" {
-		return
-	}
-
-	if err := c.record.SetHotKey(hk, c.keyM[k]); err != nil {
+	if key, exist := c.keyM[k]; exist {
+		c.tryPublishServerErr(c.record.SetHotKey(hk, key))
 	}
 }
+
+//SetFileName 设置存储文件名称
 func (c *WinControlT) SetFileName(fileName string) {
 
 	if fileName != "" {
@@ -219,12 +154,20 @@ func (c *WinControlT) SetFileName(fileName string) {
 
 	c.fileName = fileName
 }
+
+//SetSpeed 设置回放速度
 func (c *WinControlT) SetSpeed(speed float64) {
 	c.playBack.SetSpeed(speed)
 }
+
+//SetPlaybackTimes 设置回放次数
 func (c *WinControlT) SetPlaybackTimes(times int) {
-	c.playBack.SetPlaybackTimes(times)
+	c.playBackTimes = times
+	c.lastTimes = times
+	c.publishServerChange()
 }
+
+//SetIfTrackMouseMove 设置是否记录鼠标移动记录
 func (c *WinControlT) SetIfTrackMouseMove(sign bool) {
 	c.record.SetIfTrackMouseMove(sign)
 }
@@ -251,6 +194,40 @@ func (c *WinControlT) scanFile() {
 			time.Sleep(2 * time.Second)
 		}
 	}()
+}
+
+// --------------------------------------- publishEvent ---------------------------------------
+
+func (c *WinControlT) publishServerChange(fileNames ...string) {
+	var fileNamesData events.FileNamesData
+	if len(fileNames) != 0 {
+		fileNamesData.Change = true
+		fileNamesData.FileNames = fileNames
+	}
+
+	err := eventCenter.Event.Publish(events.ServerChange, events.ServerChangeData{
+		Status:        c.status.statusEnum,
+		CurrentTimes:  c.lastTimes,
+		FileNamesData: fileNamesData,
+	})
+	c.tryPublishServerErr(err)
+}
+
+func (c *WinControlT) tryPublishServerErr(err error) {
+	if err != nil {
+		_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{ErrInfo: err.Error()})
+	}
+}
+
+// --------------------------------------- util ---------------------------------------
+
+func (c *WinControlT) changeStatus(s enum.Status) (err error) {
+	if err = c.status.changeStatus(s); err != nil {
+		c.tryPublishServerErr(err)
+	} else {
+		c.publishServerChange()
+	}
+	return
 }
 
 func getKeyM() map[string]keyMouTool.VKCode {
@@ -306,18 +283,25 @@ func getKeyM() map[string]keyMouTool.VKCode {
 	}
 }
 
-// --------------------------------------- publishEvent ---------------------------------------
+// --------------------------------------- Sub ---------------------------------------
 
-func (c *WinControlT) publishServerChange(fileNames ...string) {
-	var fileNamesData events.FileNamesData
-	if len(fileNames) != 0 {
-		fileNamesData.Change = true
-		fileNamesData.FileNames = c.ScanFile()
+//SubPlayBackFinish 订阅回放结束
+func (c *WinControlT) SubPlayBackFinish(_ interface{}) (err error) {
+	//无限循环
+	if c.playBackTimes == -1 {
+		return
 	}
 
-	_ = eventCenter.Event.Publish(events.ServerChange, events.ServerChangeData{
-		Status:        c.status,
-		CurrentTimes:  0, //TODO 将当前回放次数存储到这
-		FileNamesData: fileNamesData,
-	})
+	c.lastTimes -= 1
+	if c.lastTimes > 0 {
+		c.playBack.Start(c.fileName)
+	} else {
+		c.tryPublishServerErr(c.changeStatus(enum.FREE))
+		c.lastTimes = c.playBackTimes
+		c.playBack.Stop()
+	}
+
+	c.publishServerChange()
+
+	return
 }

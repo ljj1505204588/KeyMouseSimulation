@@ -14,9 +14,9 @@ import (
 )
 
 type RecordServerI interface {
-	Start() error           //开始
-	Pause() error           //暂停
-	Stop(name string) error //停止
+	Start()           //开始
+	Pause()           //暂停
+	Stop(name string) //停止
 
 	SetHotKey(k enum.HotKey, vks keyMouTool.VKCode) error //设置热键
 	SetIfTrackMouseMove(sign bool)                        //设置是否记录鼠标移动路径
@@ -49,53 +49,49 @@ func GetRecordServer() *RecordServerT {
 		windowsHook.WM_KEYUP: keyMouTool.DW_KEYEVENTF_KEYUP,
 	}
 
-	if R.hotKeyM == nil {
-		R.hotKeyM = make(map[keyMouTool.VKCode]enum.HotKey)
-	}
+	//初始化监听热键
+	R.initHook()
 
-	exit := make(chan struct{}, 0)
-	go R.free(exit)
+	go R.mainLoop()
 
 	return &R
 }
 
 type RecordServerT struct {
-	noteName   string                                             //记录名称
-	notes      []noteT                                            //记录
+	notes []noteT //记录
+
+	hotKeyM          map[keyMouTool.VKCode]enum.HotKey //热键信息
+	recordMouseTrack bool                              //是否记录鼠标移动路径使用
+	lastMoveEven     *windowsHook.MouseEvent           //最后移动事件，配合是否记录鼠标移动路径使用
+
+	mouseChan    chan windowsHook.MouseEvent    //鼠标监听通道
+	keyboardChan chan windowsHook.KeyboardEvent //键盘监听通道
+	hotKeyChan   chan windowsHook.KeyboardEvent //热键监听通道
+
 	mouseDwMap map[windowsHook.Message]keyMouTool.MouseInputDW    //鼠标转换Map
 	keyDwMap   map[windowsHook.Message]keyMouTool.KeyBoardInputDW //键盘转换Map
-	exit       chan struct{}                                      //退出通道
-
-	recordMouseTrack bool                   //是否记录鼠标移动路径使用
-	lastMoveEven     windowsHook.MouseEvent //最后移动事件，配合是否记录鼠标移动路径使用
-
-	hotKeyM map[keyMouTool.VKCode]enum.HotKey //热键信息
-
 }
 
 //Start 开始
-func (R *RecordServerT) Start() (err error) {
-
-	exit := R.exitNowDeal()
-	go R.record(exit)
-
-	return
+func (R *RecordServerT) Start() {
+	R.handUpHook()
 }
 
 //Pause 暂停
-func (R *RecordServerT) Pause() (err error) {
-
-	exit := R.exitNowDeal()
-	go R.stop(exit)
-
-	return
+func (R *RecordServerT) Pause() {
+	R.handOutHook()
 }
 
 //Stop 停止
-func (R *RecordServerT) Stop(name string) (err error) {
+func (R *RecordServerT) Stop(name string) {
+	R.handOutHook()
 
-	exit := R.exitNowDeal()
-	go R.free(exit)
+	//记录文件
+	if len(R.notes) != 0 {
+		notes := R.notes
+		R.notes = []noteT{}
+		go R.recordNote(name, notes)
+	}
 
 	return
 }
@@ -123,67 +119,39 @@ func (R *RecordServerT) SetIfTrackMouseMove(sign bool) {
 
 // ----------------------- record 模块主体功能 -----------------------
 
-func (R *RecordServerT) free(exit chan struct{}) {
-	//记录文件
-	if len(R.notes) != 0 {
-		notes := make([]noteT, len(R.notes))
-		_ = copy(notes, R.notes)
-		R.notes = make([]noteT, 0)
-		go R.recordNote(R.noteName, notes)
-	}
-
-	//键盘钩子
-	kHook, _ := windowsHook.KeyBoardHook(nil)
-	defer func() { _ = windowsHook.KeyBoardUnhook() }()
-
-	//空闲循环主体
-	for {
-		select {
-		case <-exit:
-			logTool.DebugAJ("record 退出记录空闲状态")
-			return
-		case kEvent := <-kHook:
-			R.hotKeyDeal(kEvent)
+func (R *RecordServerT) mainLoop() {
+	defer func() {
+		if info := recover(); info != nil {
+			R.initHook()
+			go R.mainLoop()
 		}
-	}
-}
-func (R *RecordServerT) record(exit chan struct{}) {
-	//键盘&&鼠标钩子
-	mHook, _ := windowsHook.MouseHook(nil)
+	}()
+
 	defer func() { _ = windowsHook.MouseUnhook() }()
-	kHook, _ := windowsHook.KeyBoardHook(nil)
 	defer func() { _ = windowsHook.KeyBoardUnhook() }()
 
+	var timeGap int64
 	st := time.Now().UnixNano()
-	timeGap := int64(0)
 	for {
 		select {
-		case <-exit:
-			logTool.DebugAJ("record 退出记录状态")
-			return
-		case kEvent := <-kHook: //记录键盘操作
-			if R.hotKeyDeal(kEvent) {
-				continue
-			}
-			timeGap = time.Now().UnixNano()
-			st, timeGap = timeGap, timeGap-st
+		case kEvent := <-R.keyboardChan: //记录键盘操作
+			st, timeGap = getTimeGap(st)
 			R.notes = append(R.notes, noteT{
 				NoteType: keyMouTool.TYPE_INPUT_KEYBOARD,
-				KeyNote: &keyMouTool.KeyInputChanT{VK: keyMouTool.VKCode(kEvent.VkCode),
+				KeyNote: &keyMouTool.KeyInputT{VK: keyMouTool.VKCode(kEvent.VkCode),
 					DwFlags: R.transKeyDwFlags(kEvent.Message),
 				},
 				TimeGap: timeGap,
 			})
-		case mEvent := <-mHook: //记录鼠标操作
+		case mEvent := <-R.mouseChan: //记录鼠标操作
 			if !R.recordMouseTrack {
 				if mEvent.Message == windowsHook.WM_MOUSEMOVE {
-					R.lastMoveEven = mEvent
+					R.lastMoveEven = &mEvent
 					continue
-				} else if R.lastMoveEven.Message == windowsHook.WM_MOUSEMOVE {
+				} else if R.lastMoveEven != nil && R.lastMoveEven.Message == windowsHook.WM_MOUSEMOVE {
 					R.notes = append(R.notes, noteT{
 						NoteType: keyMouTool.TYPE_INPUT_MOUSE,
-						MouseNote: &keyMouTool.MouseInputChanT{X: R.lastMoveEven.X,
-							Y:       R.lastMoveEven.Y,
+						MouseNote: &keyMouTool.MouseInputT{X: R.lastMoveEven.X, Y: R.lastMoveEven.Y,
 							DWFlags: R.transMouseDwFlags(R.lastMoveEven.Message),
 							Time:    mEvent.Time,
 						},
@@ -191,12 +159,10 @@ func (R *RecordServerT) record(exit chan struct{}) {
 					})
 				}
 			}
-			timeGap = time.Now().UnixNano()
-			st, timeGap = timeGap, timeGap-st
+			st, timeGap = getTimeGap(st)
 			R.notes = append(R.notes, noteT{
 				NoteType: keyMouTool.TYPE_INPUT_MOUSE,
-				MouseNote: &keyMouTool.MouseInputChanT{X: mEvent.X,
-					Y:         mEvent.Y,
+				MouseNote: &keyMouTool.MouseInputT{X: mEvent.X, Y: mEvent.Y,
 					DWFlags:   R.transMouseDwFlags(mEvent.Message),
 					MouseData: mEvent.MouseData,
 				},
@@ -206,48 +172,62 @@ func (R *RecordServerT) record(exit chan struct{}) {
 	}
 
 }
-func (R *RecordServerT) stop(exit chan struct{}) {
-	//键盘钩子
-	kHook, _ := windowsHook.KeyBoardHook(nil)
-	defer func() { _ = windowsHook.KeyBoardUnhook() }()
 
-	//暂停循环主体
-	for {
-		select {
-		case <-exit:
-			logTool.DebugAJ("record 退出记录停止状态")
-			return
-		case kEvent := <-kHook:
-			R.hotKeyDeal(kEvent)
+// ----------------------- Util -----------------------
+
+//初始化勾子
+func (R *RecordServerT) initHook() {
+
+	var err error
+	if R.hotKeyChan, err = windowsHook.KeyBoardHook(nil); err != nil {
+		R.tryPublishServerError(err)
+		panic("记录勾子初始化失败. " + err.Error())
+	}
+
+	go func() {
+		for event := range R.hotKeyChan {
+			if !R.hotKeyDeal(event) {
+				select {
+				//尝试塞到键盘监听中，无效则丢弃
+				case R.keyboardChan <- event:
+				default:
+				}
+			}
 		}
-	}
+	}()
 }
 
-func (R *RecordServerT) exitNowDeal() (exit chan struct{}) {
-	if R.exit != nil {
-		R.exit <- struct{}{}
-	}
-
-	exit = make(chan struct{})
-	R.exit = exit
-
-	return
+//取消勾子
+func (R *RecordServerT) handOutHook() {
+	//鼠标直接取消勾子
+	_ = windowsHook.MouseUnhook()
+	//键盘将监听chan置空
+	R.keyboardChan = nil
 }
 
+//挂上勾子
+func (R *RecordServerT) handUpHook() {
+	//鼠标
+	_ = windowsHook.MouseUnhook()
+
+	var err error
+	R.mouseChan, err = windowsHook.MouseHook(nil)
+	R.tryPublishServerError(err)
+
+	//键盘
+	R.keyboardChan = make(chan windowsHook.KeyboardEvent, 3000)
+}
+
+//热键处理
 func (R *RecordServerT) hotKeyDeal(event windowsHook.KeyboardEvent) (isHotKey bool) {
 	if hotKey, exist := R.hotKeyM[keyMouTool.VKCode(event.VkCode)]; exist {
 		isHotKey = true
-		err := eventCenter.Event.Publish(events.ServerHotKeyDown, events.ServerHotKeyDownData{
-			HotKey: hotKey,
-		})
-		if err != nil {
-			_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{
-				ErrInfo: err.Error(),
-			})
-		}
+		R.publishHotKeyDown(hotKey)
 	}
 	return
 }
+
+//记录到文件
 func (R *RecordServerT) recordNote(name string, notes []noteT) {
 	logTool.DebugAJ("record 开始记录文件：" + "名称:" + name + " 长度：" + strconv.Itoa(len(notes)))
 
@@ -261,35 +241,54 @@ func (R *RecordServerT) recordNote(name string, notes []noteT) {
 
 	file, err := os.OpenFile(name, os.O_CREATE|os.O_RDWR|os.O_APPEND|os.O_TRUNC, 0772)
 	if err != nil {
-		_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{
-			ErrInfo: err.Error(),
-		})
+		R.tryPublishServerError(err)
 		return
 	}
 	defer func() { _ = file.Close() }()
 
 	js, err := json.Marshal(notes)
 	if err != nil {
-		_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{
-			ErrInfo: err.Error(),
-		})
+		R.tryPublishServerError(err)
 		return
 	}
 	_, err = file.Write(js)
 	if err != nil {
-		_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{
-			ErrInfo: err.Error(),
-		})
+		R.tryPublishServerError(err)
 		return
 	}
 }
 
-// ----------------------- 被调用模块 -----------------------
 func (R *RecordServerT) transMouseDwFlags(message windowsHook.Message) (dw keyMouTool.MouseInputDW) {
 
 	return R.mouseDwMap[message]
 }
+
 func (R *RecordServerT) transKeyDwFlags(message windowsHook.Message) keyMouTool.KeyBoardInputDW {
 
 	return R.keyDwMap[message]
+}
+
+func getTimeGap(starTime int64) (nowTime, timeGap int64) {
+	nowTime = time.Now().UnixNano()
+	timeGap = nowTime - starTime
+	return
+}
+
+// ----------------------- publish -----------------------
+
+//发布服务错误事件
+func (R *RecordServerT) tryPublishServerError(err error) {
+	if err != nil {
+		_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{
+			ErrInfo: err.Error(),
+		})
+	}
+}
+
+//发布热键按下事件
+func (R *RecordServerT) publishHotKeyDown(hotKey enum.HotKey) {
+	err := eventCenter.Event.Publish(events.ServerHotKeyDown, events.ServerHotKeyDownData{
+		HotKey: hotKey,
+	})
+	R.tryPublishServerError(err)
 }

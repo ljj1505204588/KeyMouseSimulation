@@ -14,12 +14,11 @@ import (
 )
 
 type PlayBackServerI interface {
-	Start(name string) error
-	Pause() error
-	Stop() error
+	Start(name string)
+	Pause()
+	Stop()
 
 	SetSpeed(speed float64)
-	SetPlaybackTimes(playbackTimes int)
 }
 
 /*
@@ -28,8 +27,7 @@ type PlayBackServerI interface {
 
 func GetPlaybackServer() *PlayBackServerT {
 	p := PlayBackServerT{
-		speed:         30,
-		playbackTimes: 1,
+		speed: 30,
 	}
 
 	//获取key、mouse发送通道
@@ -44,57 +42,60 @@ func GetPlaybackServer() *PlayBackServerT {
 	}
 
 	//获取窗口信息
-	p.GetWindowRect()
+	p.getWindowRect()
 
 	//初始化
 	p.exit = make(chan struct{})
-	go p.free(p.exit)
 
 	return &p
 }
 
 type PlayBackServerT struct {
-	keySend   chan keyMouTool.KeyInputChanT   //键盘发送通道
-	mouseSend chan keyMouTool.MouseInputChanT //鼠标发送通道
-	exit      chan struct{}                   //退出通道
+	keySend   chan keyMouTool.KeyInputT   //键盘发送通道
+	mouseSend chan keyMouTool.MouseInputT //鼠标发送通道
+	exit      chan struct{}               //退出通道
 
-	name        string //读取文件名称
-	playbackPod int    //当前回放在文件内容位置
-
-	speed         float64 //回放速度
-	playbackTimes int     //回放次数
-	currentTimes  int     //当前回放次数
+	name        string  //读取文件名称
+	notes       []noteT //回放数据
+	playbackPod int     //当前回放在文件内容位置
+	speed       float64 //回放速度
 
 	windowsX int //电脑屏幕宽度
 	windowsY int //电脑屏幕长度
 }
 
 //Start 开始
-func (p *PlayBackServerT) Start(name string) (err error) {
-	p.name = name
+func (p *PlayBackServerT) Start(name string) {
+	var err error
+	if p.name != name {
+		p.playbackPod = 0
+		p.name = name
+		if p.notes, err = p.loadPlaybackNotes(name); err != nil {
+			p.publishPlaybackFinish()
+			p.tryPublishServerError(err)
+			return
+		}
+	}
 
-	exit := p.exitNowDeal()
-	go p.playback(exit)
+	go p.playback()
 
 	return
 }
 
 //Pause 暂停
-func (p *PlayBackServerT) Pause() (err error) {
+func (p *PlayBackServerT) Pause() {
+	p.exit <- struct{}{}
 
-	exit := p.exitNowDeal()
-	go p.pause(exit)
-
-	return
+	logTool.DebugAJ("playback 回放暂停状态")
 }
 
 //Stop 停止
-func (p *PlayBackServerT) Stop() (err error) {
+func (p *PlayBackServerT) Stop() {
 
-	exit := p.exitNowDeal()
-	go p.free(exit)
+	p.playbackPod = 0
+	p.exit <- struct{}{}
 
-	return
+	logTool.DebugAJ("playback 退出回放状态")
 }
 
 //SetSpeed 设置回放速度
@@ -102,100 +103,32 @@ func (p *PlayBackServerT) SetSpeed(speed float64) {
 	p.speed = speed
 }
 
-//SetPlaybackTimes 设置回放次数
-func (p *PlayBackServerT) SetPlaybackTimes(playbackTimes int) {
-	if playbackTimes > 0 || playbackTimes == -1 {
-		p.playbackTimes = playbackTimes
-		p.currentTimes = playbackTimes
-	}
-}
-
 // ----------------------- playback 模块主体功能函数 -----------------------
 
-func (p *PlayBackServerT) free(exit chan struct{}) {
-	//回放节点设为初始、回放次数恢复设置次数
-	p.playbackPod = 0
-	p.currentTimes = p.playbackTimes
-
-	<-exit
-	logTool.DebugAJ("playback 退出回放空闲状态")
-}
-func (p *PlayBackServerT) pause(exit chan struct{}) {
-	<-exit
-	logTool.DebugAJ("playback 退出回放暂停状态")
-}
-func (p *PlayBackServerT) playback(exit chan struct{}) {
-	var err error
-	var notes = make([]noteT, 0)
-
-	if notes, err = p.loadPlaybackNotes(p.name); err != nil || len(notes) == 0 {
-		if err != nil {
-			_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{
-				ErrInfo: err.Error(),
-			})
-		}
-		<-exit
-		return
-	}
-
+func (p *PlayBackServerT) playback() {
+	defer p.publishPlaybackFinish()
 	for {
 		select {
-		case <-exit:
+		case <-p.exit:
 			logTool.DebugAJ("playback 退出回放状态")
 			return
 		default:
-			if p.playbackPod >= len(notes) {
+			if p.playbackPod >= len(p.notes) {
 				p.playbackPod = 0
-				if p.dealPlayBackTimes() {
-					<-exit
-					return
-				}
+				return
 			}
-			pos := p.playbackPod
-			switch notes[pos].NoteType {
+			note := p.notes[p.playbackPod]
+			switch note.NoteType {
 			case keyMouTool.TYPE_INPUT_KEYBOARD:
-				time.Sleep(time.Duration(int(notes[pos].timeGap / p.speed)))
-				p.keySend <- *notes[pos].KeyNote
+				time.Sleep(time.Duration(int(note.timeGap / p.speed)))
+				p.keySend <- *note.KeyNote
 			case keyMouTool.TYPE_INPUT_MOUSE:
-				time.Sleep(time.Duration(int(notes[pos].timeGap / p.speed)))
-				p.mouseSend <- *notes[pos].MouseNote
+				time.Sleep(time.Duration(int(note.timeGap / p.speed)))
+				p.mouseSend <- *note.MouseNote
 			}
 			p.playbackPod += 1
 		}
 	}
-}
-func (p *PlayBackServerT) dealPlayBackTimes() (isReturn bool) {
-	if p.currentTimes == -1 {
-		return
-	}
-
-	p.currentTimes--
-
-	if p.currentTimes <= 0 {
-		isReturn = true
-	}
-
-	//发布事件
-	err := eventCenter.Event.Publish(events.ServerCurrentTimesChange, events.ServerCurrentTimesChangeData{
-		CurrentTimes: p.currentTimes,
-	})
-	if err != nil {
-		_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{
-			ErrInfo: err.Error(),
-		})
-		logTool.ErrorAJ(err)
-	}
-	return
-}
-func (p *PlayBackServerT) exitNowDeal() (exit chan struct{}) {
-	if p.exit != nil {
-		p.exit <- struct{}{}
-	}
-
-	exit = make(chan struct{})
-	p.exit = exit
-
-	return
 }
 
 //loadPlaybackNotes 加载回放记录
@@ -228,11 +161,24 @@ func (p *PlayBackServerT) loadPlaybackNotes(name string) ([]noteT, error) {
 	return nodes, err
 }
 
-/*
-	获取信息
-*/
+// ----------------------- Util -----------------------
 
-func (p *PlayBackServerT) GetWindowRect() {
+//发布回放结束事件
+func (p *PlayBackServerT) publishPlaybackFinish() {
+	_ = eventCenter.Event.Publish(events.PlayBackFinish, events.PlayBackFinishData{})
+}
+
+//发布服务错误事件
+func (p *PlayBackServerT) tryPublishServerError(err error) {
+	if err != nil {
+		_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{
+			ErrInfo: err.Error(),
+		})
+	}
+}
+
+//获取windows窗口大小
+func (p *PlayBackServerT) getWindowRect() {
 	p.windowsX, p.windowsY = 1920, 1080
 	x, _, err := windowsApi.DllUser.Call(windowsApi.FuncGetSystemMetrics, windowsApi.SM_CXSCREEN)
 	if err != nil {

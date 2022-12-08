@@ -1,11 +1,11 @@
 package keyMouTool
 
-type KeyInputChanT struct {
+type KeyInputT struct {
 	VK      VKCode
 	DwFlags KeyBoardInputDW
 }
 
-type MouseInputChanT struct {
+type MouseInputT struct {
 	X         int32
 	Y         int32
 	DWFlags   MouseInputDW
