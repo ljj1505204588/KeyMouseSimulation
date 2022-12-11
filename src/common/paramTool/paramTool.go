@@ -10,67 +10,63 @@ import (
 const PARAM_TOOL_LOG_HEAD = "配置读取工具："
 
 func init() {
-	// 打开文件
-	fInfo := getFileInfo()
+	center.create()
+
+	//获取配置
+	text := getConfig()
 
 	//读取配置
-	var xmlParam paramT
-	_ = xml.Unmarshal(fInfo, &xmlParam)
-	writeBack := readConfig(xmlParam)
+	initConfig(text)
 
-	//复写文件
-	f := getFile(os.O_RDWR | os.O_CREATE | os.O_TRUNC)
-	defer func() {
-		_ = f.Close()
-	}()
-	_, _ = f.Write(writeBack)
+	//复写配置回文件
+	if err := WriteBackFile(); err != nil {
+		panic(PARAM_TOOL_LOG_HEAD + "复写回文件配置编码 Xml 失败.")
+	}
 
 	fmt.Println(PARAM_TOOL_LOG_HEAD + "参数组件，加载成功！")
 }
 
-//readConfig 初始化责任链 读取相关配置
-func readConfig(xmlParam paramT) []byte {
-	chainInit()
-
-	for _, v := range chainMap {
-		v.defaultParamInit(&param)
-		v.xmlParamInit(&param, xmlParam)
-		v.envParamInit(&param)
-	}
-
-	writeBack, err := xml.MarshalIndent(param, "", "    ")
+//WriteBackFile 回写回文件
+func WriteBackFile() error {
+	//获取回写内容
+	writeBack, err := xml.MarshalIndent(center.getWriterBack(), "", "    ")
 	if err != nil {
-		panic(PARAM_TOOL_LOG_HEAD + "复写回文件配置编码 Xml 失败.")
+		return err
 	}
 
-	return writeBack
+	//创建||打开文件
+	file, openErr := os.OpenFile(getConfigPath(), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0762)
+	if openErr != nil {
+		return openErr
+	}
+
+	//回写回文件
+	_, err = file.Write(writeBack)
+	_ = file.Close()
+	return err
 }
 
-func getFile(flag int) *os.File {
+// 获取配置文件
+func getConfig() (text []byte) {
+	text, _ = os.ReadFile(getConfigPath())
+	return
+}
+
+// 初始化责任链 读取相关配置
+func initConfig(text []byte) {
+	center.initParam(text)
+
+}
+
+// 获取配置文件地址
+func getConfigPath() string {
+	//取软件执行地址
 	wd, _ := os.Getwd()
 
+	//生成Config文件夹
 	configPath := wd + commonTool.GetSysPthSep() + "config"
 	_ = os.Mkdir(configPath, 0764)
 
-	filePath := configPath + commonTool.GetSysPthSep() + "config.xml"
-
-	file, err := os.OpenFile(filePath, flag, 0762)
-	if err != nil {
-		panic(PARAM_TOOL_LOG_HEAD + "创建文件时错误." + err.Error())
-	}
-
-	return file
-}
-func getFileInfo() []byte {
-	wd, _ := os.Getwd()
-
-	configPath := wd + commonTool.GetSysPthSep() + "config"
-	_ = os.Mkdir(configPath, 0764)
-
-	filePath := configPath + commonTool.GetSysPthSep() + "config.xml"
-	fileInfo, err := os.ReadFile(filePath)
-	if err != nil {
-		fileInfo = []byte{}
-	}
-	return fileInfo
+	//返回配置地址
+	return configPath + commonTool.GetSysPthSep() + "config.xml"
 }

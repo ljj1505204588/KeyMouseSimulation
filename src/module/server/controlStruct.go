@@ -14,39 +14,39 @@ type statusT struct {
 }
 
 // 修改状态
-func (t *statusT) changeStatus(changeStatus enum.Status) (err error) {
-	var status = t.statusEnum
-	switch changeStatus {
+func (t *statusT) changeStatus(change enum.Status) (err error) {
+	var current = t.statusEnum
+	switch current {
 	// -------------- 空闲 --------------
 	case enum.FREE:
-		if status == enum.RECORD_PAUSE {
+		if change == enum.RECORD_PAUSE {
 			return fmt.Errorf(language.ErrorFreeToRecordPause)
-		} else if status == enum.PLAYBACK_PAUSE {
+		} else if change == enum.PLAYBACK_PAUSE {
 			return fmt.Errorf(language.ErrorFreeToPlaybackPause)
 		}
 	// -------------- 回放 --------------
 	case enum.PLAYBACK:
-		if status == enum.RECORDING || status == enum.RECORD_PAUSE {
+		if change == enum.RECORDING || change == enum.RECORD_PAUSE {
 			return fmt.Errorf(language.ErrorPlaybackToRecordOrRecordPause)
 		}
 	// -------------- 回放暂停 --------------
 	case enum.PLAYBACK_PAUSE:
-		if status == enum.RECORDING || status == enum.RECORD_PAUSE {
+		if change == enum.RECORDING || change == enum.RECORD_PAUSE {
 			return fmt.Errorf(language.ErrorPlaybackPauseToRecordOrRecordPause)
 		}
 	// -------------- 记录 --------------
 	case enum.RECORDING:
-		if status == enum.PLAYBACK || status == enum.PLAYBACK_PAUSE {
+		if change == enum.PLAYBACK || change == enum.PLAYBACK_PAUSE {
 			return fmt.Errorf(language.ErrorRecordToPlaybackOrPlaybackPause)
 		}
 	// -------------- 记录暂停 --------------
 	case enum.RECORD_PAUSE:
-		if status == enum.PLAYBACK || status == enum.PLAYBACK_PAUSE {
+		if change == enum.PLAYBACK || change == enum.PLAYBACK_PAUSE {
 			return fmt.Errorf(language.ErrorRecordPauseToPlaybackOrPlaybackPause)
 		}
 	}
 
-	t.statusEnum = changeStatus
+	t.statusEnum = change
 	return nil
 }
 

@@ -96,7 +96,7 @@ func (c *WinControlT) Pause() (err error) {
 		return
 	}
 
-	if err = c.status.changeStatus(status); err != nil {
+	if err = c.changeStatus(status); err != nil {
 		return
 	}
 
@@ -111,13 +111,14 @@ func (c *WinControlT) Pause() (err error) {
 
 //Stop 停止
 func (c *WinControlT) Stop(name string) {
+	status := c.status.statusEnum
+
 	//校验 & 改动
 	if err := c.changeStatus(enum.FREE); err != nil {
 		return
 	}
 
 	//修改回放 & 记录状态
-	status := c.status.statusEnum
 	if status == enum.PLAYBACK || status == enum.PLAYBACK_PAUSE {
 		c.playBack.Stop()
 	}

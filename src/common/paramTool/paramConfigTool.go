@@ -7,65 +7,53 @@ import (
 	"strings"
 )
 
-var chainMap = map[string]chainIntI{}
-var param paramT
+/*
+添加参数类型
+step1:添加实现`模板接口`的类
+step2:添加到paramT类中
+step3:添加对应枚举 -- 如果需要默认激活着添加到 defaultActive 中
+*默认激活 ： 会回写到配置文件中
+*/
 
-type chainIntI interface {
-	defaultParamInit(*paramT)
-	xmlParamInit(*paramT, paramT)
-	envParamInit(*paramT)
-}
-
-func chainInit() {
-	chainMap = make(map[string]chainIntI)
-	chainMap = map[string]chainIntI{
-		"ServerParam":  &serverParamT{},
-		"EsParam":      &esParamT{},
-		"LogParam":     &logParamT{},
-		"HotWordParam": &hotWordParamT{},
-	}
-}
+/*------------------------------------  参数结构体 && 枚举  ----------------------------------------------*/
 
 type paramT struct {
-	ServerParam  serverParamT
-	EsParam      esParamT
-	LogParam     logParamT
-	HotWordParam hotWordParamT
+	ServerParam  *serverParamT  `enum:"ServerParam"`
+	EsParam      *esParamT      `enum:"EsParam"`
+	LogParam     *logParamT     `enum:"LogParam"`
+	HotWordParam *hotWordParamT `enum:"HotWordParam"`
+	MongodbParam *mongodbParamT `enum:"MongodbParam"`
 }
 
-func GetParam() *paramT {
-	return &param
+type ParamEnum string
+
+const (
+	ServerParamEnum  ParamEnum = "ServerParam"
+	EsParamEnum      ParamEnum = "EsParam"
+	LogParamEnum     ParamEnum = "LogParam"
+	HotWordParamEnum ParamEnum = "HotWordParam"
+	MongodbParamEnum ParamEnum = "MongodbParam"
+)
+
+var defaultActive = map[ParamEnum]bool{
+	ServerParamEnum: true,
+	LogParamEnum:    true,
+}
+
+//模板
+type templateT interface {
+	EnvParamInit(*paramT)     // 环境变量配置读取
+	DefaultParamInit(*paramT) // 默认配置读取
 }
 
 /*------------------------------------  服务参数  ----------------------------------------------*/
 type serverParamT struct {
-	ServerPort int      `xml:"ServerPort"`
-	Ip         []string `xml:"Ip"`
-	OpenPProf  bool     `xml:"OpenPProf"`
-	PProfPort  int      `xml:"PProfPort"`
+	ServerPort int  `xml:"ServerPort"`
+	OpenPProf  bool `xml:"OpenPProf"`
+	PProfPort  int  `xml:"PProfPort"`
 }
 
-func (*serverParamT) defaultParamInit(param *paramT) {
-	param.ServerParam.ServerPort = 21002
-	param.ServerParam.Ip = []string{
-		"111",
-		"222",
-	}
-	param.ServerParam.OpenPProf = false
-	param.ServerParam.PProfPort = 6061
-}
-func (*serverParamT) xmlParamInit(param *paramT, xmlParam paramT) {
-	if xmlParam.ServerParam.ServerPort != 0 {
-		param.ServerParam.ServerPort = xmlParam.ServerParam.ServerPort
-	}
-	if xmlParam.ServerParam.OpenPProf == true {
-		param.ServerParam.OpenPProf = true
-	}
-	if xmlParam.ServerParam.PProfPort != 0 {
-		param.ServerParam.PProfPort = xmlParam.ServerParam.PProfPort
-	}
-}
-func (*serverParamT) envParamInit(param *paramT) {
+func (*serverParamT) EnvParamInit(param *paramT) {
 	serverPortStr := os.Getenv("ServerParam.ServerPort")
 	serverPort, err := strconv.Atoi(serverPortStr)
 	if err == nil && serverPort != 0 {
@@ -81,6 +69,14 @@ func (*serverParamT) envParamInit(param *paramT) {
 		param.ServerParam.PProfPort = PProfPort
 	}
 }
+func (*serverParamT) DefaultParamInit(param *paramT) {
+	if param.ServerParam.ServerPort == 0 {
+		param.ServerParam.ServerPort = 21002
+	}
+	if param.ServerParam.PProfPort == 0 {
+		param.ServerParam.PProfPort = 6061
+	}
+}
 
 /*------------------------------------  日志参数  ------------------------------------------------*/
 type logParamT struct {
@@ -91,30 +87,7 @@ type logParamT struct {
 	LogRenameSize int
 }
 
-func (*logParamT) defaultParamInit(param *paramT) {
-	param.LogParam.LogLevel = "INFO"
-	param.LogParam.LogPath = commonTool.GetSysPthSep() + "logs"
-	param.LogParam.LogKeepDay = 7
-	param.LogParam.LogRenameSize = 500
-}
-func (*logParamT) xmlParamInit(param *paramT, xmlParam paramT) {
-	if xmlParam.LogParam.LogLevel != "" {
-		param.LogParam.LogLevel = xmlParam.LogParam.LogLevel
-	}
-	if xmlParam.LogParam.LogPath != "" {
-		param.LogParam.LogPath = xmlParam.LogParam.LogPath
-	}
-	if len(xmlParam.LogParam.ExtendLogger) != 0 {
-		param.LogParam.ExtendLogger = xmlParam.LogParam.ExtendLogger
-	}
-	if xmlParam.LogParam.LogKeepDay != 0 {
-		param.LogParam.LogKeepDay = xmlParam.LogParam.LogKeepDay
-	}
-	if xmlParam.LogParam.LogRenameSize != 0 {
-		param.LogParam.LogRenameSize = xmlParam.LogParam.LogRenameSize
-	}
-}
-func (*logParamT) envParamInit(Param *paramT) {
+func (*logParamT) EnvParamInit(Param *paramT) {
 	envLogLevel := os.Getenv("LogParam.LogLevel")
 	if envLogLevel != "" {
 		Param.LogParam.LogLevel = envLogLevel
@@ -143,6 +116,20 @@ func (*logParamT) envParamInit(Param *paramT) {
 		}
 	}
 }
+func (*logParamT) DefaultParamInit(param *paramT) {
+	if param.LogParam.LogLevel == "" {
+		param.LogParam.LogLevel = "INFO"
+	}
+	if param.LogParam.LogPath == "" {
+		param.LogParam.LogPath = commonTool.GetSysPthSep() + "logs"
+	}
+	if param.LogParam.LogKeepDay == 0 {
+		param.LogParam.LogKeepDay = 7
+	}
+	if param.LogParam.LogRenameSize == 0 {
+		param.LogParam.LogRenameSize = 500
+	}
+}
 
 /*------------------------------------  Es参数  --------------------------------------------*/
 type esParamT struct {
@@ -152,27 +139,7 @@ type esParamT struct {
 	RecordBody bool   `xml:"RecordBody"`
 }
 
-func (*esParamT) defaultParamInit(param *paramT) {
-	param.EsParam.EsPort = []int{20003, 21003}
-	param.EsParam.UserName = "elastic"
-	param.EsParam.PassWord = "jjelastic"
-	param.EsParam.RecordBody = false
-}
-func (*esParamT) xmlParamInit(param *paramT, xmlParam paramT) {
-	if len(xmlParam.EsParam.EsPort) != 0 && xmlParam.EsParam.EsPort[0] != 0 {
-		param.EsParam.EsPort = xmlParam.EsParam.EsPort
-	}
-	if xmlParam.EsParam.UserName != "" {
-		param.EsParam.UserName = xmlParam.EsParam.UserName
-	}
-	if xmlParam.EsParam.PassWord != "" {
-		param.EsParam.PassWord = xmlParam.EsParam.PassWord
-	}
-	if xmlParam.EsParam.RecordBody {
-		param.EsParam.RecordBody = true
-	}
-}
-func (*esParamT) envParamInit(param *paramT) {
+func (*esParamT) EnvParamInit(param *paramT) {
 	EsPortStrL := strings.Split(os.Getenv("EsParam.EsPort"), ",")
 	var EsPortL = make([]int, 0)
 	for _, v := range EsPortStrL {
@@ -195,6 +162,17 @@ func (*esParamT) envParamInit(param *paramT) {
 		param.EsParam.RecordBody = true
 	}
 }
+func (*esParamT) DefaultParamInit(param *paramT) {
+	if len(param.EsParam.EsPort) == 0 {
+		param.EsParam.EsPort = []int{20003, 21003}
+	}
+	if param.EsParam.UserName == "" {
+		param.EsParam.UserName = "elastic"
+	}
+	if param.EsParam.PassWord == "" {
+		param.EsParam.PassWord = "jjelastic"
+	}
+}
 
 /*------------------------------------  hotWord参数  --------------------------------------------*/
 type hotWordParamT struct {
@@ -202,19 +180,7 @@ type hotWordParamT struct {
 	TimeGap   int
 }
 
-func (*hotWordParamT) defaultParamInit(param *paramT) {
-	param.HotWordParam.IsRestart = false
-	param.HotWordParam.TimeGap = 15
-}
-func (*hotWordParamT) xmlParamInit(param *paramT, xmlParam paramT) {
-	if xmlParam.HotWordParam.IsRestart {
-		param.HotWordParam.IsRestart = true
-	}
-	if xmlParam.HotWordParam.TimeGap != 0 {
-		param.HotWordParam.TimeGap = xmlParam.HotWordParam.TimeGap
-	}
-}
-func (*hotWordParamT) envParamInit(param *paramT) {
+func (*hotWordParamT) EnvParamInit(param *paramT) {
 	isRestart := os.Getenv("HotWordParam.IsRestart")
 	if strings.ToLower(isRestart) == "true" {
 		param.HotWordParam.IsRestart = true
@@ -223,5 +189,39 @@ func (*hotWordParamT) envParamInit(param *paramT) {
 	timeGap, err := strconv.Atoi(timeGapStr)
 	if err == nil && timeGap != 0 {
 		param.HotWordParam.TimeGap = timeGap
+	}
+}
+func (*hotWordParamT) DefaultParamInit(param *paramT) {
+	if param.HotWordParam.TimeGap == 0 {
+		param.HotWordParam.TimeGap = 15
+	}
+}
+
+/*------------------------------------  mongodb参数  --------------------------------------------*/
+type mongodbParamT struct {
+	Uri      string // 连接串
+	DataBase string // 数据库
+	ReadDay  int    // 读取天数 点触需求，后续删除
+}
+
+func (*mongodbParamT) EnvParamInit(param *paramT) {
+	uri := os.Getenv("MongodbParam.Uri")
+	if uri != "" {
+		param.MongodbParam.Uri = uri
+	}
+	collect := os.Getenv("MongodbParam.DataBase")
+	if collect != "" {
+		param.MongodbParam.DataBase = collect
+	}
+}
+func (*mongodbParamT) DefaultParamInit(param *paramT) {
+	if param.MongodbParam.Uri == "" {
+		param.MongodbParam.Uri = ""
+	}
+	if param.MongodbParam.DataBase == "" {
+		param.MongodbParam.DataBase = ""
+	}
+	if param.MongodbParam.ReadDay == 0 {
+		param.MongodbParam.ReadDay = 2
 	}
 }
