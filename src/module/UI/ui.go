@@ -107,32 +107,33 @@ func MainWindows() {
 				_ = c.wc.Pause()
 			}},
 			PushButton{AssignTo: &c.stopButton, ColumnSpan: 4, Text: language.StopStr + " " + c.hKList[3], OnClicked: func() {
-				if err := c.wc.Pause(); err != nil {
-					return
-				}
+				save := c.wc.Pause()
 
-				fileName, cmd, err := c.setFileName(c.mw)
-				if err != nil {
-					_ = c.errorEdit.SetText(err.Error())
-					return
-				}
-
-				if cmd == walk.DlgCmdOK {
-					for _, v := range c.fileNames {
-						if v == fileName {
-							fileName += "-" + time.Now().String()
-						}
+				//如果需要保存文件
+				if save {
+					fileName, cmd, err := c.setFileName(c.mw)
+					if err != nil {
+						_ = c.errorEdit.SetText(err.Error())
+						return
 					}
-					c.wc.SetFileName(fileName)
-					_ = c.fileBox.SetText(fileName)
 
-					c.fileNames = append(c.fileNames, fileName)
-					sort.Strings(c.fileNames)
-					_ = c.fileBox.SetModel(c.fileNames)
+					save = cmd == walk.DlgCmdOK //用户点击确认需要保持文件
+					if cmd == walk.DlgCmdOK {
+						for _, v := range c.fileNames {
+							if v == fileName {
+								fileName += "-" + time.Now().String()
+							}
+						}
+						c.wc.SetFileName(fileName)
+						_ = c.fileBox.SetText(fileName)
+
+						c.fileNames = append(c.fileNames, fileName)
+						sort.Strings(c.fileNames)
+						_ = c.fileBox.SetModel(c.fileNames)
+					}
 				}
 
-				c.wc.Stop(fileName)
-
+				c.wc.Stop(save)
 			}},
 
 			//鼠标路径
@@ -404,6 +405,12 @@ func (c *ControlT) SubServerChange(data interface{}) (err error) {
 		c.fileNames = d.FileNamesData.FileNames
 		if err = c.fileBox.SetModel(d.FileNamesData.FileNames); err != nil {
 			return
+		}
+		if c.fileBox.Text() == "" && len(d.FileNamesData.FileNames) != 0 {
+			c.wc.SetFileName(d.FileNamesData.FileNames[0])
+			if err = c.fileBox.SetText(d.FileNamesData.FileNames[0]); err != nil {
+				return
+			}
 		}
 	}
 

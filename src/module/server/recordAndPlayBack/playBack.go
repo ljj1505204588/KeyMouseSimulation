@@ -34,26 +34,25 @@ func GetPlaybackServer() *PlayBackServerT {
 	var err error
 	p.keySend, err = keyMouTool.GetKeySendInputChan(3000)
 	if err != nil {
-		os.Exit(1)
+		panic(err.Error())
 	}
 	p.mouseSend, err = keyMouTool.GetMouseSendInputChan(3000)
 	if err != nil {
-		os.Exit(1)
+		panic(err.Error())
 	}
 
 	//获取窗口信息
 	p.getWindowRect()
 
 	//初始化
-	p.exit = make(chan struct{})
 
 	return &p
 }
 
 type PlayBackServerT struct {
-	keySend   chan keyMouTool.KeyInputT   //键盘发送通道
-	mouseSend chan keyMouTool.MouseInputT //鼠标发送通道
-	exit      chan struct{}               //退出通道
+	keySend      chan keyMouTool.KeyInputT   //键盘发送通道
+	mouseSend    chan keyMouTool.MouseInputT //鼠标发送通道
+	playbackSign *bool                       //回放标识
 
 	name        string  //读取文件名称
 	notes       []noteT //回放数据
@@ -64,7 +63,7 @@ type PlayBackServerT struct {
 	windowsY int //电脑屏幕长度
 }
 
-//Start 开始
+// Start 开始
 func (p *PlayBackServerT) Start(name string) {
 	var err error
 	if p.name != name {
@@ -77,28 +76,29 @@ func (p *PlayBackServerT) Start(name string) {
 		}
 	}
 
+	var sign = true
+	p.playbackSign = &sign
 	go p.playback()
 
 	return
 }
 
-//Pause 暂停
+// Pause 暂停
 func (p *PlayBackServerT) Pause() {
-	p.exit <- struct{}{}
+	*p.playbackSign = false
 
 	logTool.DebugAJ("playback 回放暂停状态")
 }
 
-//Stop 停止
+// Stop 停止
 func (p *PlayBackServerT) Stop() {
-
 	p.playbackPod = 0
-	p.exit <- struct{}{}
+	*p.playbackSign = false
 
 	logTool.DebugAJ("playback 退出回放状态")
 }
 
-//SetSpeed 设置回放速度
+// SetSpeed 设置回放速度
 func (p *PlayBackServerT) SetSpeed(speed float64) {
 	p.speed = speed
 }
@@ -106,15 +106,16 @@ func (p *PlayBackServerT) SetSpeed(speed float64) {
 // ----------------------- playback 模块主体功能函数 -----------------------
 
 func (p *PlayBackServerT) playback() {
-	defer p.publishPlaybackFinish()
+	sign := p.playbackSign
 	for {
-		select {
-		case <-p.exit:
+		switch {
+		case !*sign:
 			logTool.DebugAJ("playback 退出回放状态")
 			return
 		default:
 			if p.playbackPod >= len(p.notes) {
 				p.playbackPod = 0
+				p.publishPlaybackFinish()
 				return
 			}
 			note := p.notes[p.playbackPod]
@@ -131,7 +132,7 @@ func (p *PlayBackServerT) playback() {
 	}
 }
 
-//loadPlaybackNotes 加载回放记录
+// loadPlaybackNotes 加载回放记录
 func (p *PlayBackServerT) loadPlaybackNotes(name string) ([]noteT, error) {
 	file, err := os.OpenFile(name, os.O_RDONLY, 0772)
 	if err != nil {
@@ -163,12 +164,12 @@ func (p *PlayBackServerT) loadPlaybackNotes(name string) ([]noteT, error) {
 
 // ----------------------- Util -----------------------
 
-//发布回放结束事件
+// 发布回放结束事件
 func (p *PlayBackServerT) publishPlaybackFinish() {
 	_ = eventCenter.Event.Publish(events.PlayBackFinish, events.PlayBackFinishData{})
 }
 
-//发布服务错误事件
+// 发布服务错误事件
 func (p *PlayBackServerT) tryPublishServerError(err error) {
 	if err != nil {
 		_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{
@@ -177,7 +178,7 @@ func (p *PlayBackServerT) tryPublishServerError(err error) {
 	}
 }
 
-//获取windows窗口大小
+// 获取windows窗口大小
 func (p *PlayBackServerT) getWindowRect() {
 	p.windowsX, p.windowsY = 1920, 1080
 	x, _, err := windowsApi.DllUser.Call(windowsApi.FuncGetSystemMetrics, windowsApi.SM_CXSCREEN)

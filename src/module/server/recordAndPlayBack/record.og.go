@@ -14,9 +14,9 @@ import (
 )
 
 type RecordServerI interface {
-	Start()           //开始
-	Pause()           //暂停
-	Stop(name string) //停止
+	Start()                      //开始
+	Pause()                      //暂停
+	Stop(name string, save bool) //停止
 
 	SetHotKey(k enum.HotKey, vks keyMouTool.VKCode) error //设置热键
 	SetIfTrackMouseMove(sign bool)                        //设置是否记录鼠标移动路径
@@ -72,31 +72,31 @@ type RecordServerT struct {
 	keyDwMap   map[windowsHook.Message]keyMouTool.KeyBoardInputDW //键盘转换Map
 }
 
-//Start 开始
+// Start 开始
 func (R *RecordServerT) Start() {
 	R.handUpHook()
 }
 
-//Pause 暂停
+// Pause 暂停
 func (R *RecordServerT) Pause() {
 	R.handOutHook()
 }
 
-//Stop 停止
-func (R *RecordServerT) Stop(name string) {
+// Stop 停止
+func (R *RecordServerT) Stop(name string, save bool) {
 	R.handOutHook()
 
 	//记录文件
-	if len(R.notes) != 0 {
-		notes := R.notes
-		R.notes = []noteT{}
+	notes := R.notes
+	R.notes = []noteT{}
+	if len(notes) != 0 && save {
 		go R.recordNote(name, notes)
 	}
 
 	return
 }
 
-//SetHotKey 设置热键
+// SetHotKey 设置热键
 func (R *RecordServerT) SetHotKey(k enum.HotKey, vks keyMouTool.VKCode) error {
 	M := make(map[keyMouTool.VKCode]enum.HotKey)
 
@@ -112,7 +112,7 @@ func (R *RecordServerT) SetHotKey(k enum.HotKey, vks keyMouTool.VKCode) error {
 	return nil
 }
 
-//SetIfTrackMouseMove 设置是否追踪鼠标记录
+// SetIfTrackMouseMove 设置是否追踪鼠标记录
 func (R *RecordServerT) SetIfTrackMouseMove(sign bool) {
 	R.recordMouseTrack = sign
 }
@@ -168,6 +168,9 @@ func (R *RecordServerT) mainLoop() {
 				},
 				TimeGap: timeGap,
 			})
+		default:
+			//别再犯那么傻的事情了，没有default会按顺序去尝试执行，然后卡住
+			time.Sleep(10 * time.Millisecond)
 		}
 	}
 
@@ -175,7 +178,7 @@ func (R *RecordServerT) mainLoop() {
 
 // ----------------------- Util -----------------------
 
-//初始化勾子
+// 初始化勾子
 func (R *RecordServerT) initHook() {
 
 	var err error
@@ -197,7 +200,7 @@ func (R *RecordServerT) initHook() {
 	}()
 }
 
-//取消勾子
+// 取消勾子
 func (R *RecordServerT) handOutHook() {
 	//鼠标直接取消勾子
 	_ = windowsHook.MouseUnhook()
@@ -205,7 +208,7 @@ func (R *RecordServerT) handOutHook() {
 	R.keyboardChan = nil
 }
 
-//挂上勾子
+// 挂上勾子
 func (R *RecordServerT) handUpHook() {
 	//鼠标
 	_ = windowsHook.MouseUnhook()
@@ -218,7 +221,7 @@ func (R *RecordServerT) handUpHook() {
 	R.keyboardChan = make(chan windowsHook.KeyboardEvent, 3000)
 }
 
-//热键处理
+// 热键处理
 func (R *RecordServerT) hotKeyDeal(event windowsHook.KeyboardEvent) (isHotKey bool) {
 	if hotKey, exist := R.hotKeyM[keyMouTool.VKCode(event.VkCode)]; exist {
 		isHotKey = true
@@ -227,7 +230,7 @@ func (R *RecordServerT) hotKeyDeal(event windowsHook.KeyboardEvent) (isHotKey bo
 	return
 }
 
-//记录到文件
+// 记录到文件
 func (R *RecordServerT) recordNote(name string, notes []noteT) {
 	logTool.DebugAJ("record 开始记录文件：" + "名称:" + name + " 长度：" + strconv.Itoa(len(notes)))
 
@@ -276,7 +279,7 @@ func getTimeGap(starTime int64) (nowTime, timeGap int64) {
 
 // ----------------------- publish -----------------------
 
-//发布服务错误事件
+// 发布服务错误事件
 func (R *RecordServerT) tryPublishServerError(err error) {
 	if err != nil {
 		_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{
@@ -285,7 +288,7 @@ func (R *RecordServerT) tryPublishServerError(err error) {
 	}
 }
 
-//发布热键按下事件
+// 发布热键按下事件
 func (R *RecordServerT) publishHotKeyDown(hotKey enum.HotKey) {
 	err := eventCenter.Event.Publish(events.ServerHotKeyDown, events.ServerHotKeyDownData{
 		HotKey: hotKey,

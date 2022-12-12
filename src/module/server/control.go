@@ -19,8 +19,8 @@ import (
 type ControlI interface {
 	Record()
 	Playback()
-	Pause() (err error)
-	Stop(name string)
+	Pause() (save bool)
+	Stop(save bool)
 
 	GetKeyList() (hotKeyList [4]string, keyList []string)
 	SetHotKey(k enum.HotKey, key string)
@@ -67,7 +67,7 @@ func NewWinControl() *WinControlT {
 
 // --------------------------------------- 基础功能 ---------------------------------------
 
-//Record 记录
+// Record 记录
 func (c *WinControlT) Record() {
 	if err := c.changeStatus(enum.RECORDING); err == nil {
 		c.record.Start()
@@ -76,7 +76,7 @@ func (c *WinControlT) Record() {
 	return
 }
 
-//Playback 回放
+// Playback 回放
 func (c *WinControlT) Playback() {
 
 	if err := c.changeStatus(enum.PLAYBACK); err == nil {
@@ -86,8 +86,8 @@ func (c *WinControlT) Playback() {
 	return
 }
 
-//Pause 暂停
-func (c *WinControlT) Pause() (err error) {
+// Pause 暂停
+func (c *WinControlT) Pause() (save bool) {
 
 	//获取暂停状态
 	status, err := c.status.getAfterPauseStatus()
@@ -103,14 +103,15 @@ func (c *WinControlT) Pause() (err error) {
 	if status == enum.PLAYBACK_PAUSE {
 		c.playBack.Pause()
 	} else if status == enum.RECORD_PAUSE {
+		save = true
 		c.record.Pause()
 	}
 
 	return
 }
 
-//Stop 停止
-func (c *WinControlT) Stop(name string) {
+// Stop 停止
+func (c *WinControlT) Stop(save bool) {
 	status := c.status.statusEnum
 
 	//校验 & 改动
@@ -123,14 +124,14 @@ func (c *WinControlT) Stop(name string) {
 		c.playBack.Stop()
 	}
 	if status == enum.RECORDING || status == enum.RECORD_PAUSE {
-		c.record.Stop(name)
+		c.record.Stop(c.fileName, save)
 	}
 
 }
 
 // --------------------------------------- 额外功能 ---------------------------------------
 
-//GetKeyList 获取热键数组
+// GetKeyList 获取热键数组
 func (c *WinControlT) GetKeyList() (hotKeyList [4]string, keyList []string) {
 	return [4]string{"F7", "F8", "F9", "F10"}, []string{
 		"F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12",
@@ -139,14 +140,14 @@ func (c *WinControlT) GetKeyList() (hotKeyList [4]string, keyList []string) {
 	}
 }
 
-//SetHotKey 设置热键
+// SetHotKey 设置热键
 func (c *WinControlT) SetHotKey(hk enum.HotKey, k string) {
 	if key, exist := c.keyM[k]; exist {
 		c.tryPublishServerErr(c.record.SetHotKey(hk, key))
 	}
 }
 
-//SetFileName 设置存储文件名称
+// SetFileName 设置存储文件名称
 func (c *WinControlT) SetFileName(fileName string) {
 
 	if fileName != "" {
@@ -156,19 +157,19 @@ func (c *WinControlT) SetFileName(fileName string) {
 	c.fileName = fileName
 }
 
-//SetSpeed 设置回放速度
+// SetSpeed 设置回放速度
 func (c *WinControlT) SetSpeed(speed float64) {
 	c.playBack.SetSpeed(speed)
 }
 
-//SetPlaybackTimes 设置回放次数
+// SetPlaybackTimes 设置回放次数
 func (c *WinControlT) SetPlaybackTimes(times int) {
 	c.playBackTimes = times
 	c.lastTimes = times
 	c.publishServerChange()
 }
 
-//SetIfTrackMouseMove 设置是否记录鼠标移动记录
+// SetIfTrackMouseMove 设置是否记录鼠标移动记录
 func (c *WinControlT) SetIfTrackMouseMove(sign bool) {
 	c.record.SetIfTrackMouseMove(sign)
 }
@@ -286,7 +287,7 @@ func getKeyM() map[string]keyMouTool.VKCode {
 
 // --------------------------------------- Sub ---------------------------------------
 
-//SubPlayBackFinish 订阅回放结束
+// SubPlayBackFinish 订阅回放结束
 func (c *WinControlT) SubPlayBackFinish(_ interface{}) (err error) {
 	//无限循环
 	if c.playBackTimes == -1 {
@@ -299,7 +300,6 @@ func (c *WinControlT) SubPlayBackFinish(_ interface{}) (err error) {
 	} else {
 		c.tryPublishServerErr(c.changeStatus(enum.FREE))
 		c.lastTimes = c.playBackTimes
-		c.playBack.Stop()
 	}
 
 	c.publishServerChange()
