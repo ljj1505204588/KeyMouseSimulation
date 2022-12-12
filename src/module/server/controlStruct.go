@@ -50,12 +50,16 @@ func (t *statusT) changeStatus(change enum.Status) (err error) {
 	return nil
 }
 
-//获取暂停后状态
+// 获取暂停后状态
 func (t *statusT) getAfterPauseStatus() (status enum.Status, err error) {
 	switch t.statusEnum {
 	case enum.PLAYBACK:
 		return enum.PLAYBACK_PAUSE, nil
+	case enum.PLAYBACK_PAUSE:
+		return enum.PLAYBACK_PAUSE, nil
 	case enum.RECORDING:
+		return enum.RECORD_PAUSE, nil
+	case enum.RECORD_PAUSE:
 		return enum.RECORD_PAUSE, nil
 	default:
 		return t.statusEnum, errors.New(language.ErrorPauseFail)
