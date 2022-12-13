@@ -170,10 +170,9 @@ func (R *RecordServerT) mainLoop() {
 			})
 		default:
 			//别再犯那么傻的事情了，没有default会按顺序去尝试执行，然后卡住
-			time.Sleep(10 * time.Millisecond)
+			time.Sleep(1 * time.Millisecond)
 		}
 	}
-
 }
 
 // ----------------------- Util -----------------------

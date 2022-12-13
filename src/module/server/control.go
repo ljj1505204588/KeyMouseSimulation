@@ -2,6 +2,7 @@ package server
 
 import (
 	eventCenter "KeyMouseSimulation/common/Event"
+	"KeyMouseSimulation/common/logTool"
 	"KeyMouseSimulation/common/windowsApiTool/windowsInput/keyMouTool"
 	"KeyMouseSimulation/module/server/recordAndPlayBack"
 	"KeyMouseSimulation/share/enum"
@@ -78,6 +79,7 @@ func (c *WinControlT) Record() {
 
 // Playback 回放
 func (c *WinControlT) Playback() {
+	logTool.DebugAJ("Control 回放点击")
 
 	if err := c.changeStatus(enum.PLAYBACK); err == nil {
 		c.playBack.Start(c.fileName)
@@ -88,6 +90,7 @@ func (c *WinControlT) Playback() {
 
 // Pause 暂停
 func (c *WinControlT) Pause() (save bool) {
+	logTool.DebugAJ("Control 暂停点击")
 
 	//获取暂停状态
 	status, err := c.status.getAfterPauseStatus()
@@ -112,6 +115,8 @@ func (c *WinControlT) Pause() (save bool) {
 
 // Stop 停止
 func (c *WinControlT) Stop(save bool) {
+	logTool.DebugAJ("Control 停止点击")
+
 	status := c.status.statusEnum
 
 	//校验 & 改动

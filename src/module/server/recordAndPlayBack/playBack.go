@@ -65,6 +65,7 @@ type PlayBackServerT struct {
 
 // Start 开始
 func (p *PlayBackServerT) Start(name string) {
+
 	var err error
 	if p.name != name {
 		p.playbackPod = 0
@@ -78,14 +79,13 @@ func (p *PlayBackServerT) Start(name string) {
 
 	var sign = true
 	p.playbackSign = &sign
-	go p.playback()
-
+	go p.playback(&sign)
 	return
 }
 
 // Pause 暂停
 func (p *PlayBackServerT) Pause() {
-	*p.playbackSign = false
+	*(p.playbackSign) = false
 
 	logTool.DebugAJ("playback 回放暂停状态")
 }
@@ -93,7 +93,7 @@ func (p *PlayBackServerT) Pause() {
 // Stop 停止
 func (p *PlayBackServerT) Stop() {
 	p.playbackPod = 0
-	*p.playbackSign = false
+	*(p.playbackSign) = false
 
 	logTool.DebugAJ("playback 退出回放状态")
 }
@@ -105,8 +105,7 @@ func (p *PlayBackServerT) SetSpeed(speed float64) {
 
 // ----------------------- playback 模块主体功能函数 -----------------------
 
-func (p *PlayBackServerT) playback() {
-	sign := p.playbackSign
+func (p *PlayBackServerT) playback(sign *bool) {
 	for {
 		switch {
 		case !*sign:
@@ -138,6 +137,7 @@ func (p *PlayBackServerT) loadPlaybackNotes(name string) ([]noteT, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer file.Close()
 
 	b, err := ioutil.ReadAll(file)
 	if err != nil {
