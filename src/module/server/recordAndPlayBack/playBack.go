@@ -52,7 +52,7 @@ func GetPlaybackServer() *PlayBackServerT {
 type PlayBackServerT struct {
 	keySend      chan keyMouTool.KeyInputT   //键盘发送通道
 	mouseSend    chan keyMouTool.MouseInputT //鼠标发送通道
-	playbackSign *bool                       //回放标识
+	playbackSign bool                        //回放标识
 
 	name        string  //读取文件名称
 	notes       []noteT //回放数据
@@ -77,15 +77,14 @@ func (p *PlayBackServerT) Start(name string) {
 		}
 	}
 
-	var sign = true
-	p.playbackSign = &sign
-	go p.playback(&sign)
+	p.playbackSign = true
+	go p.playback()
 	return
 }
 
 // Pause 暂停
 func (p *PlayBackServerT) Pause() {
-	*(p.playbackSign) = false
+	p.playbackSign = false
 
 	logTool.DebugAJ("playback 回放暂停状态")
 }
@@ -93,7 +92,7 @@ func (p *PlayBackServerT) Pause() {
 // Stop 停止
 func (p *PlayBackServerT) Stop() {
 	p.playbackPod = 0
-	*(p.playbackSign) = false
+	p.playbackSign = false
 
 	logTool.DebugAJ("playback 退出回放状态")
 }
@@ -105,15 +104,16 @@ func (p *PlayBackServerT) SetSpeed(speed float64) {
 
 // ----------------------- playback 模块主体功能函数 -----------------------
 
-func (p *PlayBackServerT) playback(sign *bool) {
+func (p *PlayBackServerT) playback() {
 	for {
 		switch {
-		case !*sign:
+		case !p.playbackSign:
 			logTool.DebugAJ("playback 退出回放状态")
 			return
 		default:
 			if p.playbackPod >= len(p.notes) {
 				p.playbackPod = 0
+				p.playbackSign = false
 				p.publishPlaybackFinish()
 				return
 			}

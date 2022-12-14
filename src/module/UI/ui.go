@@ -13,6 +13,7 @@ import (
 	"github.com/lxn/win"
 	"math"
 	"sort"
+	"strconv"
 	"time"
 )
 
@@ -121,7 +122,7 @@ func MainWindows() {
 					if cmd == walk.DlgCmdOK {
 						for _, v := range c.fileNames {
 							if v == fileName {
-								fileName += "-" + time.Now().String()
+								fileName += "-" + strconv.Itoa(int(time.Now().Unix()))
 							}
 						}
 						c.wc.SetFileName(fileName)

@@ -58,7 +58,8 @@ func GetRecordServer() *RecordServerT {
 }
 
 type RecordServerT struct {
-	notes []noteT //记录
+	recordStartTime int64   //记录开始时间，纳秒
+	notes           []noteT //记录
 
 	hotKeyM          map[keyMouTool.VKCode]enum.HotKey //热键信息
 	recordMouseTrack bool                              //是否记录鼠标移动路径使用
@@ -74,23 +75,28 @@ type RecordServerT struct {
 
 // Start 开始
 func (R *RecordServerT) Start() {
-	R.handUpHook()
+	if R.recordStartTime == 0 {
+		R.recordStartTime = time.Now().UnixNano()
+		R.handUpHook()
+	}
 }
 
 // Pause 暂停
 func (R *RecordServerT) Pause() {
+	R.recordStartTime = 0
 	R.handOutHook()
 }
 
 // Stop 停止
 func (R *RecordServerT) Stop(name string, save bool) {
+	R.recordStartTime = 0
 	R.handOutHook()
 
 	//记录文件
 	notes := R.notes
 	R.notes = []noteT{}
 	if len(notes) != 0 && save {
-		go R.recordNote(name, notes)
+		go R.recordNoteToFile(name, notes)
 	}
 
 	return
@@ -131,43 +137,22 @@ func (R *RecordServerT) mainLoop() {
 	defer func() { _ = windowsHook.KeyBoardUnhook() }()
 
 	var timeGap int64
-	st := time.Now().UnixNano()
 	for {
 		select {
 		case kEvent := <-R.keyboardChan: //记录键盘操作
-			st, timeGap = getTimeGap(st)
-			R.notes = append(R.notes, noteT{
-				NoteType: keyMouTool.TYPE_INPUT_KEYBOARD,
-				KeyNote: &keyMouTool.KeyInputT{VK: keyMouTool.VKCode(kEvent.VkCode),
-					DwFlags: R.transKeyDwFlags(kEvent.Message),
-				},
-				TimeGap: timeGap,
-			})
+			R.recordStartTime, timeGap = getTimeGap(R.recordStartTime)
+			R.recordKeyNode(timeGap, &kEvent)
 		case mEvent := <-R.mouseChan: //记录鼠标操作
 			if !R.recordMouseTrack {
 				if mEvent.Message == windowsHook.WM_MOUSEMOVE {
 					R.lastMoveEven = &mEvent
 					continue
-				} else if R.lastMoveEven != nil && R.lastMoveEven.Message == windowsHook.WM_MOUSEMOVE {
-					R.notes = append(R.notes, noteT{
-						NoteType: keyMouTool.TYPE_INPUT_MOUSE,
-						MouseNote: &keyMouTool.MouseInputT{X: R.lastMoveEven.X, Y: R.lastMoveEven.Y,
-							DWFlags: R.transMouseDwFlags(R.lastMoveEven.Message),
-							Time:    mEvent.Time,
-						},
-						TimeGap: 0,
-					})
+				} else if R.lastMoveEven != nil {
+					R.recordMouseNode(0, R.lastMoveEven)
 				}
 			}
-			st, timeGap = getTimeGap(st)
-			R.notes = append(R.notes, noteT{
-				NoteType: keyMouTool.TYPE_INPUT_MOUSE,
-				MouseNote: &keyMouTool.MouseInputT{X: mEvent.X, Y: mEvent.Y,
-					DWFlags:   R.transMouseDwFlags(mEvent.Message),
-					MouseData: mEvent.MouseData,
-				},
-				TimeGap: timeGap,
-			})
+			R.recordStartTime, timeGap = getTimeGap(R.recordStartTime)
+			R.recordMouseNode(timeGap, &mEvent)
 		default:
 			//别再犯那么傻的事情了，没有default会按顺序去尝试执行，然后卡住
 			time.Sleep(1 * time.Millisecond)
@@ -229,8 +214,31 @@ func (R *RecordServerT) hotKeyDeal(event windowsHook.KeyboardEvent) (isHotKey bo
 	return
 }
 
+func (R *RecordServerT) recordKeyNode(timeGap int64, event *windowsHook.KeyboardEvent) {
+
+	R.notes = append(R.notes, noteT{
+		NoteType: keyMouTool.TYPE_INPUT_KEYBOARD,
+		KeyNote: &keyMouTool.KeyInputT{VK: keyMouTool.VKCode(event.VkCode),
+			DwFlags: R.transKeyDwFlags(event.Message),
+		},
+		TimeGap: timeGap,
+	})
+}
+
+func (R *RecordServerT) recordMouseNode(timeGap int64, event *windowsHook.MouseEvent) {
+
+	R.notes = append(R.notes, noteT{
+		NoteType: keyMouTool.TYPE_INPUT_MOUSE,
+		MouseNote: &keyMouTool.MouseInputT{X: event.X, Y: event.Y,
+			DWFlags:   R.transMouseDwFlags(event.Message),
+			MouseData: event.MouseData,
+		},
+		TimeGap: timeGap,
+	})
+}
+
 // 记录到文件
-func (R *RecordServerT) recordNote(name string, notes []noteT) {
+func (R *RecordServerT) recordNoteToFile(name string, notes []noteT) {
 	logTool.DebugAJ("record 开始记录文件：" + "名称:" + name + " 长度：" + strconv.Itoa(len(notes)))
 
 	if name == "" {
@@ -266,7 +274,6 @@ func (R *RecordServerT) transMouseDwFlags(message windowsHook.Message) (dw keyMo
 }
 
 func (R *RecordServerT) transKeyDwFlags(message windowsHook.Message) keyMouTool.KeyBoardInputDW {
-
 	return R.keyDwMap[message]
 }
 

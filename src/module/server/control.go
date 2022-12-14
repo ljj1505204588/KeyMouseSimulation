@@ -196,7 +196,7 @@ func (c *WinControlT) scanFile() {
 			}
 			if !reflect.DeepEqual(lastTimeNames, names) {
 				lastTimeNames = names
-				c.publishServerChange(lastTimeNames...)
+				c.publishServerChange(names...)
 			}
 			time.Sleep(2 * time.Second)
 		}
