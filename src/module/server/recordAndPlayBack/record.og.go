@@ -218,7 +218,7 @@ func (R *RecordServerT) recordKeyNode(event *windowsHook.KeyboardEvent) {
 		KeyNote: &keyMouTool.KeyInputT{VK: keyMouTool.VKCode(event.VkCode),
 			DwFlags: R.transKeyDwFlags(event.Message),
 		},
-		TimeGap: event.RecordTime,
+		TimeGap: event.RecordTime - R.recordStartTime,
 	})
 	R.recordStartTime = event.RecordTime
 }
@@ -231,8 +231,9 @@ func (R *RecordServerT) recordMouseNode(event *windowsHook.MouseEvent) {
 			DWFlags:   R.transMouseDwFlags(event.Message),
 			MouseData: event.MouseData,
 		},
-		TimeGap: event.RecordTime,
+		TimeGap: event.RecordTime - R.recordStartTime,
 	})
+	R.recordStartTime = event.RecordTime
 }
 
 // 记录到文件

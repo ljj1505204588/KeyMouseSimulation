@@ -117,14 +117,14 @@ func (p *PlayBackServerT) playback() {
 				p.publishPlaybackFinish()
 				return
 			}
-			note := p.notes[p.playbackPod]
-			switch note.NoteType {
+			pod := p.playbackPod
+			switch p.notes[pod].NoteType {
 			case keyMouTool.TYPE_INPUT_KEYBOARD:
-				time.Sleep(time.Duration(int(note.timeGap / p.speed)))
-				p.keySend <- *note.KeyNote
+				time.Sleep(time.Duration(int(p.notes[pod].timeGap / p.speed)))
+				p.keySend <- *p.notes[pod].KeyNote
 			case keyMouTool.TYPE_INPUT_MOUSE:
-				time.Sleep(time.Duration(int(note.timeGap / p.speed)))
-				p.mouseSend <- *note.MouseNote
+				time.Sleep(time.Duration(int(p.notes[pod].timeGap / p.speed)))
+				p.mouseSend <- *p.notes[pod].MouseNote
 			}
 			p.playbackPod += 1
 		}

@@ -171,7 +171,7 @@ func (c *WinControlT) SetSpeed(speed float64) {
 func (c *WinControlT) SetPlaybackTimes(times int) {
 	c.playBackTimes = times
 	c.lastTimes = times
-	c.publishServerChange()
+	c.publishServerChange(false)
 }
 
 // SetIfTrackMouseMove 设置是否记录鼠标移动记录
@@ -196,7 +196,7 @@ func (c *WinControlT) scanFile() {
 			}
 			if !reflect.DeepEqual(lastTimeNames, names) {
 				lastTimeNames = names
-				c.publishServerChange(names...)
+				c.publishServerChange(true, names...)
 			}
 			time.Sleep(2 * time.Second)
 		}
@@ -205,12 +205,10 @@ func (c *WinControlT) scanFile() {
 
 // --------------------------------------- publishEvent ---------------------------------------
 
-func (c *WinControlT) publishServerChange(fileNames ...string) {
+func (c *WinControlT) publishServerChange(fileChange bool, fileNames ...string) {
 	var fileNamesData events.FileNamesData
-	if len(fileNames) != 0 {
-		fileNamesData.Change = true
-		fileNamesData.FileNames = fileNames
-	}
+	fileNamesData.Change = fileChange
+	fileNamesData.FileNames = fileNames
 
 	err := eventCenter.Event.Publish(events.ServerChange, events.ServerChangeData{
 		Status:        c.status.statusEnum,
@@ -232,7 +230,7 @@ func (c *WinControlT) changeStatus(s enum.Status) (err error) {
 	if err = c.status.changeStatus(s); err != nil {
 		c.tryPublishServerErr(err)
 	} else {
-		c.publishServerChange()
+		c.publishServerChange(false)
 	}
 	return
 }
@@ -307,7 +305,7 @@ func (c *WinControlT) SubPlayBackFinish(_ interface{}) (err error) {
 		c.lastTimes = c.playBackTimes
 	}
 
-	c.publishServerChange()
+	c.publishServerChange(false)
 
 	return
 }
