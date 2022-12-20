@@ -136,23 +136,20 @@ func (R *RecordServerT) mainLoop() {
 	defer func() { _ = windowsHook.MouseUnhook() }()
 	defer func() { _ = windowsHook.KeyBoardUnhook() }()
 
-	var timeGap int64
 	for {
 		select {
 		case kEvent := <-R.keyboardChan: //记录键盘操作
-			R.recordStartTime, timeGap = getTimeGap(R.recordStartTime)
-			R.recordKeyNode(timeGap, &kEvent)
+			R.recordKeyNode(&kEvent)
 		case mEvent := <-R.mouseChan: //记录鼠标操作
 			if !R.recordMouseTrack {
 				if mEvent.Message == windowsHook.WM_MOUSEMOVE {
 					R.lastMoveEven = &mEvent
 					continue
 				} else if R.lastMoveEven != nil {
-					R.recordMouseNode(0, R.lastMoveEven)
+					R.recordMouseNode(R.lastMoveEven)
 				}
 			}
-			R.recordStartTime, timeGap = getTimeGap(R.recordStartTime)
-			R.recordMouseNode(timeGap, &mEvent)
+			R.recordMouseNode(&mEvent)
 		default:
 			//别再犯那么傻的事情了，没有default会按顺序去尝试执行，然后卡住
 			time.Sleep(1 * time.Millisecond)
@@ -214,18 +211,19 @@ func (R *RecordServerT) hotKeyDeal(event windowsHook.KeyboardEvent) (isHotKey bo
 	return
 }
 
-func (R *RecordServerT) recordKeyNode(timeGap int64, event *windowsHook.KeyboardEvent) {
+func (R *RecordServerT) recordKeyNode(event *windowsHook.KeyboardEvent) {
 
 	R.notes = append(R.notes, noteT{
 		NoteType: keyMouTool.TYPE_INPUT_KEYBOARD,
 		KeyNote: &keyMouTool.KeyInputT{VK: keyMouTool.VKCode(event.VkCode),
 			DwFlags: R.transKeyDwFlags(event.Message),
 		},
-		TimeGap: timeGap,
+		TimeGap: event.RecordTime,
 	})
+	R.recordStartTime = event.RecordTime
 }
 
-func (R *RecordServerT) recordMouseNode(timeGap int64, event *windowsHook.MouseEvent) {
+func (R *RecordServerT) recordMouseNode(event *windowsHook.MouseEvent) {
 
 	R.notes = append(R.notes, noteT{
 		NoteType: keyMouTool.TYPE_INPUT_MOUSE,
@@ -233,7 +231,7 @@ func (R *RecordServerT) recordMouseNode(timeGap int64, event *windowsHook.MouseE
 			DWFlags:   R.transMouseDwFlags(event.Message),
 			MouseData: event.MouseData,
 		},
-		TimeGap: timeGap,
+		TimeGap: event.RecordTime,
 	})
 }
 
@@ -275,12 +273,6 @@ func (R *RecordServerT) transMouseDwFlags(message windowsHook.Message) (dw keyMo
 
 func (R *RecordServerT) transKeyDwFlags(message windowsHook.Message) keyMouTool.KeyBoardInputDW {
 	return R.keyDwMap[message]
-}
-
-func getTimeGap(starTime int64) (nowTime, timeGap int64) {
-	nowTime = time.Now().UnixNano()
-	timeGap = nowTime - starTime
-	return
 }
 
 // ----------------------- publish -----------------------

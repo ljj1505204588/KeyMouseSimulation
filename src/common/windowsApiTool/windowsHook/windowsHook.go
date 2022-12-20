@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 	"syscall"
+	"time"
 	"unsafe"
 )
 
@@ -100,6 +101,7 @@ func keyBoardDefaultHookHandler() (HOOKPROC, chan KeyboardEvent) {
 		if lParam != 0 {
 			keyboardEvent.Message = Message(wParam)
 			keyboardEvent.STRUCT_KBDLLHOOKSTRUCT = *(*STRUCT_KBDLLHOOKSTRUCT)(unsafe.Pointer(lParam))
+			keyboardEvent.RecordTime = time.Now().UnixNano()
 			select {
 			case c <- keyboardEvent:
 				r, _, _ := windowsApi.DllUser.Call(windowsApi.FuncCallNextHookEx, 0, uintptr(code), wParam, lParam)
@@ -152,6 +154,7 @@ func mouseDefaultHookHandler() (HOOKPROC, chan MouseEvent) {
 		if lParam != 0 {
 			mouseEvent.Message = Message(wParam)
 			mouseEvent.STRUCT_MSLLHOOKSTRUCT = *(*STRUCT_MSLLHOOKSTRUCT)(unsafe.Pointer(lParam))
+			mouseEvent.RecordTime = time.Now().UnixNano()
 			select {
 			case c <- mouseEvent:
 				r, _, _ := windowsApi.DllUser.Call(windowsApi.FuncCallNextHookEx, 0, uintptr(code), wParam, lParam)
