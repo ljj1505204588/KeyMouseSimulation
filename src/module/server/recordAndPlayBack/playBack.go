@@ -44,8 +44,6 @@ func GetPlaybackServer() *PlayBackServerT {
 	//获取窗口信息
 	p.getWindowRect()
 
-	//初始化
-
 	return &p
 }
 
@@ -78,7 +76,7 @@ func (p *PlayBackServerT) Start(name string) {
 	}
 
 	p.playbackSign = true
-	go p.mainLoop()
+	go p.playBack()
 	return
 }
 
@@ -102,10 +100,14 @@ func (p *PlayBackServerT) SetSpeed(speed float64) {
 	p.speed = speed
 }
 
-// ----------------------- mainLoop 模块主体功能函数 -----------------------
+// ----------------------- playBack 模块主体功能函数 -----------------------
 
-func (p *PlayBackServerT) mainLoop() {
-	keyInput, mouInput := keyMouTool.KeyInputT{}, keyMouTool.MouseInputT{}
+func (p *PlayBackServerT) playBack() {
+	var (
+		pod                int
+		keyInput, mouInput = keyMouTool.KeyInputT{}, keyMouTool.MouseInputT{}
+	)
+
 	for {
 		switch {
 		case !p.playbackSign:
@@ -118,7 +120,7 @@ func (p *PlayBackServerT) mainLoop() {
 				p.publishPlaybackFinish()
 				return
 			}
-			pod := p.playbackPod
+			pod = p.playbackPod
 			switch p.notes[pod].NoteType {
 			case keyMouTool.TYPE_INPUT_KEYBOARD:
 				time.Sleep(time.Duration(int(p.notes[pod].timeGap / p.speed)))

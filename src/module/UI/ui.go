@@ -30,13 +30,9 @@ type ControlT struct {
 	ifMouseTrackCheck *walk.CheckBox
 
 	//热键
-	keyList        []string
-	hKList         [4]string
-	hKBox          [4]*walk.ComboBox
-	recordHKEdit   *walk.LineEdit
-	playbackHKEdit *walk.LineEdit
-	pauseHKEdit    *walk.LineEdit
-	stopHKEdit     *walk.LineEdit
+	keyList []string
+	hKList  [4]string
+	hKBox   [4]*walk.ComboBox
 
 	//文件选择
 	fileLabel *walk.Label

@@ -46,7 +46,8 @@ func GetRecordServer() *RecordServerT {
 		windowsHook.WM_MOUSEHWHEEL:       keyMouTool.DW_MOUSEEVENTF_HWHEEL | keyMouTool.DW_MOUSEEVENTF_ABSOLUTE, //这个暂时不知道是啥，
 	}
 	R.keyDwMap = map[windowsHook.Message]keyMouTool.KeyBoardInputDW{
-		windowsHook.WM_KEYUP: keyMouTool.DW_KEYEVENTF_KEYUP,
+		windowsHook.WM_KEYDOWN: keyMouTool.DW_KEYEVENTF_KEYDown,
+		windowsHook.WM_KEYUP:   keyMouTool.DW_KEYEVENTF_KEYUP,
 	}
 
 	//初始化监听热键
@@ -195,7 +196,7 @@ func (R *RecordServerT) handUpHook() {
 	_ = windowsHook.MouseUnhook()
 
 	var err error
-	R.mouseChan, err = windowsHook.MouseHook(nil)
+	//R.mouseChan, err = windowsHook.MouseHook(nil)
 	R.tryPublishServerError(err)
 
 	//键盘
@@ -211,29 +212,35 @@ func (R *RecordServerT) hotKeyDeal(event windowsHook.KeyboardEvent) (isHotKey bo
 	return
 }
 
+// 记录键盘节点
 func (R *RecordServerT) recordKeyNode(event *windowsHook.KeyboardEvent) {
-
-	R.notes = append(R.notes, noteT{
-		NoteType: keyMouTool.TYPE_INPUT_KEYBOARD,
-		KeyNote: &keyMouTool.KeyInputT{VK: keyMouTool.VKCode(event.VkCode),
-			DwFlags: R.transKeyDwFlags(event.Message),
-		},
-		TimeGap: event.RecordTime - R.recordStartTime,
-	})
-	R.recordStartTime = event.RecordTime
+	var dw, exist = R.keyDwMap[event.Message]
+	if exist {
+		R.notes = append(R.notes, noteT{
+			NoteType: keyMouTool.TYPE_INPUT_KEYBOARD,
+			KeyNote: &keyMouTool.KeyInputT{VK: keyMouTool.VKCode(event.VkCode),
+				DwFlags: dw,
+			},
+			TimeGap: event.RecordTime - R.recordStartTime,
+		})
+		R.recordStartTime = event.RecordTime
+	}
 }
 
+// 记录鼠标节点
 func (R *RecordServerT) recordMouseNode(event *windowsHook.MouseEvent) {
-
-	R.notes = append(R.notes, noteT{
-		NoteType: keyMouTool.TYPE_INPUT_MOUSE,
-		MouseNote: &keyMouTool.MouseInputT{X: event.X, Y: event.Y,
-			DWFlags:   R.transMouseDwFlags(event.Message),
-			MouseData: event.MouseData,
-		},
-		TimeGap: event.RecordTime - R.recordStartTime,
-	})
-	R.recordStartTime = event.RecordTime
+	var dw, exist = R.mouseDwMap[event.Message]
+	if exist {
+		R.notes = append(R.notes, noteT{
+			NoteType: keyMouTool.TYPE_INPUT_MOUSE,
+			MouseNote: &keyMouTool.MouseInputT{X: event.X, Y: event.Y,
+				DWFlags:   dw,
+				MouseData: event.MouseData,
+			},
+			TimeGap: event.RecordTime - R.recordStartTime,
+		})
+		R.recordStartTime = event.RecordTime
+	}
 }
 
 // 记录到文件
@@ -265,15 +272,6 @@ func (R *RecordServerT) recordNoteToFile(name string, notes []noteT) {
 		R.tryPublishServerError(err)
 		return
 	}
-}
-
-func (R *RecordServerT) transMouseDwFlags(message windowsHook.Message) (dw keyMouTool.MouseInputDW) {
-
-	return R.mouseDwMap[message]
-}
-
-func (R *RecordServerT) transKeyDwFlags(message windowsHook.Message) keyMouTool.KeyBoardInputDW {
-	return R.keyDwMap[message]
 }
 
 // ----------------------- publish -----------------------

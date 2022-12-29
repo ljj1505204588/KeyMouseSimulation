@@ -9,8 +9,8 @@ const (
 )
 
 /*
-	*  MOUSE INPUT CONST
-*/
+*  MOUSE INPUT CONST
+ */
 
 type MouseInputDW uint32
 
@@ -37,12 +37,13 @@ const (
 )
 
 /*
-	*  KEYBOARD INPUT CONST
-*/
+*  KEYBOARD INPUT CONST
+ */
 
 type KeyBoardInputDW uint32
 
 const (
+	DW_KEYEVENTF_KEYDown     KeyBoardInputDW = 0x0000
 	DW_KEYEVENTF_EXTENDEDKEY KeyBoardInputDW = 0x0001
 	DW_KEYEVENTF_KEYUP       KeyBoardInputDW = 0x0002
 	DW_KEYEVENTF_UNICODE     KeyBoardInputDW = 0x0004
