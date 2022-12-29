@@ -27,7 +27,7 @@ type PlayBackServerI interface {
 
 func GetPlaybackServer() *PlayBackServerT {
 	p := PlayBackServerT{
-		speed: 30,
+		speed: 1,
 	}
 
 	//获取key、mouse发送通道
