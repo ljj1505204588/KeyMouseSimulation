@@ -10,7 +10,7 @@ import (
 const PARAM_TOOL_LOG_HEAD = "配置读取工具："
 
 func init() {
-	center.create()
+	Center.create()
 
 	//获取配置
 	text := getConfig()
@@ -26,10 +26,10 @@ func init() {
 	fmt.Println(PARAM_TOOL_LOG_HEAD + "参数组件，加载成功！")
 }
 
-//WriteBackFile 回写回文件
+// WriteBackFile 回写回文件
 func WriteBackFile() error {
 	//获取回写内容
-	writeBack, err := xml.MarshalIndent(center.getWriterBack(), "", "    ")
+	writeBack, err := xml.MarshalIndent(Center.getWriterBack(), "", "    ")
 	if err != nil {
 		return err
 	}
@@ -54,7 +54,7 @@ func getConfig() (text []byte) {
 
 // 初始化责任链 读取相关配置
 func initConfig(text []byte) {
-	center.initParam(text)
+	Center.initParam(text)
 }
 
 // 获取配置文件地址
