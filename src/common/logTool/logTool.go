@@ -33,7 +33,7 @@ func init() {
 	go AutoManagementAJLogger(ajLogController.accessLog)
 	go AutoManagementAJLogger(ajLogController.serverLog)
 
-	for _, v := range paramTool.GetParam().LogParam.ExtendLogger {
+	for _, v := range paramTool.Center.GetParam().LogParam.ExtendLogger {
 		ajLogController.extendLog[v], err = NewAJLogger(v)
 		if err != nil {
 			panic(LOG_TOOL_LOG_HEAD + "创建日志Logger出错." + err.Error())
@@ -42,18 +42,12 @@ func init() {
 	}
 
 	logLevelMapInit()
-	logLevelInt, ok := logLevelMap[paramTool.GetParam().LogParam.LogLevel]
+	logLevelInt, ok := logLevelMap[paramTool.Center.GetParam().LogParam.LogLevel]
 	if !ok {
 		panic(LOG_TOOL_LOG_HEAD + "配置中默认日志等级不在可选范围 【DEBUG INFO WARNING ERROR FATAL】内.")
 	}
 	ajLogController.logLevel = logLevelInt
 	InfoAJ(LOG_TOOL_LOG_HEAD + "日志组件，加载成功！")
-
-	//初始化日志等级
-	_, ok = logLevelMap[paramTool.GetParam().LogParam.LogLevel]
-	if !ok {
-		panic("配置中日志等级错误.当前配置：" + paramTool.GetParam().LogParam.LogLevel)
-	}
 }
 
 /*----------------------日志等级输出---------------------------*/
@@ -94,7 +88,7 @@ func FatalAJ(msg string, outPutLogger ...string) {
 /*-----------------------------------------------------------*/
 
 func SetLogLevel(logLevel string) error {
-	logLevelInt, ok := logLevelMap[logLevel]
+	logLevelInt, ok := logLevelMap[paramTool.Center.GetParam().LogParam.LogLevel]
 	if !ok {
 		return NewLogError(NIL_ERROR_CODE, LOG_TOOL_LOG_HEAD+"配置中默认日志等级不在可选范围 【DEBUG INFO WARNING ERROR FATAL】内.", nil)
 	}

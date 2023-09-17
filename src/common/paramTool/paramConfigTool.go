@@ -13,34 +13,41 @@ step1:添加实现`模板接口`的类
 step2:添加到paramT类中
 step3:添加对应枚举 -- 如果需要默认激活着添加到 defaultActive 中
 *默认激活 ： 会回写到配置文件中
+
+//todo 加一个加密以及xml文件中注释的功能·
 */
 
 /*------------------------------------  参数结构体 && 枚举  ----------------------------------------------*/
 
 type paramT struct {
-	ServerParam  *serverParamT  `enum:"ServerParam"`
-	EsParam      *esParamT      `enum:"EsParam"`
-	LogParam     *logParamT     `enum:"LogParam"`
-	HotWordParam *hotWordParamT `enum:"HotWordParam"`
-	MongodbParam *mongodbParamT `enum:"MongodbParam"`
+	ServerParam    *serverParamT    `enum:"ServerParam"`
+	EsParam        *esParamT        `enum:"EsParam"`
+	LogParam       *logParamT       `enum:"LogParam"`
+	HotWordParam   *hotWordParamT   `enum:"HotWordParam"`
+	MongodbParam   *mongodbParamT   `enum:"MongodbParam"`
+	NsqParam       *nsqParamT       `enum:"NsqParam"`
+	HeartbeatParam *heartbeatParamT `enum:"HeartbeatParam"`
+	RedisParam     *redisParamT     `enum:"RedisParam"`
 }
 
 type ParamEnum string
 
 const (
-	ServerParamEnum  ParamEnum = "ServerParam"
-	EsParamEnum      ParamEnum = "EsParam"
-	LogParamEnum     ParamEnum = "LogParam"
-	HotWordParamEnum ParamEnum = "HotWordParam"
-	MongodbParamEnum ParamEnum = "MongodbParam"
+	ServerParamEnum    ParamEnum = "ServerParam"
+	EsParamEnum        ParamEnum = "EsParam"
+	LogParamEnum       ParamEnum = "LogParam"
+	HotWordParamEnum   ParamEnum = "HotWordParam"
+	MongodbParamEnum   ParamEnum = "MongodbParam"
+	NsqParamEnum       ParamEnum = "NsqParam"
+	RedisParam         ParamEnum = "RedisParam"
+	HeartbeatParamEnum ParamEnum = "HeartbeatParam"
 )
 
 var defaultActive = map[ParamEnum]bool{
-	ServerParamEnum: true,
-	LogParamEnum:    true,
+	LogParamEnum: true,
 }
 
-//模板
+// 模板
 type templateT interface {
 	EnvParamInit(*paramT)     // 环境变量配置读取
 	DefaultParamInit(*paramT) // 默认配置读取
@@ -65,7 +72,7 @@ func (*serverParamT) EnvParamInit(param *paramT) {
 	}
 	PProfPortStr := os.Getenv("ServerParam.PProfPort")
 	PProfPort, err := strconv.Atoi(PProfPortStr)
-	if err != nil {
+	if err == nil && PProfPort != 0 {
 		param.ServerParam.PProfPort = PProfPort
 	}
 }
@@ -223,5 +230,72 @@ func (*mongodbParamT) DefaultParamInit(param *paramT) {
 	}
 	if param.MongodbParam.ReadDay == 0 {
 		param.MongodbParam.ReadDay = 2
+	}
+}
+
+/*------------------------------------  nsq参数  --------------------------------------------*/
+type nsqParamT struct {
+	NsqUri       []string // 连接串
+	NsqLookupUrl string   // 管理连接器
+}
+
+func (*nsqParamT) EnvParamInit(param *paramT) {
+	uriStr := os.Getenv("NsqParam.NsqUrl")
+	if uriStr != "" {
+		var url = strings.Split(uriStr, ",")
+		param.NsqParam.NsqUri = url
+	}
+	lookupUrl := os.Getenv("NsqParam.NsqLookupUrl")
+	if lookupUrl != "" {
+		param.NsqParam.NsqLookupUrl = lookupUrl
+	}
+}
+func (*nsqParamT) DefaultParamInit(param *paramT) {
+	if len(param.NsqParam.NsqUri) == 0 {
+		param.NsqParam.NsqUri = []string{"127.0.0.1:4150"}
+	}
+	if param.NsqParam.NsqLookupUrl == "" {
+		param.NsqParam.NsqLookupUrl = "127.0.0.1:4161"
+	}
+}
+
+/*------------------------------------  redis  --------------------------------------------*/
+
+type redisParamT struct {
+	Cluster  bool     // 是否使用集群
+	MulAddr  []string // 地址
+	PassWord string   // 密码
+}
+
+func (*redisParamT) EnvParamInit(param *paramT) {
+
+}
+
+func (*redisParamT) DefaultParamInit(param *paramT) {
+
+}
+
+/*------------------------------------  心跳参数  --------------------------------------------*/
+
+type heartbeatParamT struct {
+	Topic      string
+	ServerName string
+
+	GapTime     int // 间隔时间
+	OfflineTime int // 离线时长
+
+	ManagerMail string
+}
+
+func (*heartbeatParamT) EnvParamInit(param *paramT) {
+
+}
+
+func (*heartbeatParamT) DefaultParamInit(param *paramT) {
+	if param.HeartbeatParam.GapTime == 0 {
+		param.HeartbeatParam.GapTime = 5
+	}
+	if param.HeartbeatParam.OfflineTime == 0 {
+		param.HeartbeatParam.OfflineTime = 90
 	}
 }

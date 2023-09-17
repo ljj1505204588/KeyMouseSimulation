@@ -18,6 +18,13 @@ func (err *LogErrorT) Error() string {
 	return result
 }
 
+func NewError(message string, errs ...error) error {
+	if len(errs) > 0 {
+		return &LogErrorT{Message: message, Err: errs[0]}
+	}
+	return &LogErrorT{Message: message}
+}
+
 func NewLogError(code, message string, err error) error {
 	return &LogErrorT{Code: code, Message: message, Err: err}
 }

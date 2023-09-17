@@ -14,9 +14,10 @@ import (
 )
 
 type RecordServerI interface {
-	Start()                      //开始
-	Pause()                      //暂停
-	Stop(name string, save bool) //停止
+	Start() // 开始
+	Pause() // 暂停
+	Stop()  // 停止
+	Save()  // 存储
 
 	SetHotKey(k enum.HotKey, vks keyMouTool.VKCode) error //设置热键
 	SetIfTrackMouseMove(sign bool)                        //设置是否记录鼠标移动路径
@@ -89,18 +90,21 @@ func (R *RecordServerT) Pause() {
 }
 
 // Stop 停止
-func (R *RecordServerT) Stop(name string, save bool) {
+func (R *RecordServerT) Stop() {
 	R.recordStartTime = 0
 	R.handOutHook()
 
 	//记录文件
-	notes := R.notes
-	R.notes = []noteT{}
-	if len(notes) != 0 && save {
-		go R.recordNoteToFile(name, notes)
-	}
+	//todo
+	//notes := R.notes
+	//R.notes = []noteT{}
 
 	return
+}
+
+func (R *RecordServerT) Save(name string) {
+	// todo 修改下
+	go R.recordNoteToFile(name, R.notes)
 }
 
 // SetHotKey 设置热键

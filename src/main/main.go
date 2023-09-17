@@ -2,7 +2,7 @@ package main
 
 import (
 	"KeyMouseSimulation/common/logTool"
-	ui "KeyMouseSimulation/module/UI"
+	ui "KeyMouseSimulation/module2/UI"
 	"net/http"
 	_ "net/http/pprof"
 	"time"

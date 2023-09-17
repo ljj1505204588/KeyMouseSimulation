@@ -55,6 +55,7 @@ func getConfig() (text []byte) {
 // 初始化责任链 读取相关配置
 func initConfig(text []byte) {
 	Center.initParam(text)
+
 }
 
 // 获取配置文件地址

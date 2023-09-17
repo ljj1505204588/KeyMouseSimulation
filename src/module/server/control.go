@@ -18,17 +18,17 @@ import (
  */
 
 type ControlI interface {
-	Record()
-	Playback()
-	Pause() (save bool)
-	Stop(save bool)
+	Record()            // 记录
+	Playback()          // 回放
+	Pause() (save bool) // 暂停
+	Stop(save bool)     // 停止
 
-	GetKeyList() (hotKeyList [4]string, keyList []string)
-	SetHotKey(k enum.HotKey, key string)
-	SetFileName(fileName string)
-	SetSpeed(speed float64)
-	SetPlaybackTimes(times int)
-	SetIfTrackMouseMove(sign bool)
+	GetKeyList() (hotKeyList [4]string, keyList []string) // 获取热键列表
+	SetHotKey(k enum.HotKey, key string)                  // 设置热键
+	SetFileName(fileName string)                          // 设置文件名称
+	SetSpeed(speed float64)                               // 设置播放速度
+	SetPlaybackTimes(times int)                           // 设置回放次数
+	SetIfTrackMouseMove(sign bool)                        // 设置是否记录鼠标移动
 }
 
 /*
@@ -51,7 +51,7 @@ func NewWinControl() *WinControlT {
 		playBack: recordAndPlayBack.GetPlaybackServer(),
 		record:   recordAndPlayBack.GetRecordServer(),
 		keyM:     getKeyM(),
-		status:   statusT{statusEnum: enum.FREE},
+		status:   statusT{statusEnum: enum.Free},
 		fileName: "",
 	}
 
@@ -70,7 +70,7 @@ func NewWinControl() *WinControlT {
 
 // Record 记录
 func (c *WinControlT) Record() {
-	if err := c.changeStatus(enum.RECORDING); err == nil {
+	if err := c.changeStatus(enum.Recording); err == nil {
 		c.record.Start()
 	}
 
@@ -81,7 +81,7 @@ func (c *WinControlT) Record() {
 func (c *WinControlT) Playback() {
 	logTool.DebugAJ("Control 回放点击")
 
-	if err := c.changeStatus(enum.PLAYBACK); err == nil {
+	if err := c.changeStatus(enum.Playback); err == nil {
 		c.playBack.Start(c.fileName)
 	}
 
@@ -103,9 +103,9 @@ func (c *WinControlT) Pause() (save bool) {
 		return
 	}
 
-	if status == enum.PLAYBACK_PAUSE {
+	if status == enum.PlaybackPause {
 		c.playBack.Pause()
-	} else if status == enum.RECORD_PAUSE {
+	} else if status == enum.RecordPause {
 		save = true
 		c.record.Pause()
 	}
@@ -120,15 +120,15 @@ func (c *WinControlT) Stop(save bool) {
 	status := c.status.statusEnum
 
 	//校验 & 改动
-	if err := c.changeStatus(enum.FREE); err != nil {
+	if err := c.changeStatus(enum.Free); err != nil {
 		return
 	}
 
 	//修改回放 & 记录状态
-	if status == enum.PLAYBACK || status == enum.PLAYBACK_PAUSE {
+	if status == enum.Playback || status == enum.PlaybackPause {
 		c.playBack.Stop()
 	}
-	if status == enum.RECORDING || status == enum.RECORD_PAUSE {
+	if status == enum.Recording || status == enum.RecordPause {
 		c.record.Stop(c.fileName, save)
 	}
 
@@ -301,7 +301,7 @@ func (c *WinControlT) SubPlayBackFinish(_ interface{}) (err error) {
 	if c.lastTimes > 0 {
 		c.playBack.Start(c.fileName)
 	} else {
-		c.tryPublishServerErr(c.changeStatus(enum.FREE))
+		c.tryPublishServerErr(c.changeStatus(enum.Free))
 		c.lastTimes = c.playBackTimes
 	}
 
