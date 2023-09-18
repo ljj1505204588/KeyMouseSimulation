@@ -2,14 +2,10 @@ package recordAndPlayBack
 
 import (
 	eventCenter "KeyMouseSimulation/common/Event"
-	"KeyMouseSimulation/common/logTool"
 	"KeyMouseSimulation/common/windowsApiTool/windowsHook"
 	"KeyMouseSimulation/common/windowsApiTool/windowsInput/keyMouTool"
 	"KeyMouseSimulation/share/enum"
 	"KeyMouseSimulation/share/events"
-	"encoding/json"
-	"os"
-	"strconv"
 	"time"
 )
 
@@ -104,7 +100,7 @@ func (R *RecordServerT) Stop() {
 
 func (R *RecordServerT) Save(name string) {
 	// todo 修改下
-	go R.recordNoteToFile(name, R.notes)
+//	go R.recordNoteToFile(name, R.notes)
 }
 
 // SetHotKey 设置热键
@@ -247,36 +243,6 @@ func (R *RecordServerT) recordMouseNode(event *windowsHook.MouseEvent) {
 	}
 }
 
-// 记录到文件
-func (R *RecordServerT) recordNoteToFile(name string, notes []noteT) {
-	logTool.DebugAJ("record 开始记录文件：" + "名称:" + name + " 长度：" + strconv.Itoa(len(notes)))
-
-	if name == "" {
-		return
-	}
-
-	if len(notes) == 0 {
-		return
-	}
-
-	file, err := os.OpenFile(name, os.O_CREATE|os.O_RDWR|os.O_APPEND|os.O_TRUNC, 0772)
-	if err != nil {
-		R.tryPublishServerError(err)
-		return
-	}
-	defer func() { _ = file.Close() }()
-
-	js, err := json.Marshal(notes)
-	if err != nil {
-		R.tryPublishServerError(err)
-		return
-	}
-	_, err = file.Write(js)
-	if err != nil {
-		R.tryPublishServerError(err)
-		return
-	}
-}
 
 // ----------------------- publish -----------------------
 

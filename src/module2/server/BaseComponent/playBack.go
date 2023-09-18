@@ -3,13 +3,8 @@ package recordAndPlayBack
 import (
 	eventCenter "KeyMouseSimulation/common/Event"
 	"KeyMouseSimulation/common/logTool"
-	windowsApi "KeyMouseSimulation/common/windowsApiTool"
 	"KeyMouseSimulation/common/windowsApiTool/windowsInput/keyMouTool"
 	"KeyMouseSimulation/share/events"
-	"encoding/json"
-	"io/ioutil"
-	"os"
-	"strconv"
 	"time"
 )
 
@@ -42,8 +37,7 @@ func GetPlaybackServer() *PlayBackServerT {
 		panic(err.Error())
 	}
 
-	//获取窗口信息
-	p.getWindowRect()
+
 
 	return &p
 }
@@ -58,8 +52,7 @@ type PlayBackServerT struct {
 	playbackPod int     //当前回放在文件内容位置
 	speed       float64 //回放速度
 
-	windowsX int //电脑屏幕宽度
-	windowsY int //电脑屏幕长度
+
 }
 
 // Start 开始
@@ -142,36 +135,6 @@ func (p *PlayBackServerT) playBack() {
 	}
 }
 
-// loadPlaybackNotes 加载回放记录
-func (p *PlayBackServerT) loadPlaybackNotes(name string) ([]noteT, error) {
-	file, err := os.OpenFile(name, os.O_RDONLY, 0772)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	b, err := ioutil.ReadAll(file)
-	if err != nil {
-		return nil, err
-	}
-
-	nodes := make([]noteT, 100)
-	err = json.Unmarshal(b, &nodes)
-
-	for nodePos := range nodes {
-		nodes[nodePos].timeGap = float64(nodes[nodePos].TimeGap)
-		if nodes[nodePos].NoteType == keyMouTool.TYPE_INPUT_MOUSE {
-			nodes[nodePos].MouseNote.X = nodes[nodePos].MouseNote.X * 65535 / int32(p.windowsX)
-			nodes[nodePos].MouseNote.Y = nodes[nodePos].MouseNote.Y * 65535 / int32(p.windowsY)
-		}
-	}
-
-	if err == nil {
-		logTool.DebugAJ("playback 加载文件成功：" + "名称:" + name + " 长度：" + strconv.Itoa(len(nodes)))
-	}
-
-	return nodes, err
-}
 
 // ----------------------- Util -----------------------
 
@@ -189,16 +152,4 @@ func (p *PlayBackServerT) tryPublishServerError(err error) {
 	}
 }
 
-// 获取windows窗口大小
-func (p *PlayBackServerT) getWindowRect() {
-	p.windowsX, p.windowsY = 1920, 1080
-	x, _, err := windowsApi.DllUser.Call(windowsApi.FuncGetSystemMetrics, windowsApi.SM_CXSCREEN)
-	if err != nil {
-		return
-	}
-	y, _, err := windowsApi.DllUser.Call(windowsApi.FuncGetSystemMetrics, windowsApi.SM_CYSCREEN)
-	if err != nil {
-		return
-	}
-	p.windowsX, p.windowsY = int(x), int(y)
-}
+

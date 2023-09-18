@@ -49,44 +49,44 @@ type RecordingStatusT struct {
 	*BaseStatusT
 }
 
-func (s *BaseStatusT) Record()   {}
-func (s *BaseStatusT) Playback() {}
-func (s *BaseStatusT) Pause()    {}
-func (s *BaseStatusT) Stop()     {}
-func (s *BaseStatusT) Save()     {}
+func (s *RecordingStatusT) Record()   {}
+func (s *RecordingStatusT) Playback() {}
+func (s *RecordingStatusT) Pause()    {}
+func (s *RecordingStatusT) Stop()     {}
+func (s *RecordingStatusT) Save()     {}
 
 // RecordPauseStatusT "RecordPause" 状态机
 type RecordPauseStatusT struct {
 	*BaseStatusT
 }
 
-func (s *BaseStatusT) Record()   {}
-func (s *BaseStatusT) Playback() {}
-func (s *BaseStatusT) Pause()    {}
-func (s *BaseStatusT) Stop()     {}
-func (s *BaseStatusT) Save()     {}
+func (s *RecordPauseStatusT) Record()   {}
+func (s *RecordPauseStatusT) Playback() {}
+func (s *RecordPauseStatusT) Pause()    {}
+func (s *RecordPauseStatusT) Stop()     {}
+func (s *RecordPauseStatusT) Save()     {}
 
 // PlaybackStatusT "Playback" 状态机
 type PlaybackStatusT struct {
 	*BaseStatusT
 }
 
-func (s *BaseStatusT) Record()   {}
-func (s *BaseStatusT) Playback() {}
-func (s *BaseStatusT) Pause()    {}
-func (s *BaseStatusT) Stop()     {}
-func (s *BaseStatusT) Save()     {}
+func (s *PlaybackStatusT) Record()   {}
+func (s *PlaybackStatusT) Playback() {}
+func (s *PlaybackStatusT) Pause()    {}
+func (s *PlaybackStatusT) Stop()     {}
+func (s *PlaybackStatusT) Save()     {}
 
 // PlaybackPauseStatusT "PlaybackPause" 状态机
 type PlaybackPauseStatusT struct {
 	*BaseStatusT
 }
 
-func (s *BaseStatusT) Record()   {}
-func (s *BaseStatusT) Playback() {}
-func (s *BaseStatusT) Pause()    {}
-func (s *BaseStatusT) Stop()     {}
-func (s *BaseStatusT) Save()     {}
+func (s *PlaybackPauseStatusT) Record()   {}
+func (s *PlaybackPauseStatusT) Playback() {}
+func (s *PlaybackPauseStatusT) Pause()    {}
+func (s *PlaybackPauseStatusT) Stop()     {}
+func (s *PlaybackPauseStatusT) Save()     {}
 
 // --------------------------------- 基础状态 ---------------------------------
 

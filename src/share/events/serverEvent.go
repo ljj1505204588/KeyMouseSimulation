@@ -36,3 +36,11 @@ type ServerHotKeyDownData struct {
 const PlayBackFinish eventCenter.Topic = "playback_finish"
 
 type PlayBackFinishData struct{}
+
+// FileScanNewFile 扫描到新文件
+const FileScanNewFile eventCenter.Topic = "file_scan_new_file"
+
+type FileScanNewFileData struct {
+	NewFile []string
+	FileList []string
+}
