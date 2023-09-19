@@ -15,7 +15,7 @@ type KMStatusI interface {
 
 var chooseBox map[enum.Status]KMStatusI
 
-func InitKMStatus(base *recordAndPlayBack.BaseT) KMStatusI {
+func InitKMStatus(base *BaseT) KMStatusI {
 	chooseBox = map[enum.Status]KMStatusI{
 		enum.Free:          &FreeStatusT{&BaseStatusT{base: base}},
 		enum.Recording:     &RecordingStatusT{&BaseStatusT{base: base}},
@@ -25,6 +25,11 @@ func InitKMStatus(base *recordAndPlayBack.BaseT) KMStatusI {
 	}
 
 	return chooseBox[enum.Free]
+}
+
+type BaseT struct {
+	PlayBack recordAndPlayBack.PlayBackServerI
+	Record   recordAndPlayBack.RecordServerI
 }
 
 // --------------------------------- 状态机 ---------------------------------
@@ -91,7 +96,7 @@ func (s *PlaybackPauseStatusT) Save()     {}
 // --------------------------------- 基础状态 ---------------------------------
 
 type BaseStatusT struct {
-	base *recordAndPlayBack.BaseT
+	base *BaseT
 }
 
 func (s *BaseStatusT) Record()   {}

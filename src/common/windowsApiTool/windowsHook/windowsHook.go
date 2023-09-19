@@ -9,6 +9,8 @@ import (
 	"unsafe"
 )
 
+// todo 加一个优雅退出
+
 type HOOKPROC func(code int32, wParam, lParam uintptr) uintptr
 
 type hookT struct {
@@ -61,8 +63,8 @@ func install(id IdHook, fn interface{}) error {
 					// We don't care what's went wrong, ignore the result value.
 					continue
 				} else {
-					windowsApi.DllUser.Call(windowsApi.FuncTranslateMessage, uintptr(unsafe.Pointer(&msg)))
-					windowsApi.DllUser.Call(windowsApi.FuncDispatchMessageW, uintptr(unsafe.Pointer(&msg)))
+					_, _, _ = windowsApi.DllUser.Call(windowsApi.FuncTranslateMessage, uintptr(unsafe.Pointer(&msg)))
+					_, _, _ = windowsApi.DllUser.Call(windowsApi.FuncDispatchMessageW, uintptr(unsafe.Pointer(&msg)))
 				}
 			}
 		}
@@ -92,18 +94,20 @@ func uninstall(id IdHook) error {
  * 具体实现  ---  键盘
  */
 
-type keyBoardHookHandler func() (HOOKPROC, chan KeyboardEvent)
+type keyBoardHookHandler func() (HOOKPROC, chan *KeyboardEvent)
 
-func keyBoardDefaultHookHandler() (HOOKPROC, chan KeyboardEvent) {
-	c := make(chan KeyboardEvent, 3000)
-	keyboardEvent := KeyboardEvent{}
+func keyBoardDefaultHookHandler() (HOOKPROC, chan *KeyboardEvent) {
+	c := make(chan *KeyboardEvent, 3000)
 	return func(code int32, wParam, lParam uintptr) uintptr {
 		if lParam != 0 {
-			keyboardEvent.Message = Message(wParam)
-			keyboardEvent.STRUCT_KBDLLHOOKSTRUCT = *(*STRUCT_KBDLLHOOKSTRUCT)(unsafe.Pointer(lParam))
-			keyboardEvent.RecordTime = time.Now().UnixNano()
+			keyboardEvent := KeyboardEvent{
+				Message:                Message(wParam),
+				STRUCT_KBDLLHOOKSTRUCT: *(*STRUCT_KBDLLHOOKSTRUCT)(unsafe.Pointer(lParam)),
+				RecordTime:             time.Now().UnixNano(),
+			}
+
 			select {
-			case c <- keyboardEvent:
+			case c <- &keyboardEvent:
 				r, _, _ := windowsApi.DllUser.Call(windowsApi.FuncCallNextHookEx, 0, uintptr(code), wParam, lParam)
 				return r
 			default:
@@ -116,7 +120,7 @@ func keyBoardDefaultHookHandler() (HOOKPROC, chan KeyboardEvent) {
 	}, c
 }
 
-func KeyBoardHook(h keyBoardHookHandler) (chan KeyboardEvent, error) {
+func KeyBoardHook(h keyBoardHookHandler) (chan *KeyboardEvent, error) {
 	hook.Lock()
 	defer hook.Unlock()
 
@@ -145,18 +149,20 @@ func KeyBoardUnhook() error {
 /*
  * 具体实现  ---   鼠标
  */
-type mouseHookHandler func() (HOOKPROC, chan MouseEvent)
+type mouseHookHandler func() (HOOKPROC, chan *MouseEvent)
 
-func mouseDefaultHookHandler() (HOOKPROC, chan MouseEvent) {
-	c := make(chan MouseEvent, 3000)
-	mouseEvent := MouseEvent{}
+func mouseDefaultHookHandler() (HOOKPROC, chan *MouseEvent) {
+	c := make(chan *MouseEvent, 3000)
 	return func(code int32, wParam, lParam uintptr) uintptr {
 		if lParam != 0 {
-			mouseEvent.Message = Message(wParam)
-			mouseEvent.STRUCT_MSLLHOOKSTRUCT = *(*STRUCT_MSLLHOOKSTRUCT)(unsafe.Pointer(lParam))
-			mouseEvent.RecordTime = time.Now().UnixNano()
+			mouseEvent := MouseEvent{
+				Message:               Message(wParam),
+				STRUCT_MSLLHOOKSTRUCT: *(*STRUCT_MSLLHOOKSTRUCT)(unsafe.Pointer(lParam)),
+				RecordTime:            time.Now().UnixNano(),
+			}
+
 			select {
-			case c <- mouseEvent:
+			case c <- &mouseEvent:
 				r, _, _ := windowsApi.DllUser.Call(windowsApi.FuncCallNextHookEx, 0, uintptr(code), wParam, lParam)
 				return r
 			default:
@@ -169,7 +175,7 @@ func mouseDefaultHookHandler() (HOOKPROC, chan MouseEvent) {
 		return r
 	}, c
 }
-func MouseHook(h mouseHookHandler) (chan MouseEvent, error) {
+func MouseHook(h mouseHookHandler) (chan *MouseEvent, error) {
 	hook.Lock()
 	defer hook.Unlock()
 

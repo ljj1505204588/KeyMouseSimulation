@@ -5,6 +5,8 @@ import (
 	"KeyMouseSimulation/common/GenTool"
 	"KeyMouseSimulation/common/logTool"
 	windowsApi "KeyMouseSimulation/common/windowsApiTool"
+	"KeyMouseSimulation/common/windowsApiTool/windowsHook"
+	"KeyMouseSimulation/common/windowsApiTool/windowsInput/keyMouTool"
 	"KeyMouseSimulation/share/events"
 	"encoding/json"
 	"io"
@@ -16,14 +18,14 @@ import (
 )
 
 type FileControlI interface {
-	Save(name string ,data []noteT)
-	ReadFile(name string )(data []noteT)
+	Save(name string, data []noteT)
+	ReadFile(name string) (data []noteT)
 }
 
 var fileControl FileControlT
 
-func GetFile()FileControlI{
- 	fileControl.once.Do(fileControl.scanFile)
+func GetFileControl() FileControlI {
+	fileControl.once.Do(fileControl.scanFile)
 	return &fileControl
 }
 
@@ -36,11 +38,12 @@ type FileControlT struct {
 	fileName []string
 }
 
-func (f *FileControlT)Save(name string ,data []noteT){
+// Save 存储
+func (f *FileControlT) Save(name string, data []noteT) {
 	// 记录到文件
 	logTool.DebugAJ("record 开始记录文件：" + "名称:" + name + " 长度：" + strconv.Itoa(len(data)))
 
-	if name == "" || len(data) == 0{
+	if name == "" || len(data) == 0 {
 		return
 	}
 
@@ -66,8 +69,9 @@ func (f *FileControlT)Save(name string ,data []noteT){
 	}
 }
 
-func (f *FileControlT)ReadFile(name string )(data []noteT){
-	var dealErr = func(err error) []noteT{
+// ReadFile 读取文件
+func (f *FileControlT) ReadFile(name string) (data []noteT) {
+	var dealErr = func(err error) []noteT {
 		f.publishErr(err)
 		return nil
 	}
@@ -86,11 +90,11 @@ func (f *FileControlT)ReadFile(name string )(data []noteT){
 	}
 
 	nodes := make(mulNote, 100)
-	if err = json.Unmarshal(b, &nodes); err != nil{
+	if err = json.Unmarshal(b, &nodes); err != nil {
 		return dealErr(err)
 	}
 
-	nodes.adaptWindow(f.windowsX,f.windowsY)
+	nodes.adaptWindow(f.windowsX, f.windowsY)
 
 	if err == nil {
 		logTool.DebugAJ("playback 加载文件成功：" + "名称:" + name + " 长度：" + strconv.Itoa(len(nodes)))
@@ -99,7 +103,8 @@ func (f *FileControlT)ReadFile(name string )(data []noteT){
 	return nodes
 }
 
-func (f *FileControlT)scanFile(){
+// 扫描文件
+func (f *FileControlT) scanFile() {
 	go func() {
 		defer f.scanFile()
 		for {
@@ -116,7 +121,7 @@ func (f *FileControlT)scanFile(){
 			}
 
 			//对比
-			if newFile :=GenTool.Exclude(names, f.fileName) ; len(newFile) != 0 || len(names) != len(f.fileName){
+			if newFile := GenTool.Exclude(names, f.fileName); len(newFile) != 0 || len(names) != len(f.fileName) {
 				f.fileName = names
 				_ = eventCenter.Event.Publish(events.FileScanNewFile, events.FileScanNewFileData{
 					NewFile:  newFile,
@@ -144,8 +149,85 @@ func (f *FileControlT) getWindowRect() {
 	f.windowsX, f.windowsY = int(x), int(y)
 }
 
-func (f *FileControlT)publishErr(err error){
+// ---------------------------------- 发布事件 ----------------------------------
+
+func (f *FileControlT) publishErr(err error) {
 	_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{
 		ErrInfo: err.Error(),
 	})
+}
+
+// --------------------------------------------------------- 记录 ---------------------------------------------------------
+
+type noteT struct {
+	NoteType  keyMouTool.InputType
+	KeyNote   *keyMouTool.KeyInputT
+	MouseNote *keyMouTool.MouseInputT
+	TimeGap   int64 //Nanosecond
+	timeGap   float64
+}
+
+type mulNote []noteT
+
+// 添加记录
+func (m *mulNote) appendMouseNote(startTime int64, event *windowsHook.MouseEvent) {
+	var dw, exist = mouseDwMap[event.Message]
+	if exist {
+		var note = noteT{
+			NoteType: keyMouTool.TYPE_INPUT_MOUSE,
+			MouseNote: &keyMouTool.MouseInputT{X: event.X, Y: event.Y,
+				DWFlags:   dw,
+				MouseData: event.MouseData,
+			},
+			TimeGap: max(startTime-event.RecordTime, 0),
+		}
+
+		*m = append(*m, note)
+	}
+}
+
+// 添加记录
+func (m *mulNote) appendKeyBoardNote(startTime int64, event *windowsHook.KeyboardEvent) {
+	var dw, exist = keyDwMap[event.Message]
+	if exist {
+		var note = noteT{
+			NoteType: keyMouTool.TYPE_INPUT_KEYBOARD,
+			KeyNote: &keyMouTool.KeyInputT{VK: keyMouTool.VKCode(event.VkCode),
+				DwFlags: dw,
+			},
+			TimeGap: max(startTime-event.RecordTime, 0),
+		}
+
+		*m = append(*m, note)
+	}
+}
+
+// 适应窗口大小
+func (m *mulNote) adaptWindow(x, y int) {
+
+	for nodePos := range *m {
+		(*m)[nodePos].timeGap = float64((*m)[nodePos].TimeGap)
+		if (*m)[nodePos].NoteType == keyMouTool.TYPE_INPUT_MOUSE {
+			(*m)[nodePos].MouseNote.X = (*m)[nodePos].MouseNote.X * 65535 / int32(x)
+			(*m)[nodePos].MouseNote.Y = (*m)[nodePos].MouseNote.Y * 65535 / int32(y)
+		}
+	}
+}
+
+var mouseDwMap = map[windowsHook.Message]keyMouTool.MouseInputDW{
+	windowsHook.WM_MOUSEMOVE:         keyMouTool.DW_MOUSEEVENTF_MOVE | keyMouTool.DW_MOUSEEVENTF_ABSOLUTE,
+	windowsHook.WM_MOUSELEFTDOWN:     keyMouTool.DW_MOUSEEVENTF_LEFTDOWN | keyMouTool.DW_MOUSEEVENTF_ABSOLUTE,
+	windowsHook.WM_MOUSELEFTUP:       keyMouTool.DW_MOUSEEVENTF_LEFTUP | keyMouTool.DW_MOUSEEVENTF_ABSOLUTE,
+	windowsHook.WM_MOUSERIGHTDOWN:    keyMouTool.DW_MOUSEEVENTF_RIGHTDOWN | keyMouTool.DW_MOUSEEVENTF_ABSOLUTE,
+	windowsHook.WM_MOUSERIGHTUP:      keyMouTool.DW_MOUSEEVENTF_RIGHTUP | keyMouTool.DW_MOUSEEVENTF_ABSOLUTE,
+	windowsHook.WM_MOUSEMIDDLEDOWN:   keyMouTool.DW_MOUSEEVENTF_MIDDLEDOWN | keyMouTool.DW_MOUSEEVENTF_ABSOLUTE,
+	windowsHook.WM_MOUSEMIDDLEUP:     keyMouTool.DW_MOUSEEVENTF_MIDDLEUP | keyMouTool.DW_MOUSEEVENTF_ABSOLUTE,
+	windowsHook.WM_MOUSELEFTSICEDOWN: keyMouTool.DW_MOUSEEVENTF_XDOWN | keyMouTool.DW_MOUSEEVENTF_ABSOLUTE,
+	windowsHook.WM_MOUSELEFTSICEUP:   keyMouTool.DW_MOUSEEVENTF_XUP | keyMouTool.DW_MOUSEEVENTF_ABSOLUTE,
+	windowsHook.WM_MOUSEWHEEL:        keyMouTool.DW_MOUSEEVENTF_WHEEL | keyMouTool.DW_MOUSEEVENTF_ABSOLUTE,
+	windowsHook.WM_MOUSEHWHEEL:       keyMouTool.DW_MOUSEEVENTF_HWHEEL | keyMouTool.DW_MOUSEEVENTF_ABSOLUTE, //这个暂时不知道是啥，
+}
+var keyDwMap = map[windowsHook.Message]keyMouTool.KeyBoardInputDW{
+	windowsHook.WM_KEYDOWN: keyMouTool.DW_KEYEVENTF_KEYDown,
+	windowsHook.WM_KEYUP:   keyMouTool.DW_KEYEVENTF_KEYUP,
 }

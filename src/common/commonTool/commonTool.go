@@ -14,3 +14,9 @@ func GetSysPthSep() string {
 	}
 	return sysPath
 }
+
+func MustNil(err error) {
+	if err != nil {
+		panic(err)
+	}
+}

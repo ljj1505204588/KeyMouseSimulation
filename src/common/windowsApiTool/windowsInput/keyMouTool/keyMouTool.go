@@ -9,25 +9,25 @@ import (
 *  --------------------------------------- KEYBOARD INPUT ---------------------------------------
  */
 
-var keyChan chan KeyInputT
+var keyChan chan *KeyInputT
 var KeyboardInputPool = sync.Pool{
 	New: func() interface{} {
 		return new(KeyboardMouseInput.KeyboardInputT)
 	},
 }
 
-//创建一个向计算机底层发送信息的通道
-func GetKeySendInputChan(size int) (chan KeyInputT, error) {
+// 创建一个向计算机底层发送信息的通道
+func GetKeySendInputChan(size int) (chan *KeyInputT, error) {
 
 	var createRoutine = false
 
 	if keyChan == nil {
-		keyChan = make(chan KeyInputT, size)
+		keyChan = make(chan *KeyInputT, size)
 		createRoutine = true
 	}
 	if len(keyChan) != size {
 		close(keyChan)
-		keyChan = make(chan KeyInputT, size)
+		keyChan = make(chan *KeyInputT, size)
 		createRoutine = true
 	}
 
@@ -38,7 +38,7 @@ func GetKeySendInputChan(size int) (chan KeyInputT, error) {
 	return keyChan, nil
 }
 
-func keyRoutine(c chan KeyInputT) {
+func keyRoutine(c chan *KeyInputT) {
 
 	defer func() {
 		if p := recover(); p != nil {
@@ -67,25 +67,25 @@ func keyRoutine(c chan KeyInputT) {
 *  --------------------------------------- MOUSE INPUT ---------------------------------------
  */
 
-var mouseChan chan MouseInputT
+var mouseChan chan *MouseInputT
 var MouseInputPool = sync.Pool{
 	New: func() interface{} {
 		return new(KeyboardMouseInput.MouseInputT)
 	},
 }
 
-//创建一个向计算机底层发送信息的通道
-func GetMouseSendInputChan(size int) (chan MouseInputT, error) {
+// 创建一个向计算机底层发送信息的通道
+func GetMouseSendInputChan(size int) (chan *MouseInputT, error) {
 
 	var createRoutine = false
 
 	if mouseChan == nil {
-		mouseChan = make(chan MouseInputT, size)
+		mouseChan = make(chan *MouseInputT, size)
 		createRoutine = true
 	}
 	if len(mouseChan) != size {
 		close(mouseChan)
-		mouseChan = make(chan MouseInputT, size)
+		mouseChan = make(chan *MouseInputT, size)
 		createRoutine = true
 	}
 
@@ -96,7 +96,7 @@ func GetMouseSendInputChan(size int) (chan MouseInputT, error) {
 	return mouseChan, nil
 }
 
-func mouseRoutine(c chan MouseInputT) {
+func mouseRoutine(c chan *MouseInputT) {
 
 	defer func() {
 		if p := recover(); p != nil {
