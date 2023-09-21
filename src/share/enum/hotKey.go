@@ -1,10 +1,10 @@
 package enum
 
-type HotKey int
+type HotKey string
 
 const (
-	HOT_KEY_STOP HotKey = iota
-	HOT_KEY_PAUSE
-	HOT_KEY_RECORD_START
-	HOT_KEY_PLAYBACK_START
+	HotKeyStop          HotKey = "hot_key_stop"
+	HotKeyPause         HotKey = "hot_key_pause"
+	HotKeyRecordStart   HotKey = "hot_key_record_start"
+	HotKeyPlayBackStart HotKey = "hot_key_playback_start"
 )

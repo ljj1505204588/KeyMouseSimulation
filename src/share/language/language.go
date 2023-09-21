@@ -13,7 +13,7 @@ func init() {
 }
 
 /*
-	----------------------------- 界面文字初始化 -----------------------------
+----------------------------- 界面文字初始化 -----------------------------
 */
 var MainWindowTitleStr string
 var SetFileWindowTitleStr string
@@ -122,7 +122,7 @@ func UiChange(l language) {
 }
 
 /*
-	----------------------------- 服务初始化 -----------------------------
+----------------------------- 服务初始化 -----------------------------
 */
 var ControlTypeFreeStr string
 var ControlTypeRecordingStr string

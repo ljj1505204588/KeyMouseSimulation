@@ -7,34 +7,33 @@ import (
 	"sync"
 )
 
-type HotKeyServerI interface {
-	SetHotKey(k string, vks keyMouTool.VKCode)
-}
-
 type HotKeyServerT struct {
 	once sync.Once
 	l    sync.Mutex
 
-	m map[keyMouTool.VKCode]string //热键信息
+	m map[keyMouTool.VKCode]string // 热键信息
+
 }
 
 var t HotKeyServerT
 
-func GetHotKeyServer() HotKeyServerI {
+func init() {
 	t.once.Do(t.start)
-
-	return &t
 }
 
 func (t *HotKeyServerT) start() {
 	eventCenter.Event.Register(events.WindowsKeyBoardHook, t.hotKeyHandler)
+	eventCenter.Event.Register(events.SetHotKey, t.setHotKey)
+
 }
 
 // SetHotKey 设置热键
-func (t *HotKeyServerT) SetHotKey(k string, vks keyMouTool.VKCode) {
+func (t *HotKeyServerT) setHotKey(data interface{}) (err error) {
 	defer t.lockSelf()()
+	var info = data.(events.SetHotKeyData)
 
-	t.m[vks] = k
+	t.m[info.Vks] = info.Key
+	return
 }
 
 // 热键勾子
@@ -47,7 +46,7 @@ func (t *HotKeyServerT) hotKeyHandler(data interface{}) (err error) {
 	var info = data.(events.WindowsKeyBoardHookData)
 	if k, exist := t.m[keyMouTool.VKCode(info.Date.VkCode)]; exist {
 		err = eventCenter.Event.Publish(events.ServerHotKeyDown, events.ServerHotKeyDownData{
-			Key: &k,
+			Key: k,
 		})
 		t.tryPublishServerError(err)
 	}

@@ -1,8 +1,8 @@
 package BaseComponent
 
 import (
-	"KeyMouseSimulation/module/server"
 	"KeyMouseSimulation/module2/language"
+	"KeyMouseSimulation/module2/server"
 	"github.com/lxn/walk"
 	"sync"
 	"time"
@@ -34,12 +34,13 @@ type BaseT struct {
 func (b *BaseT) Init(sc server.ControlI) {
 	b.sc = sc
 
-	b.hKList, b.keyList = b.sc.GetKeyList()
+	//b.hKList, b.keyList = b.sc.GetKeyList()
 }
 
 func (b *BaseT) ChangeLanguage(typ language.LanguageTyp, sync bool) {
 	var f = func() {
 		var m = language.LanguageMap[typ]
+		language.CurrentUse = m
 		b.languageMap = language.LanguageMap[typ]
 		b.languageTyp = typ
 

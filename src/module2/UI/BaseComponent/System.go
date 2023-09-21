@@ -3,7 +3,6 @@ package BaseComponent
 import (
 	eventCenter "KeyMouseSimulation/common/Event"
 	"KeyMouseSimulation/module2/language"
-	"KeyMouseSimulation/share/enum"
 	"KeyMouseSimulation/share/events"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
@@ -124,10 +123,18 @@ func (t *SystemT) showAboutBoxAction() {
 // 设置热键
 func (t *SystemT) setHotKey() {
 	if cmd, _ := t.setHotKeyPop(); cmd == walk.DlgCmdOK {
-		t.sc.SetHotKey(enum.HOT_KEY_RECORD_START, t.hKList[0])
-		t.sc.SetHotKey(enum.HOT_KEY_PLAYBACK_START, t.hKList[1])
-		t.sc.SetHotKey(enum.HOT_KEY_PAUSE, t.hKList[2])
-		t.sc.SetHotKey(enum.HOT_KEY_STOP, t.hKList[3])
+		_ = eventCenter.Event.Publish(events.SetHotKey, events.SetHotKeyData{
+			Key: t.hKList[0],
+		})
+		_ = eventCenter.Event.Publish(events.SetHotKey, events.SetHotKeyData{
+			Key: t.hKList[1],
+		})
+		_ = eventCenter.Event.Publish(events.SetHotKey, events.SetHotKeyData{
+			Key: t.hKList[2],
+		})
+		_ = eventCenter.Event.Publish(events.SetHotKey, events.SetHotKeyData{
+			Key: t.hKList[3],
+		})
 
 		t.ChangeLanguage(t.languageTyp, false)
 	}

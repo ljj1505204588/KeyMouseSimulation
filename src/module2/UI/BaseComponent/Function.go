@@ -8,7 +8,6 @@ import (
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
 	"github.com/lxn/win"
-	"sort"
 	"time"
 )
 
@@ -23,74 +22,69 @@ type FunctionT struct {
 	ifMouseTrackLabel *walk.Label
 	ifMouseTrackCheck *walk.CheckBox
 
-	widget []Widget
+	hotKeyHandler map[enum.HotKey]func()
+	widget        []Widget
 }
 
-func (t *FunctionT)Init(base *BaseT){
+func (t *FunctionT) Init(base *BaseT) {
 	t.BaseT = base
+	t.hotKeyHandler = make(map[enum.HotKey]func())
 	t.BaseT.registerChangeLanguage(t.changeLanguageHandler)
 
 	t.widget = []Widget{
-		PushButton{AssignTo: &t.recordButton, ColumnSpan: 4,  OnClicked: t.recordButtonClick},
-		PushButton{AssignTo: &t.playbackButton, ColumnSpan: 4,  OnClicked: t.playbackButtonClick},
-		PushButton{AssignTo: &t.pauseButton, ColumnSpan: 4,  OnClicked: t.pauseButtonClick},
-		PushButton{AssignTo: &t.stopButton, ColumnSpan: 4,  OnClicked: t.stopButtonClick},
+		PushButton{AssignTo: &t.recordButton, ColumnSpan: 4, OnClicked: t.recordButtonClick},
+		PushButton{AssignTo: &t.playbackButton, ColumnSpan: 4, OnClicked: t.playbackButtonClick},
+		PushButton{AssignTo: &t.pauseButton, ColumnSpan: 4, OnClicked: t.pauseButtonClick},
+		PushButton{AssignTo: &t.stopButton, ColumnSpan: 4, OnClicked: t.stopButtonClick},
 		//鼠标路径
 		Label{AssignTo: &t.ifMouseTrackLabel, ColumnSpan: 4},
-		CheckBox{AssignTo: &t.ifMouseTrackCheck, ColumnSpan: 4, Checked: true, Alignment: AlignHCenterVCenter, OnCheckedChanged:t.setIfTrackMouseMoveClick },
+		CheckBox{AssignTo: &t.ifMouseTrackCheck, ColumnSpan: 4, Checked: true, Alignment: AlignHCenterVCenter, OnCheckedChanged: t.setIfTrackMouseMoveClick},
 	}
 	eventCenter.Event.Register(events.ServerHotKeyDown, t.subHotKeyDown)
+	eventCenter.Event.Register(events.FileScanNewFile, t.subFileChange)
 }
 
-func (t *FunctionT)DisPlay()[]Widget{
+func (t *FunctionT) DisPlay() []Widget {
 	return t.widget
 }
 
 // --------------------------------------- 按钮功能 ----------------------------------------------
 
-func(t *FunctionT)recordButtonClick(){
-	defer  t.lockSelf()()
+func (t *FunctionT) recordButtonClick() {
+	defer t.lockSelf()()
+
 	t.sc.Record()
 }
-func(t *FunctionT)playbackButtonClick(){
-	defer  t.lockSelf()()
-	t.sc.Playback()
-}
-func(t *FunctionT)pauseButtonClick(){
-	defer  t.lockSelf()()
-	_ = t.sc.Pause()
-}
-func(t *FunctionT)stopButtonClick(){
-	defer  t.lockSelf()()
+func (t *FunctionT) playbackButtonClick() {
+	defer t.lockSelf()()
 
-	_ = t.sc.Pause()
+	t.sc.Playback(t.BaseT.fileBox.Text())
+}
+func (t *FunctionT) pauseButtonClick() {
+	defer t.lockSelf()()
+
+	t.sc.Pause()
+}
+func (t *FunctionT) stopButtonClick() {
+	defer t.lockSelf()()
+
+	t.sc.Stop()
 	fileName, cmd, _ := t.setFileName()
 	if cmd == walk.DlgCmdOK {
-		for _, v := range t.fileNames {
-			if v == fileName {
-				fileName += "-" + time.Now().String()
-			}
-		}
-		t.sc.SetFileName(fileName)
-		_ = t.fileBox.SetText(fileName)
-
-		t.fileNames = append(t.fileNames, fileName)
-		sort.Strings(t.fileNames)
-		_ = t.fileBox.SetModel(t.fileNames)
+		t.sc.Save(fileName)
 	}
-	 t.sc.Stop(true)
 
 }
 
 // --------------------------------------- 基础功能 ----------------------------------------------
 
-func(t *FunctionT) initCheck()bool{
-	for _,per := range[]*walk.PushButton{
+func (t *FunctionT) initCheck() bool {
+	for _, per := range []*walk.PushButton{
 		t.recordButton,
 		t.playbackButton,
 		t.pauseButton,
 		t.stopButton,
-	}{
+	} {
 		if per == nil {
 			return false
 		}
@@ -121,42 +115,50 @@ func (t *FunctionT) setFileName() (string, int, error) {
 
 	return filename, cmd, err
 }
+
 // 设置是否追踪鼠标移动路径
 func (t *FunctionT) setIfTrackMouseMoveClick() {
-	defer  t.lockSelf()()
-	t.sc.SetIfTrackMouseMove(t.ifMouseTrackCheck.Checked())
+	// defer t.lockSelf()()
+	// t.sc.SetIfTrackMouseMove(t.ifMouseTrackCheck.Checked())
 }
+
 // 设置语言
-func (t *FunctionT)changeLanguageHandler(typ language.LanguageTyp){
+func (t *FunctionT) changeLanguageHandler(typ language.LanguageTyp) {
 	var m = language.LanguageMap[typ]
 
-	for !t.initCheck(){
-		time.Sleep(10*time.Millisecond)
+	for !t.initCheck() {
+		time.Sleep(10 * time.Millisecond)
 	}
 
-	_ = t.recordButton.SetText(m[language.RecordStr]   + " " + t.hKList[0])
-	_ = t.playbackButton.SetText(m[language.PlaybackStr]   + " " + t.hKList[1])
-	_ = t.pauseButton.SetText(m[language.PauseStr]   + " " + t.hKList[2])
-	_ = t.stopButton.SetText(m[language.StopStr]   + " " + t.hKList[3])
+	_ = t.recordButton.SetText(m[language.RecordStr] + " " + t.hKList[0])
+	_ = t.playbackButton.SetText(m[language.PlaybackStr] + " " + t.hKList[1])
+	_ = t.pauseButton.SetText(m[language.PauseStr] + " " + t.hKList[2])
+	_ = t.stopButton.SetText(m[language.StopStr] + " " + t.hKList[3])
 	_ = t.ifMouseTrackLabel.SetText(m[language.MouseTrackStr])
 }
-
 
 // --------------------------------------- 订阅事件 ----------------------------------------------
 
 func (t *FunctionT) subHotKeyDown(data interface{}) (err error) {
 	d := data.(events.ServerHotKeyDownData)
 
-	switch d.HotKey {
-	case enum.HOT_KEY_PLAYBACK_START:
-		 t.clickButton(t.playbackButton)
-	case enum.HOT_KEY_RECORD_START:
-		 t.clickButton(t.recordButton)
-	case enum.HOT_KEY_PAUSE:
-		 t.clickButton(t.pauseButton)
-	case enum.HOT_KEY_STOP:
-		 t.clickButton(t.stopButton)
+	t.hotKeyHandler[enum.HotKey(d.Key)]()
+
+	return
+}
+
+func (t *FunctionT) subFileChange(data interface{}) (err error) {
+	var info = data.(events.FileScanNewFileData)
+	if err = t.fileBox.SetModel(info.FileList); err != nil {
+		return
 	}
+
+	if len(info.NewFile) != 0 {
+		if err = t.fileBox.SetText(info.NewFile[0]); err != nil {
+			return
+		}
+	}
+
 	return
 }
 

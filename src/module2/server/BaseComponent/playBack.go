@@ -2,10 +2,9 @@ package recordAndPlayBack
 
 import (
 	eventCenter "KeyMouseSimulation/common/Event"
-	"KeyMouseSimulation/common/logTool"
 	"KeyMouseSimulation/common/windowsApiTool/windowsInput/keyMouTool"
 	"KeyMouseSimulation/share/events"
-	"time"
+	"sync/atomic"
 )
 
 type PlayBackServerI interface {
@@ -18,84 +17,99 @@ type PlayBackServerI interface {
 *	PlayBackServerI实现接口
  */
 
-func GetPlaybackServer() *PlayBackServerT {
-	p := PlayBackServerT{}
+func GetPlaybackServer() PlayBackServerI {
+	p := PlayBackServerT{
+		fileControl: GetFileControl(),
+	}
+
+	p.input = map[keyMouTool.InputType]func(note *noteT){
+		keyMouTool.TYPE_INPUT_MOUSE:    p.mouseInput,
+		keyMouTool.TYPE_INPUT_KEYBOARD: p.keyBoardInput,
+	}
 
 	return &p
 }
 
 type PlayBackServerT struct {
-	playbackSign bool //回放标识
+	run         bool //回放标识
+	fileControl FileControlI
 
-	name        string  //读取文件名称
-	notes       []noteT //回放数据
-	playbackPod int     //当前回放在文件内容位置
+	name       string  //读取文件名称
+	notes      []noteT //回放数据
+	notesIndex int64   //当前回放在文件内容位置
 
-	//speed       float64 //回放速度
-
+	input map[keyMouTool.InputType]func(note *noteT)
 }
 
 // Start 开始
-func (p *PlayBackServerT) Start() {
+func (p *PlayBackServerT) Start(fileName string) {
+	p.tryLoadFile(fileName)
 
+	go p.playBack()
+	p.run = true
 }
 
 // Pause 暂停
 func (p *PlayBackServerT) Pause() {
-
+	p.run = false
 }
 
 // Stop 停止
 func (p *PlayBackServerT) Stop() {
+	p.run = false
+	atomic.SwapInt64(&p.notesIndex, 0)
 }
 
 // ----------------------- playBack 模块主体功能函数 -----------------------
 
 func (p *PlayBackServerT) playBack() {
-	var (
-		pod                int
-		keyInput, mouInput = keyMouTool.KeyInputT{}, keyMouTool.MouseInputT{}
-	)
 
-	for {
-		switch {
-		case !p.playbackSign:
-			logTool.DebugAJ("playback 退出回放状态")
+	for p.run {
+		var index = atomic.LoadInt64(&p.notesIndex)
+		if p.checkPlayBackFinish(index) {
 			return
-		default:
-			if p.playbackPod >= len(p.notes) {
-				p.playbackPod = 0
-				p.playbackSign = false
-				p.publishPlaybackFinish()
-				return
-			}
-			pod = p.playbackPod
-			switch p.notes[pod].NoteType {
-			case keyMouTool.TYPE_INPUT_KEYBOARD:
-				time.Sleep(time.Duration(int(p.notes[pod].timeGap / p.speed)))
-				keyInput.VK = p.notes[pod].KeyNote.VK
-				keyInput.DwFlags = p.notes[pod].KeyNote.DwFlags
-
-				p.keySend <- &keyInput
-			case keyMouTool.TYPE_INPUT_MOUSE:
-				time.Sleep(time.Duration(int(p.notes[pod].timeGap / p.speed)))
-				mouInput.X = p.notes[pod].MouseNote.X
-				mouInput.Y = p.notes[pod].MouseNote.Y
-				mouInput.DWFlags = p.notes[pod].MouseNote.DWFlags
-
-				p.mouseSend <- &mouInput
-			}
-			p.playbackPod += 1
 		}
+
+		var n = &p.notes[index]
+		p.input[n.NoteType](n)
+		atomic.CompareAndSwapInt64(&p.notesIndex, index, index+1)
+	}
+}
+func (p *PlayBackServerT) checkPlayBackFinish(index int64) (finish bool) {
+
+	if index >= int64(len(p.notes)) {
+		atomic.SwapInt64(&p.notesIndex, 0)
+		_ = eventCenter.Event.Publish(events.PlayBackFinish, events.PlayBackFinishData{})
+		return true
+	}
+
+	return false
+}
+func (p *PlayBackServerT) mouseInput(note *noteT) {
+	if err := eventCenter.Event.Publish(events.WindowsMouseInput, events.WindowsMouseInputData{
+		Data: &keyMouTool.MouseInputT{},
+	}); err != nil {
+		p.tryPublishServerError(err)
+	}
+}
+func (p *PlayBackServerT) keyBoardInput(note *noteT) {
+	if err := eventCenter.Event.Publish(events.WindowsKeyBoardInput, events.WindowsKeyBoardInputData{
+		Data: &keyMouTool.KeyInputT{},
+	}); err != nil {
+		p.tryPublishServerError(err)
+	}
+}
+
+// 加载文件
+func (p *PlayBackServerT) tryLoadFile(fileName string) {
+	if p.name != fileName {
+		p.run = false
+		p.name = fileName
+		p.notes = p.fileControl.ReadFile(fileName)
 	}
 }
 
 // ----------------------- Util -----------------------
-
-// 发布回放结束事件
-func (p *PlayBackServerT) publishPlaybackFinish() {
-	_ = eventCenter.Event.Publish(events.PlayBackFinish, events.PlayBackFinishData{})
-}
 
 // 发布服务错误事件
 func (p *PlayBackServerT) tryPublishServerError(err error) {

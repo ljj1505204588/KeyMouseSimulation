@@ -4,6 +4,8 @@ type DisPlay int64
 
 type LanguageTyp string
 
+var CurrentUse = chinesMap
+
 const (
 	Chinese LanguageTyp = "中文"
 	English LanguageTyp = "english"
@@ -61,16 +63,10 @@ const (
 	HotKeyRecordStartStr   // 热键记录
 	HotKeyPlaybackStartStr // 热键回放
 
-	ErrorFreeToRecordPause                    // 当前不在录制中。
-	ErrorFreeToPlaybackPause                  // 当前不在回放中。
-	ErrorFreeToFree                           // 已经处于空闲状态。
-	ErrorPlaybackToRecordOrRecordPause        // 处于回放状态，请先停止。
-	ErrorPlaybackPauseToRecordOrRecordPause   // 处于回放状态，请先停止。
-	ErrorRecordToPlaybackOrPlaybackPause      // 处于录制状态，请先停止。
-	ErrorRecordPauseToPlaybackOrPlaybackPause // 处于录制状态，请先停止。
-	ErrorSetHotkeyInFreeStatusStr             // 只有空闲状态能够设置热键。
-	ErrorSetHotkeyWithoutHotkeyStr            // 非法的空值热键。
-	ErrorSaveFileNameNilStr                   // 文件名称为空。
+	ErrorStatusChangeError         // 状态变动错误。
+	ErrorSetHotkeyInFreeStatusStr  // 只有空闲状态能够设置热键。
+	ErrorSetHotkeyWithoutHotkeyStr // 非法的空值热键。
+	ErrorSaveFileNameNilStr        // 文件名称为空。
 )
 
 var chinesMap = map[DisPlay]string{
@@ -104,25 +100,20 @@ var chinesMap = map[DisPlay]string{
 	SetHotKeyErrMessageStr:      "热键设置重复",
 	SetLanguageChangeMessageStr: "成功!",
 
-	ControlTypeFreeStr:                        "空闲",
-	ControlTypeRecordingStr:                   "录制",
-	ControlTypeRecordPauseStr:                 "录制暂停",
-	ControlTypePlaybackStr:                    "回放",
-	ControlTypePlaybackPauseStr:               "回放暂停",
-	HotKeyStopStr:                             "热键停止",
-	HotKeyPauseStr:                            "热键暂停",
-	HotKeyRecordStartStr:                      "热键记录",
-	HotKeyPlaybackStartStr:                    "热键回放",
-	ErrorFreeToRecordPause:                    "当前不在录制中。",
-	ErrorFreeToPlaybackPause:                  "当前不在回放中。",
-	ErrorFreeToFree:                           "已经处于空闲状态。",
-	ErrorPlaybackToRecordOrRecordPause:        "处于回放状态，请先停止。",
-	ErrorPlaybackPauseToRecordOrRecordPause:   "处于回放状态，请先停止。",
-	ErrorRecordToPlaybackOrPlaybackPause:      "处于录制状态，请先停止。",
-	ErrorRecordPauseToPlaybackOrPlaybackPause: "处于录制状态，请先停止。",
-	ErrorSetHotkeyInFreeStatusStr:             "只有空闲状态能够设置热键。",
-	ErrorSetHotkeyWithoutHotkeyStr:            "非法的空值热键。",
-	ErrorSaveFileNameNilStr:                   "文件名称为空。",
+	ControlTypeFreeStr:          "空闲",
+	ControlTypeRecordingStr:     "录制",
+	ControlTypeRecordPauseStr:   "录制暂停",
+	ControlTypePlaybackStr:      "回放",
+	ControlTypePlaybackPauseStr: "回放暂停",
+	HotKeyStopStr:               "热键停止",
+	HotKeyPauseStr:              "热键暂停",
+	HotKeyRecordStartStr:        "热键记录",
+	HotKeyPlaybackStartStr:      "热键回放",
+	ErrorStatusChangeError:      "状态变动错误。",
+
+	ErrorSetHotkeyInFreeStatusStr:  "只有空闲状态能够设置热键。",
+	ErrorSetHotkeyWithoutHotkeyStr: "非法的空值热键。",
+	ErrorSaveFileNameNilStr:        "文件名称为空。",
 }
 var englishMap = map[DisPlay]string{
 	MainWindowTitleStr:          "RecordAndPlayback",
@@ -155,23 +146,18 @@ var englishMap = map[DisPlay]string{
 	SetHotKeyErrMessageStr:      "Hotkey Settings are repeated",
 	SetLanguageChangeMessageStr: "success!",
 
-	ControlTypeFreeStr:                        "FREE",
-	ControlTypeRecordingStr:                   "RECORDING",
-	ControlTypeRecordPauseStr:                 "RECORD_PAUSE",
-	ControlTypePlaybackStr:                    "PLAYBACK",
-	ControlTypePlaybackPauseStr:               "PLAYBACK_PAUSE",
-	HotKeyStopStr:                             "HotKeyStop",
-	HotKeyPauseStr:                            "HotKeyPause",
-	HotKeyRecordStartStr:                      "HotKeyRecordStart",
-	HotKeyPlaybackStartStr:                    "HotKeyPlaybackStart",
-	ErrorFreeToRecordPause:                    "Not in record. ",
-	ErrorFreeToPlaybackPause:                  "Not in playback. ",
-	ErrorFreeToFree:                           "In free status already ",
-	ErrorPlaybackToRecordOrRecordPause:        "Is in playback. please Stop first. ",
-	ErrorPlaybackPauseToRecordOrRecordPause:   "Is in playback. please Stop first. ",
-	ErrorRecordToPlaybackOrPlaybackPause:      "Is in record. please Stop first. ",
-	ErrorRecordPauseToPlaybackOrPlaybackPause: "Is in record. please Stop first. ",
-	ErrorSetHotkeyInFreeStatusStr:             "Only set hotkey in free status . ",
-	ErrorSetHotkeyWithoutHotkeyStr:            "Hotkey is nil. ",
-	ErrorSaveFileNameNilStr:                   "File name is nil. ",
+	ControlTypeFreeStr:          "FREE",
+	ControlTypeRecordingStr:     "RECORDING",
+	ControlTypeRecordPauseStr:   "RECORD_PAUSE",
+	ControlTypePlaybackStr:      "PLAYBACK",
+	ControlTypePlaybackPauseStr: "PLAYBACK_PAUSE",
+	HotKeyStopStr:               "HotKeyStop",
+	HotKeyPauseStr:              "HotKeyPause",
+	HotKeyRecordStartStr:        "HotKeyRecordStart",
+	HotKeyPlaybackStartStr:      "HotKeyPlaybackStart",
+	ErrorStatusChangeError:      "ChangeStatusError. ",
+
+	ErrorSetHotkeyInFreeStatusStr:  "Only set hotkey in free status . ",
+	ErrorSetHotkeyWithoutHotkeyStr: "Hotkey is nil. ",
+	ErrorSaveFileNameNilStr:        "File name is nil. ",
 }
