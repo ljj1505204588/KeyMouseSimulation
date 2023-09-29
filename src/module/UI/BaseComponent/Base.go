@@ -1,15 +1,12 @@
 package BaseComponent
 
 import (
-	"KeyMouseSimulation/module2/language"
-	"KeyMouseSimulation/module2/server"
+	"KeyMouseSimulation/module/language"
 	"github.com/lxn/walk"
 	"sync"
-	"time"
 )
 
 type BaseT struct {
-	sc server.ControlI
 	mw *walk.MainWindow
 	l  sync.Mutex
 
@@ -31,10 +28,8 @@ type BaseT struct {
 	Status int
 }
 
-func (b *BaseT) Init(sc server.ControlI) {
-	b.sc = sc
-
-	//b.hKList, b.keyList = b.sc.GetKeyList()
+func (b *BaseT) Init() {
+	b.hKList = [4]string{"F7", "F8", "F9", "F10"}
 }
 
 func (b *BaseT) ChangeLanguage(typ language.LanguageTyp, sync bool) {
@@ -48,7 +43,9 @@ func (b *BaseT) ChangeLanguage(typ language.LanguageTyp, sync bool) {
 			h(typ)
 		}
 
-		b.waitInitCheck()
+		if !b.initCheck() {
+			return
+		}
 
 		_ = b.mw.SetTitle(m[language.MainWindowTitleStr])
 
@@ -65,19 +62,12 @@ func (b *BaseT) ChangeLanguage(typ language.LanguageTyp, sync bool) {
 
 // --------------------------------------- 基础功能 ----------------------------------------------
 
-func (b *BaseT) waitInitCheck() {
-	for !b.baseInitCheck() {
-		time.Sleep(10 * time.Millisecond)
-	}
+func (b *BaseT) initCheck() bool {
+	return b.baseInitCheck()
 }
 
 // 初始化校验
 func (b *BaseT) baseInitCheck() bool {
-	//for _, per := range b.hKBox {
-	//	if per == nil {
-	//		return false
-	//	}
-	//}
 
 	return b.mw != nil && b.fileBox != nil
 }

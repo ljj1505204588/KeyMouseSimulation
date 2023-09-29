@@ -22,9 +22,10 @@ func init() {
 }
 
 func (t *HotKeyServerT) start() {
+	t.m = make(map[keyMouTool.VKCode]string)
+
 	eventCenter.Event.Register(events.WindowsKeyBoardHook, t.hotKeyHandler)
 	eventCenter.Event.Register(events.SetHotKey, t.setHotKey)
-
 }
 
 // SetHotKey 设置热键
@@ -32,7 +33,10 @@ func (t *HotKeyServerT) setHotKey(data interface{}) (err error) {
 	defer t.lockSelf()()
 	var info = data.(events.SetHotKeyData)
 
-	t.m[info.Vks] = info.Key
+	if key,ok := keyMouTool.VKCodeStringMap[info.Key];ok {
+		t.m[key] = info.Key
+	}
+
 	return
 }
 

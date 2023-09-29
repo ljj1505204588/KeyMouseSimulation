@@ -2,7 +2,8 @@ package main
 
 import (
 	"KeyMouseSimulation/common/logTool"
-	ui "KeyMouseSimulation/module2/UI"
+	ui "KeyMouseSimulation/module/UI"
+	_ "KeyMouseSimulation/module/server"
 	"net/http"
 	_ "net/http/pprof"
 	"time"
@@ -18,5 +19,4 @@ func main() {
 	}()
 	ui.MainWindows()
 	time.Sleep(10 * time.Second)
-
 }

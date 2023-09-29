@@ -2,7 +2,7 @@ package BaseComponent
 
 import (
 	eventCenter "KeyMouseSimulation/common/Event"
-	"KeyMouseSimulation/module2/language"
+	"KeyMouseSimulation/module/language"
 	"KeyMouseSimulation/share/events"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
@@ -33,7 +33,6 @@ type SystemT struct {
 
 func (t *SystemT) Init(base *BaseT) {
 	t.BaseT = base
-	t.BaseT.registerChangeLanguage(t.changeLanguageHandler)
 
 	t.widgets = []Widget{
 		//当前状态
@@ -62,8 +61,8 @@ func (t *SystemT) Init(base *BaseT) {
 		}},
 	}
 
-	eventCenter.Event.Register(events.ServerError, t.subShowError)
-	eventCenter.Event.Register(events.ServerChange, t.subServerChange)
+	t.setHotKey()
+	t.register()
 }
 
 func (t *SystemT) DisPlay() []Widget {
@@ -122,22 +121,20 @@ func (t *SystemT) showAboutBoxAction() {
 
 // 设置热键
 func (t *SystemT) setHotKey() {
-	if cmd, _ := t.setHotKeyPop(); cmd == walk.DlgCmdOK {
-		_ = eventCenter.Event.Publish(events.SetHotKey, events.SetHotKeyData{
-			Key: t.hKList[0],
-		})
-		_ = eventCenter.Event.Publish(events.SetHotKey, events.SetHotKeyData{
-			Key: t.hKList[1],
-		})
-		_ = eventCenter.Event.Publish(events.SetHotKey, events.SetHotKeyData{
-			Key: t.hKList[2],
-		})
-		_ = eventCenter.Event.Publish(events.SetHotKey, events.SetHotKeyData{
-			Key: t.hKList[3],
-		})
+	_ = eventCenter.Event.Publish(events.SetHotKey, events.SetHotKeyData{
+		Key: t.hKList[0],
+	})
+	_ = eventCenter.Event.Publish(events.SetHotKey, events.SetHotKeyData{
+		Key: t.hKList[1],
+	})
+	_ = eventCenter.Event.Publish(events.SetHotKey, events.SetHotKeyData{
+		Key: t.hKList[2],
+	})
+	_ = eventCenter.Event.Publish(events.SetHotKey, events.SetHotKeyData{
+		Key: t.hKList[3],
+	})
 
-		t.ChangeLanguage(t.languageTyp, false)
-	}
+	//t.ChangeLanguage(t.languageTyp, false)
 }
 
 // 设置热键弹窗
@@ -195,10 +192,21 @@ func (t *SystemT) setHotKeyPop() (int, error) {
 		},
 	}.Run(t.mw)
 
+	if cmd == walk.DlgCmdOK {
+		t.setHotKey()
+	}
+
 	return cmd, err
 }
 
 // --------------------------------------- 订阅事件 ----------------------------------------------
+
+func (t *SystemT) register() {
+	t.BaseT.registerChangeLanguage(t.changeLanguageHandler)
+
+	eventCenter.Event.Register(events.ServerError, t.subShowError)
+	eventCenter.Event.Register(events.ServerStatusChange, t.subServerStatusChange)
+}
 
 // 订阅错误事件
 func (t *SystemT) subShowError(data interface{}) (err error) {
@@ -212,8 +220,8 @@ func (t *SystemT) subShowError(data interface{}) (err error) {
 }
 
 // 订阅状态变动事件
-func (t *SystemT) subServerChange(data interface{}) (err error) {
-	d := data.(events.ServerChangeData)
+func (t *SystemT) subServerStatusChange(data interface{}) (err error) {
+	d := data.(events.ServerStatusChangeData)
 
 	for t.statusEdit == nil {
 		time.Sleep(10 * time.Millisecond)
@@ -224,5 +232,4 @@ func (t *SystemT) subServerChange(data interface{}) (err error) {
 	}
 
 	return
-
 }

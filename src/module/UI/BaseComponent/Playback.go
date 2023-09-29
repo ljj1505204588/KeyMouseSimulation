@@ -2,7 +2,7 @@ package BaseComponent
 
 import (
 	eventCenter "KeyMouseSimulation/common/Event"
-	"KeyMouseSimulation/module2/language"
+	"KeyMouseSimulation/module/language"
 	"KeyMouseSimulation/share/events"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
@@ -53,7 +53,7 @@ func (t *PlaybackT) Init(base *BaseT) {
 		NumberEdit{AssignTo: &t.currentTimesEdit, StretchFactor: 0, ColumnSpan: 1},
 	}
 
-	eventCenter.Event.Register(events.ServerChange, t.subServerChange)
+	eventCenter.Event.Register(events.ServerConfigChange, t.subServerChange)
 }
 
 func (t *PlaybackT) DisPlay() []Widget {

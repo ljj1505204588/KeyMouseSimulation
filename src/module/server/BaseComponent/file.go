@@ -3,6 +3,7 @@ package recordAndPlayBack
 import (
 	eventCenter "KeyMouseSimulation/common/Event"
 	"KeyMouseSimulation/common/GenTool"
+	"KeyMouseSimulation/common/commonTool"
 	"KeyMouseSimulation/common/logTool"
 	windowsApi "KeyMouseSimulation/common/windowsApiTool"
 	"KeyMouseSimulation/common/windowsApiTool/windowsHook"
@@ -40,6 +41,7 @@ type FileControlT struct {
 
 // Save 存储
 func (f *FileControlT) Save(name string, data []noteT) {
+	name += FileExt
 	// 记录到文件
 	logTool.DebugAJ("record 开始记录文件：" + "名称:" + name + " 长度：" + strconv.Itoa(len(data)))
 
@@ -76,6 +78,7 @@ func (f *FileControlT) ReadFile(name string) (data []noteT) {
 		return nil
 	}
 
+	name += FileExt
 	// ----------------------------
 
 	file, err := os.OpenFile(name, os.O_RDONLY, 0772)
@@ -122,11 +125,13 @@ func (f *FileControlT) scanFile() {
 
 			//对比
 			if newFile := GenTool.Exclude(names, f.fileName); len(newFile) != 0 || len(names) != len(f.fileName) {
-				f.fileName = names
-				_ = eventCenter.Event.Publish(events.FileScanNewFile, events.FileScanNewFileData{
+
+				if err := eventCenter.Event.Publish(events.FileScanNewFile, events.FileScanNewFileData{
 					NewFile:  newFile,
 					FileList: names,
-				})
+				}); err == nil {
+					f.fileName = names
+				}
 			}
 			time.Sleep(2 * time.Second)
 		}
@@ -179,7 +184,7 @@ func (m *mulNote) appendMouseNote(startTime int64, event *windowsHook.MouseEvent
 				DWFlags:   dw,
 				MouseData: event.MouseData,
 			},
-			TimeGap: max(startTime-event.RecordTime, 0),
+			TimeGap: commonTool.Max(startTime-event.RecordTime, 0),
 		}
 
 		*m = append(*m, note)
@@ -195,7 +200,7 @@ func (m *mulNote) appendKeyBoardNote(startTime int64, event *windowsHook.Keyboar
 			KeyNote: &keyMouTool.KeyInputT{VK: keyMouTool.VKCode(event.VkCode),
 				DwFlags: dw,
 			},
-			TimeGap: max(startTime-event.RecordTime, 0),
+			TimeGap: commonTool.Max(startTime-event.RecordTime, 0),
 		}
 
 		*m = append(*m, note)
