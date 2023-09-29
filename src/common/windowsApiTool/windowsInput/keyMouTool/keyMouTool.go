@@ -56,6 +56,7 @@ func keyRoutine(c chan *KeyInputT) {
 
 		_, err := KeyboardMouseInput.KeyboardInput(*KeyboardInput)
 		if err != nil {
+			//fmt.Println(err)
 			//No Importance
 		}
 

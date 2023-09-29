@@ -5,6 +5,7 @@ import (
 	"KeyMouseSimulation/common/windowsApiTool/windowsInput/keyMouTool"
 	"KeyMouseSimulation/share/events"
 	"sync/atomic"
+	"time"
 )
 
 type PlayBackServerI interface {
@@ -72,6 +73,7 @@ func (p *PlayBackServerT) playBack() {
 
 		var n = &p.notes[index]
 		p.input[n.NoteType](n)
+		time.Sleep(time.Duration(n.TimeGap))
 		atomic.CompareAndSwapInt64(&p.notesIndex, index, index+1)
 	}
 }
@@ -87,14 +89,23 @@ func (p *PlayBackServerT) checkPlayBackFinish(index int64) (finish bool) {
 }
 func (p *PlayBackServerT) mouseInput(note *noteT) {
 	if err := eventCenter.Event.Publish(events.WindowsMouseInput, events.WindowsMouseInputData{
-		Data: &keyMouTool.MouseInputT{},
+		Data: &keyMouTool.MouseInputT{
+			X:         note.MouseNote.X,
+			Y:         note.MouseNote.Y,
+			DWFlags:   note.MouseNote.DWFlags,
+			MouseData: note.MouseNote.MouseData,
+			Time:      note.MouseNote.Time,
+		},
 	}); err != nil {
 		p.tryPublishServerError(err)
 	}
 }
 func (p *PlayBackServerT) keyBoardInput(note *noteT) {
 	if err := eventCenter.Event.Publish(events.WindowsKeyBoardInput, events.WindowsKeyBoardInputData{
-		Data: &keyMouTool.KeyInputT{},
+		Data: &keyMouTool.KeyInputT{
+			VK:      note.KeyNote.VK,
+			DwFlags: note.KeyNote.DwFlags,
+		},
 	}); err != nil {
 		p.tryPublishServerError(err)
 	}

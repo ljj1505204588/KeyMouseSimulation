@@ -8,6 +8,7 @@ import (
 	"errors"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
+	"github.com/lxn/win"
 	"time"
 )
 
@@ -87,7 +88,7 @@ func (t *FunctionT) initCheck() bool {
 }
 
 // 设置文件名称
-func (t *FunctionT) setFileName() (string, int, error) {
+func (t *FunctionT) setFileName() {
 	var nameEdit *walk.LineEdit
 	filename := ""
 	var dlg *walk.Dialog
@@ -104,9 +105,12 @@ func (t *FunctionT) setFileName() (string, int, error) {
 			PushButton{AssignTo: &acceptPB, ColumnSpan: 2, Text: m[language.OKStr], OnClicked: func() { dlg.Accept() }},
 			PushButton{AssignTo: &cancelPB, ColumnSpan: 2, Text: m[language.CancelStr], OnClicked: func() { dlg.Cancel() }},
 		},
+		Enabled: true,
 	}.Run(t.mw)
 
-	return filename, cmd, err
+	if cmd == walk.DlgCmdOK && err == nil {
+		t.publishButtonClick(enum.SaveFileButton, filename)
+	}
 }
 
 // 设置是否追踪鼠标移动路径
@@ -143,11 +147,17 @@ func (t *FunctionT) publishButtonClick(button enum.Button, name string) {
 func (t *FunctionT) Register() {
 	t.BaseT.registerChangeLanguage(t.changeLanguageHandler)
 
+	// 停止涉及弹窗，目前考虑是这样特殊实现
+	var simButtonStopClick = func() {
+		t.mw.WndProc(t.stopButton.Handle(), win.WM_LBUTTONDOWN, 0, 0)
+		t.mw.WndProc(t.stopButton.Handle(), win.WM_LBUTTONUP, 0, 0)
+	}
+
 	t.hotKeyHandler = map[string]func(){
 		t.BaseT.hKList[0]: t.recordButtonClick,
 		t.BaseT.hKList[1]: t.playbackButtonClick,
 		t.BaseT.hKList[2]: t.pauseButtonClick,
-		t.BaseT.hKList[3]: t.stopButtonClick,
+		t.BaseT.hKList[3]: simButtonStopClick,
 	}
 
 	eventCenter.Event.Register(events.ServerHotKeyDown, t.hotKeyDownHandler)
@@ -159,11 +169,7 @@ func (t *FunctionT) Register() {
 func (t *FunctionT) recordFinishHandler(data interface{}) (err error) {
 	//d := data.(events.RecordFinishData)
 
-	fileName, cmd, _ := t.setFileName()
-	if cmd == walk.DlgCmdOK {
-		t.publishButtonClick(enum.SaveFileButton, fileName)
-	}
-
+	t.setFileName()
 	return
 }
 

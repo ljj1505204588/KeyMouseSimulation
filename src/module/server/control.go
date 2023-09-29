@@ -59,8 +59,9 @@ func (c *controlT) Stop() {
 
 // Save 存储
 func (c *controlT) Save(name string) {
-	defer c.lockSelf()()
+	//defer c.lockSelf()()
 
+	c.kmStatusI = c.kmStatusI.current()
 	c.kmStatusI.save(name)
 	c.kmStatusI = c.kmStatusI.current()
 }
@@ -117,11 +118,11 @@ func initKmStatus() {
 		Record:   recordAndPlayBack.GetRecordServer(),
 	}
 	chooseBox = map[enum.Status]kmStatusI{
-		enum.Free:          &freeStatusT{&baseStatusT{base: base}},
-		enum.Recording:     &recordingStatusT{&baseStatusT{base: base}},
-		enum.RecordPause:   &recordPauseStatusT{&baseStatusT{base: base}},
-		enum.Playback:      &playbackStatusT{&baseStatusT{base: base}},
-		enum.PlaybackPause: &playbackPauseStatusT{&baseStatusT{base: base}},
+		enum.Free:          &freeStatusT{name: enum.Free, baseStatusT: &baseStatusT{base: base}},
+		enum.Recording:     &recordingStatusT{name: enum.Recording, baseStatusT: &baseStatusT{base: base}},
+		enum.RecordPause:   &recordPauseStatusT{name: enum.RecordPause, baseStatusT: &baseStatusT{base: base}},
+		enum.Playback:      &playbackStatusT{name: enum.Playback, baseStatusT: &baseStatusT{base: base}},
+		enum.PlaybackPause: &playbackPauseStatusT{name: enum.PlaybackPause, baseStatusT: &baseStatusT{base: base}},
 	}
 }
 
@@ -135,6 +136,7 @@ type BaseT struct {
 
 // "Free" 状态机
 type freeStatusT struct {
+	name enum.Status
 	*baseStatusT
 }
 
@@ -155,6 +157,7 @@ func (s *freeStatusT) status() enum.Status {
 
 // "Recording" 状态机
 type recordingStatusT struct {
+	name enum.Status
 	*baseStatusT
 }
 
@@ -173,6 +176,7 @@ func (s *recordingStatusT) status() enum.Status {
 
 // "RecordPause" 状态机
 type recordPauseStatusT struct {
+	name enum.Status
 	*baseStatusT
 }
 
@@ -183,6 +187,7 @@ func (s *recordPauseStatusT) record() {
 func (s *recordPauseStatusT) stop() {
 	s.base.Record.Stop()
 	s.base.Status = enum.Free
+	_ = eventCenter.Event.Publish(events.RecordFinish, events.RecordFinishData{})
 }
 func (s *recordPauseStatusT) status() enum.Status {
 	return enum.RecordPause
@@ -190,6 +195,7 @@ func (s *recordPauseStatusT) status() enum.Status {
 
 // "Playback" 状态机
 type playbackStatusT struct {
+	name enum.Status
 	*baseStatusT
 }
 
@@ -207,6 +213,7 @@ func (s *playbackStatusT) status() enum.Status {
 
 // "PlaybackPause" 状态机
 type playbackPauseStatusT struct {
+	name enum.Status
 	*baseStatusT
 }
 

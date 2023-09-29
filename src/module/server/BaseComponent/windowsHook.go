@@ -43,7 +43,6 @@ func (s *windowsHookServerT) start() {
 // todo 加个优雅退出
 
 func (s *windowsHookServerT) MouseHook() {
-	return
 	defer func() { go s.MouseHook() }()
 
 	var err error
@@ -68,7 +67,7 @@ func (s *windowsHookServerT) KeyBoardHook() {
 		commonTool.MustNil(err)
 	}
 
-	for  {
+	for {
 		var event = <-s.keyboardChan
 		_ = eventCenter.Event.Publish(events.WindowsKeyBoardHook, events.WindowsKeyBoardHookData{
 			Date: event,

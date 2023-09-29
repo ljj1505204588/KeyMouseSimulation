@@ -26,7 +26,10 @@ type FileControlI interface {
 var fileControl FileControlT
 
 func GetFileControl() FileControlI {
-	fileControl.once.Do(fileControl.scanFile)
+	fileControl.once.Do(func() {
+		fileControl.getWindowRect()
+		fileControl.scanFile()
+	})
 	return &fileControl
 }
 
@@ -184,7 +187,7 @@ func (m *mulNote) appendMouseNote(startTime int64, event *windowsHook.MouseEvent
 				DWFlags:   dw,
 				MouseData: event.MouseData,
 			},
-			TimeGap: commonTool.Max(startTime-event.RecordTime, 0),
+			TimeGap: commonTool.Max(event.RecordTime-startTime, 0),
 		}
 
 		*m = append(*m, note)
@@ -195,12 +198,16 @@ func (m *mulNote) appendMouseNote(startTime int64, event *windowsHook.MouseEvent
 func (m *mulNote) appendKeyBoardNote(startTime int64, event *windowsHook.KeyboardEvent) {
 	var dw, exist = keyDwMap[event.Message]
 	if exist {
+		if _, ok := t.m[keyMouTool.VKCode(event.VkCode)]; ok {
+			return
+		}
+
 		var note = noteT{
 			NoteType: keyMouTool.TYPE_INPUT_KEYBOARD,
 			KeyNote: &keyMouTool.KeyInputT{VK: keyMouTool.VKCode(event.VkCode),
 				DwFlags: dw,
 			},
-			TimeGap: commonTool.Max(startTime-event.RecordTime, 0),
+			TimeGap: commonTool.Max(event.RecordTime-startTime, 0),
 		}
 
 		*m = append(*m, note)
