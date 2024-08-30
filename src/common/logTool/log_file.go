@@ -2,7 +2,6 @@ package logTool
 
 import (
 	"KeyMouseSimulation/common/commonTool"
-	"KeyMouseSimulation/common/paramTool"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -29,8 +28,8 @@ func NewAJLogger(name string) (*ajLoggerT, error) {
 	wd, _ := os.Getwd()
 
 	var logPath string
-	if paramTool.Center.GetParam().LogParam.LogPath != "" {
-		logPath = wd + commonTool.GetSysPthSep() + paramTool.Center.GetParam().LogParam.LogPath
+	if LogParam.LogPath != "" {
+		logPath = wd + commonTool.GetSysPthSep() + LogParam.LogPath
 	} else {
 		logPath = wd + commonTool.GetSysPthSep() + "logs"
 	}
@@ -98,7 +97,7 @@ func AutoManagementAJLogger(AJLogger *ajLoggerT) {
 		files, _ := ioutil.ReadDir(dir)
 		for _, v := range files {
 			data, err := time.Parse(nameWithoutTail+"-2006-01-02"+LOG_NAME_TAIL, v.Name())
-			if err == nil && time.Now().Unix()-data.Unix() > int64(3600*24*paramTool.Center.GetParam().LogParam.LogKeepDay) {
+			if err == nil && time.Now().Unix()-data.Unix() > int64(3600*24*LogParam.LogKeepDay) {
 				_ = os.Remove(dir + commonTool.GetSysPthSep() + v.Name())
 			}
 		}

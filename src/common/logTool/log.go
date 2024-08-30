@@ -1,7 +1,7 @@
 package logTool
 
 import (
-	"KeyMouseSimulation/common/paramTool"
+	"KeyMouseSimulation/common/param"
 	"os"
 	"strconv"
 )
@@ -17,6 +17,11 @@ var ajLogController struct {
 }
 
 func init() {
+
+	//日志配置初始化
+	LogParam.defaultParam()
+	param.Manager.Register(&LogParam)
+
 	createPidFile()
 
 	var err error
@@ -33,7 +38,7 @@ func init() {
 	go AutoManagementAJLogger(ajLogController.accessLog)
 	go AutoManagementAJLogger(ajLogController.serverLog)
 
-	for _, v := range paramTool.Center.GetParam().LogParam.ExtendLogger {
+	for _, v := range LogParam.ExtendLogger {
 		ajLogController.extendLog[v], err = NewAJLogger(v)
 		if err != nil {
 			panic(LOG_TOOL_LOG_HEAD + "创建日志Logger出错." + err.Error())
@@ -42,7 +47,7 @@ func init() {
 	}
 
 	logLevelMapInit()
-	logLevelInt, ok := logLevelMap[paramTool.Center.GetParam().LogParam.LogLevel]
+	logLevelInt, ok := logLevelMap[LogParam.LogLevel]
 	if !ok {
 		panic(LOG_TOOL_LOG_HEAD + "配置中默认日志等级不在可选范围 【DEBUG INFO WARNING ERROR FATAL】内.")
 	}
@@ -88,7 +93,7 @@ func FatalAJ(msg string, outPutLogger ...string) {
 /*-----------------------------------------------------------*/
 
 func SetLogLevel(logLevel string) error {
-	logLevelInt, ok := logLevelMap[paramTool.Center.GetParam().LogParam.LogLevel]
+	logLevelInt, ok := logLevelMap[LogParam.LogLevel]
 	if !ok {
 		return NewLogError(NIL_ERROR_CODE, LOG_TOOL_LOG_HEAD+"配置中默认日志等级不在可选范围 【DEBUG INFO WARNING ERROR FATAL】内.", nil)
 	}
