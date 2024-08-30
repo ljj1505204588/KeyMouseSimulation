@@ -4,7 +4,6 @@ import (
 	"KeyMouseSimulation/common/logTool"
 	"KeyMouseSimulation/module/UI/BaseComponent"
 	language2 "KeyMouseSimulation/module/language"
-	"KeyMouseSimulation/module/server"
 	"KeyMouseSimulation/share/language"
 	. "github.com/lxn/walk/declarative"
 	"time"
@@ -28,7 +27,6 @@ func createControl() *ControlT {
 	c.system.Init(&base)
 	c.playBack.Init(&base)
 
-	server.Init()
 	base.ChangeLanguage(language2.Chinese, true)
 	return c
 }
