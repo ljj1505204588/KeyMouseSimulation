@@ -7,11 +7,15 @@ import (
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
 	"math"
+	"sync"
 	"time"
 )
 
 // PlaybackT 回放按钮
 type PlaybackT struct {
+	mw *walk.MainWindow
+	sync.Once
+
 	*BaseT
 
 	//文件选择
@@ -31,9 +35,8 @@ type PlaybackT struct {
 	widget []Widget
 }
 
-func (t *PlaybackT) Init(base *BaseT) {
-	t.BaseT = base
-	t.BaseT.registerChangeLanguage(t.changeLanguageHandler)
+func (t *PlaybackT) Init() {
+	language.Center.RegisterChange(t.changeLanguageHandler)
 
 	t.widget = []Widget{
 
@@ -56,7 +59,10 @@ func (t *PlaybackT) Init(base *BaseT) {
 	eventCenter.Event.Register(events.ServerConfigChange, t.subServerChange)
 }
 
-func (t *PlaybackT) DisPlay() []Widget {
+func (t *PlaybackT) DisPlay(mw *walk.MainWindow) []Widget {
+	t.mw = mw
+	t.Once.Do(t.Init)
+
 	return t.widget
 }
 
@@ -100,17 +106,16 @@ func (t *PlaybackT) setPlaybackTimes() {
 }
 
 // 设置语言
-func (t *PlaybackT) changeLanguageHandler(typ language.LanguageTyp) {
-	var m = language.LanguageMap[typ]
+func (t *PlaybackT) changeLanguageHandler() {
 
 	for !t.initCheck() {
 		time.Sleep(10 * time.Millisecond)
 	}
 
-	_ = t.fileLabel.SetText(m[language.FileLabelStr])
-	_ = t.playbackTimesLabel.SetText(m[language.PlayBackTimesLabelStr])
-	_ = t.currentTimesLabel.SetText(m[language.CurrentTimesLabelStr])
-	_ = t.speedLabel.SetText(m[language.SpeedLabelStr])
+	_ = t.fileLabel.SetText(language.Center.Get(language.FileLabelStr))
+	_ = t.playbackTimesLabel.SetText(language.Center.Get(language.PlayBackTimesLabelStr))
+	_ = t.currentTimesLabel.SetText(language.Center.Get(language.CurrentTimesLabelStr))
+	_ = t.speedLabel.SetText(language.Center.Get(language.SpeedLabelStr))
 }
 
 // --------------------------------------- 订阅事件 ----------------------------------------------

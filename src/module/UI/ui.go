@@ -3,51 +3,55 @@ package ui
 import (
 	"KeyMouseSimulation/common/logTool"
 	"KeyMouseSimulation/module/UI/BaseComponent"
-	language2 "KeyMouseSimulation/module/language"
-	"KeyMouseSimulation/share/language"
+	"KeyMouseSimulation/module/language"
+	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
 	"time"
 )
 
 type ControlT struct {
-	function BaseComponent.FunctionT
-	playBack BaseComponent.PlaybackT
-	system   BaseComponent.SystemT
+	mw *walk.MainWindow
+
+	widgets   []KmWidget
+	menuItems []KmMenuItem
 }
 
-var c *ControlT
+var c = &ControlT{
+	widgets: []KmWidget{
+		&BaseComponent.FunctionT{},
+		&BaseComponent.PlaybackT{},
+		&BaseComponent.SystemT{},
+	},
+	menuItems: []KmMenuItem{
+		&BaseComponent.MenuItemT{},
+	},
+}
 
-func createControl() *ControlT {
-	c = &ControlT{}
-
-	var base = BaseComponent.BaseT{}
-	base.Init()
-
-	c.function.Init(&base)
-	c.system.Init(&base)
-	c.playBack.Init(&base)
-
-	base.ChangeLanguage(language2.Chinese, true)
-	return c
+func (t *ControlT) MWPoint() **walk.MainWindow {
+	return &t.mw
 }
 
 // ----------------------- 主窗口 -----------------------
 
 func MainWindows() {
-	c = createControl()
+	// todo 设置图标
 	var widget []Widget
-	widget = append(widget, c.function.DisPlay()...)
-	widget = append(widget, c.playBack.DisPlay()...)
-	widget = append(widget, c.system.DisPlay()...)
+	for _, component := range c.widgets {
+		widget = append(widget, component.DisPlay()...)
+	}
+	var menuItems []MenuItem
+	for _, item := range c.menuItems {
+		menuItems = append(menuItems, item.MenuItems()...)
+	}
 
 	_, err := MainWindow{
-		AssignTo: c.system.MWPoint(),
-		Title:    language.MainWindowTitleStr,
+		AssignTo: c.MWPoint(),
+		Title:    language.CurrentUse[language.MainWindowTitleStr],
 		Size:     Size{Width: 320, Height: 240},
 		Layout:   Grid{Columns: 8, Alignment: AlignHNearVCenter},
 		Children: widget,
 		//工具栏
-		MenuItems: c.system.MenuItems(),
+		MenuItems: menuItems,
 	}.Run()
 
 	if err != nil {

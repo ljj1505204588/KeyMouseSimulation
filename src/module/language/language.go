@@ -1,24 +1,47 @@
 package language
 
-type DisPlay int64
-
-type LanguageTyp string
-
-var CurrentUse = chinesMap
-
-const (
-	Chinese LanguageTyp = "中文"
-	English LanguageTyp = "english"
+type (
+	DisPlay int64
+	Type    string
 )
 
-var LanguageMap = map[LanguageTyp]map[DisPlay]string{
-	Chinese: chinesMap,
-	English: englishMap,
+var Center = &centerT{
+	languageMap: chinesMap,
+}
+
+type centerT struct {
+	languageMap   map[DisPlay]string
+	changeHandler []func()
+}
+
+func (c *centerT) Get(no DisPlay) string {
+	return c.languageMap[no]
+}
+func (c *centerT) SetLanguage(typ Type) {
+	switch typ {
+	case Chinese:
+		c.languageMap = chinesMap
+	case English:
+		c.languageMap = englishMap
+	}
+
+	for _, h := range c.changeHandler {
+		h()
+	}
+}
+
+func (c *centerT) RegisterChange(h ...func()) {
+	c.changeHandler = append(c.changeHandler, h...)
 }
 
 /*
 	----------------------------- 界面文字初始化 -----------------------------
 */
+
+const (
+	Chinese Type = "中文"
+	English Type = "english"
+)
 
 const (
 	MainWindowTitleStr        DisPlay = iota // 鼠标键盘录制回放工具

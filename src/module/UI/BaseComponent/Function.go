@@ -9,12 +9,14 @@ import (
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
 	"github.com/lxn/win"
+	"sync"
 	"time"
 )
 
 // FunctionT 热键按钮
 type FunctionT struct {
-	*BaseT
+	mw *walk.MainWindow
+	sync.Once
 
 	recordButton      *walk.PushButton
 	playbackButton    *walk.PushButton
@@ -27,8 +29,7 @@ type FunctionT struct {
 	widget        []Widget
 }
 
-func (t *FunctionT) Init(base *BaseT) {
-	t.BaseT = base
+func (t *FunctionT) Init() {
 
 	t.widget = []Widget{
 		PushButton{AssignTo: &t.recordButton, ColumnSpan: 4, OnClicked: t.recordButtonClick},
@@ -43,29 +44,27 @@ func (t *FunctionT) Init(base *BaseT) {
 	t.Register()
 }
 
-func (t *FunctionT) DisPlay() []Widget {
+func (t *FunctionT) DisPlay(mw *walk.MainWindow) []Widget {
+	t.mw = mw
+	t.Once.Do(t.Init)
 	return t.widget
 }
 
 // --------------------------------------- 按钮功能 ----------------------------------------------
 
 func (t *FunctionT) recordButtonClick() {
-	defer t.lockSelf()()
-
+	// todo 考虑要不要锁
 	t.publishButtonClick(enum.RecordButton, "")
 }
 func (t *FunctionT) playbackButtonClick() {
-	defer t.lockSelf()()
 
 	t.publishButtonClick(enum.PlaybackButton, t.BaseT.fileBox.Text())
 }
 func (t *FunctionT) pauseButtonClick() {
-	defer t.lockSelf()()
 
 	t.publishButtonClick(enum.PauseButton, "")
 }
 func (t *FunctionT) stopButtonClick() {
-	defer t.lockSelf()()
 
 	t.publishButtonClick(enum.StopButton, "")
 }
@@ -94,16 +93,14 @@ func (t *FunctionT) setFileName() {
 	var dlg *walk.Dialog
 	var acceptPB, cancelPB *walk.PushButton
 
-	var m = t.languageMap
-
-	cmd, err := Dialog{AssignTo: &dlg, Title: m[language.SetFileWindowTitleStr],
+	cmd, err := Dialog{AssignTo: &dlg, Title: language.Center.Get(language.SetFileWindowTitleStr),
 		DefaultButton: &acceptPB, CancelButton: &cancelPB,
 		Size: Size{Width: 350, Height: 200}, Layout: Grid{Columns: 4},
 		Children: []Widget{
-			TextLabel{Text: m[language.SetFileLabelStr], ColumnSpan: 4},
+			TextLabel{Text: language.Center.Get(language.SetFileLabelStr), ColumnSpan: 4},
 			LineEdit{AssignTo: &nameEdit, ColumnSpan: 4, OnTextChanged: func() { filename = nameEdit.Text() }},
-			PushButton{AssignTo: &acceptPB, ColumnSpan: 2, Text: m[language.OKStr], OnClicked: func() { dlg.Accept() }},
-			PushButton{AssignTo: &cancelPB, ColumnSpan: 2, Text: m[language.CancelStr], OnClicked: func() { dlg.Cancel() }},
+			PushButton{AssignTo: &acceptPB, ColumnSpan: 2, Text: language.Center.Get(language.OKStr), OnClicked: func() { dlg.Accept() }},
+			PushButton{AssignTo: &cancelPB, ColumnSpan: 2, Text: language.Center.Get(language.CancelStr), OnClicked: func() { dlg.Cancel() }},
 		},
 		Enabled: true,
 	}.Run(t.mw)
@@ -120,18 +117,17 @@ func (t *FunctionT) setIfTrackMouseMoveClick() {
 }
 
 // 设置语言
-func (t *FunctionT) changeLanguageHandler(typ language.LanguageTyp) {
-	var m = language.LanguageMap[typ]
+func (t *FunctionT) changeLanguageHandler() {
 
 	for !t.initCheck() {
 		time.Sleep(10 * time.Millisecond)
 	}
 
-	_ = t.recordButton.SetText(m[language.RecordStr] + " " + t.hKList[0])
-	_ = t.playbackButton.SetText(m[language.PlaybackStr] + " " + t.hKList[1])
-	_ = t.pauseButton.SetText(m[language.PauseStr] + " " + t.hKList[2])
-	_ = t.stopButton.SetText(m[language.StopStr] + " " + t.hKList[3])
-	_ = t.ifMouseTrackLabel.SetText(m[language.MouseTrackStr])
+	_ = t.recordButton.SetText(language.Center.Get(language.RecordStr) + " " + t.hKList[0])
+	_ = t.playbackButton.SetText(language.Center.Get(language.PlaybackStr) + " " + t.hKList[1])
+	_ = t.pauseButton.SetText(language.Center.Get(language.PauseStr) + " " + t.hKList[2])
+	_ = t.stopButton.SetText(language.Center.Get(language.StopStr) + " " + t.hKList[3])
+	_ = t.ifMouseTrackLabel.SetText(language.Center.Get(language.MouseTrackStr))
 }
 
 // --------------------------------------- 订阅事件 ----------------------------------------------
@@ -145,7 +141,7 @@ func (t *FunctionT) publishButtonClick(button enum.Button, name string) {
 }
 
 func (t *FunctionT) Register() {
-	t.BaseT.registerChangeLanguage(t.changeLanguageHandler)
+	language.Center.RegisterChange(t.changeLanguageHandler)
 
 	// 停止涉及弹窗，目前考虑是这样特殊实现
 	var simButtonStopClick = func() {
@@ -167,8 +163,6 @@ func (t *FunctionT) Register() {
 
 // 记录结束
 func (t *FunctionT) recordFinishHandler(data interface{}) (err error) {
-	//d := data.(events.RecordFinishData)
-
 	t.setFileName()
 	return
 }

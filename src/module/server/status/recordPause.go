@@ -1,26 +1,23 @@
 package status
 
 import (
-	eventCenter "KeyMouseSimulation/common/Event"
 	"KeyMouseSimulation/share/enum"
-	"KeyMouseSimulation/share/events"
 )
 
 // "RecordPause" 状态机
 type recordPauseStatusT struct {
 	name enum.Status
-	baseStatusT
+	*baseStatusT
 }
 
-func (s *recordPauseStatusT) record() {
-	s.base.Record.Start()
-	s.base.Status = enum.Recording
+func (s *recordPauseStatusT) Record() {
+	s.record.Start()
+	s.setStatus(enum.Recording)
 }
-func (s *recordPauseStatusT) stop() {
-	s.base.Record.Stop()
-	s.base.Status = enum.Free
-	_ = eventCenter.Event.Publish(events.RecordFinish, events.RecordFinishData{})
+func (s *recordPauseStatusT) Stop() {
+	s.record.Stop()
+	s.setStatus(enum.Free)
 }
-func (s *recordPauseStatusT) status() enum.Status {
+func (s *recordPauseStatusT) Status() enum.Status {
 	return enum.RecordPause
 }

@@ -22,7 +22,7 @@ type RecordServerI interface {
 
 func GetRecordServer() *RecordServerT {
 	R := RecordServerT{
-		fileControl: GetFileControl(),
+		fileControl: fileControl,
 	}
 	R.registerHandler()
 	return &R
@@ -32,8 +32,8 @@ type RecordServerT struct {
 	l           sync.Mutex
 	fileControl FileControlI
 
-	notes     mulNote // 记录
-	saveNotes mulNote // 待存储记录
+	notes     MulNote // 记录
+	saveNotes MulNote // 待存储记录
 	noteTime  int64
 
 	mouseHs    []func(data interface{})
@@ -66,13 +66,12 @@ func (r *RecordServerT) Stop() {
 	defer r.lockSelf()()
 
 	r.saveNotes = r.notes
-	r.notes = mulNote{}
+	r.notes = MulNote{}
+	_ = eventCenter.Event.Publish(events.RecordFinish, events.RecordFinishData{})
 }
 
 // Save 存储
 func (r *RecordServerT) Save(name string) {
-	defer r.lockSelf()()
-
 	r.fileControl.Save(name, r.saveNotes)
 }
 

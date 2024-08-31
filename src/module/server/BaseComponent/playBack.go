@@ -19,8 +19,8 @@ type PlayBackServerI interface {
  */
 
 func GetPlaybackServer() PlayBackServerI {
-	p := PlayBackServerT{
-		fileControl: GetFileControl(),
+	p := playBackServerT{
+		fileControl: fileControl,
 	}
 
 	p.input = map[keyMouTool.InputType]func(note *noteT){
@@ -31,7 +31,7 @@ func GetPlaybackServer() PlayBackServerI {
 	return &p
 }
 
-type PlayBackServerT struct {
+type playBackServerT struct {
 	run         bool //回放标识
 	fileControl FileControlI
 
@@ -43,28 +43,27 @@ type PlayBackServerT struct {
 }
 
 // Start 开始
-func (p *PlayBackServerT) Start(fileName string) {
+func (p *playBackServerT) Start(fileName string) {
 	p.tryLoadFile(fileName)
+	p.run = true
 
 	go p.playBack()
-	p.run = true
 }
 
 // Pause 暂停
-func (p *PlayBackServerT) Pause() {
+func (p *playBackServerT) Pause() {
 	p.run = false
 }
 
 // Stop 停止
-func (p *PlayBackServerT) Stop() {
+func (p *playBackServerT) Stop() {
 	p.run = false
 	atomic.SwapInt64(&p.notesIndex, 0)
 }
 
 // ----------------------- playBack 模块主体功能函数 -----------------------
 
-func (p *PlayBackServerT) playBack() {
-
+func (p *playBackServerT) playBack() {
 	for p.run {
 		var index = atomic.LoadInt64(&p.notesIndex)
 		if p.checkPlayBackFinish(index) {
@@ -77,7 +76,7 @@ func (p *PlayBackServerT) playBack() {
 		atomic.CompareAndSwapInt64(&p.notesIndex, index, index+1)
 	}
 }
-func (p *PlayBackServerT) checkPlayBackFinish(index int64) (finish bool) {
+func (p *playBackServerT) checkPlayBackFinish(index int64) (finish bool) {
 
 	if index >= int64(len(p.notes)) {
 		atomic.SwapInt64(&p.notesIndex, 0)
@@ -87,7 +86,7 @@ func (p *PlayBackServerT) checkPlayBackFinish(index int64) (finish bool) {
 
 	return false
 }
-func (p *PlayBackServerT) mouseInput(note *noteT) {
+func (p *playBackServerT) mouseInput(note *noteT) {
 	if err := eventCenter.Event.Publish(events.WindowsMouseInput, events.WindowsMouseInputData{
 		Data: &keyMouTool.MouseInputT{
 			X:         note.MouseNote.X,
@@ -100,7 +99,7 @@ func (p *PlayBackServerT) mouseInput(note *noteT) {
 		p.tryPublishServerError(err)
 	}
 }
-func (p *PlayBackServerT) keyBoardInput(note *noteT) {
+func (p *playBackServerT) keyBoardInput(note *noteT) {
 	if err := eventCenter.Event.Publish(events.WindowsKeyBoardInput, events.WindowsKeyBoardInputData{
 		Data: &keyMouTool.KeyInputT{
 			VK:      note.KeyNote.VK,
@@ -112,7 +111,7 @@ func (p *PlayBackServerT) keyBoardInput(note *noteT) {
 }
 
 // 加载文件
-func (p *PlayBackServerT) tryLoadFile(fileName string) {
+func (p *playBackServerT) tryLoadFile(fileName string) {
 	if p.name != fileName {
 		p.run = false
 		p.name = fileName
@@ -123,7 +122,7 @@ func (p *PlayBackServerT) tryLoadFile(fileName string) {
 // ----------------------- Util -----------------------
 
 // 发布服务错误事件
-func (p *PlayBackServerT) tryPublishServerError(err error) {
+func (p *playBackServerT) tryPublishServerError(err error) {
 	if err != nil {
 		_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{
 			ErrInfo: err.Error(),

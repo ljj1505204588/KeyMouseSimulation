@@ -1,18 +1,12 @@
 package BaseComponent
 
 import (
-	"KeyMouseSimulation/module/language"
 	"github.com/lxn/walk"
 	"sync"
 )
 
 type BaseT struct {
-	mw *walk.MainWindow
-	l  sync.Mutex
-
-	languageMap     map[language.DisPlay]string
-	languageTyp     language.LanguageTyp
-	languageHandler []func(typ language.LanguageTyp)
+	l sync.Mutex
 
 	//热键
 	keyList []string
@@ -32,34 +26,6 @@ func (b *BaseT) Init() {
 	b.hKList = [4]string{"F7", "F8", "F9", "F10"}
 }
 
-func (b *BaseT) ChangeLanguage(typ language.LanguageTyp, sync bool) {
-	var f = func() {
-		var m = language.LanguageMap[typ]
-		language.CurrentUse = m
-		b.languageMap = language.LanguageMap[typ]
-		b.languageTyp = typ
-
-		for _, h := range b.languageHandler {
-			h(typ)
-		}
-
-		if !b.initCheck() {
-			return
-		}
-
-		_ = b.mw.SetTitle(m[language.MainWindowTitleStr])
-
-		b.mw.SetVisible(false)
-		b.mw.SetVisible(true)
-	}
-
-	if sync {
-		go f()
-	} else {
-		f()
-	}
-}
-
 // --------------------------------------- 基础功能 ----------------------------------------------
 
 func (b *BaseT) initCheck() bool {
@@ -70,11 +36,6 @@ func (b *BaseT) initCheck() bool {
 func (b *BaseT) baseInitCheck() bool {
 
 	return b.mw != nil && b.fileBox != nil
-}
-
-// 注册修改语言函数
-func (b *BaseT) registerChangeLanguage(h ...func(typ language.LanguageTyp)) {
-	b.languageHandler = append(b.languageHandler, h...)
 }
 
 func (b *BaseT) lockSelf() func() {
