@@ -3,7 +3,7 @@ package status
 import (
 	eventCenter "KeyMouseSimulation/common/Event"
 	"KeyMouseSimulation/module/language"
-	recordAndPlayBack "KeyMouseSimulation/module/server/BaseComponent"
+	"KeyMouseSimulation/module/server/svcComponent"
 	"KeyMouseSimulation/share/enum"
 	"KeyMouseSimulation/share/events"
 	"sync"
@@ -36,8 +36,8 @@ func (k *kmStatusT) init() {
 
 	var baseStatus = &baseStatusT{
 		setStatus: k.setStatus,
-		playBack:  recordAndPlayBack.GetPlaybackServer(),
-		record:    recordAndPlayBack.GetRecordServer(),
+		playBack:  svcComponent.GetPlaybackServer(),
+		record:    svcComponent.GetRecordServer(),
 	}
 	k.statusBox = map[enum.Status]KmStatusI{
 		enum.Free:          &freeStatusT{name: enum.Free, baseStatusT: baseStatus},
@@ -63,32 +63,32 @@ func (k *kmStatusT) lockSelf() func() {
 
 type baseStatusT struct {
 	setStatus func(enum.Status)
-	playBack  recordAndPlayBack.PlayBackServerI
-	record    recordAndPlayBack.RecordServerI
+	playBack  svcComponent.PlayBackServerI
+	record    svcComponent.RecordServerI
 }
 
 func (s *baseStatusT) Record() {
 	_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{
-		ErrInfo: language.CurrentUse[language.ErrorStatusChangeError],
+		ErrInfo: language.Center.Get(language.ErrorStatusChangeError),
 	})
 }
 func (s *baseStatusT) Playback(name string) {
 	_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{
-		ErrInfo: language.CurrentUse[language.ErrorStatusChangeError],
+		ErrInfo: language.Center.Get(language.ErrorStatusChangeError),
 	})
 }
 func (s *baseStatusT) Pause() {
 	_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{
-		ErrInfo: language.CurrentUse[language.ErrorStatusChangeError],
+		ErrInfo: language.Center.Get(language.ErrorStatusChangeError),
 	})
 }
 func (s *baseStatusT) Stop() {
 	_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{
-		ErrInfo: language.CurrentUse[language.ErrorStatusChangeError],
+		ErrInfo: language.Center.Get(language.ErrorStatusChangeError),
 	})
 }
 func (s *baseStatusT) Save(name string) {
 	_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{
-		ErrInfo: language.CurrentUse[language.ErrorStatusChangeError],
+		ErrInfo: language.Center.Get(language.ErrorStatusChangeError),
 	})
 }

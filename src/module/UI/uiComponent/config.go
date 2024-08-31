@@ -1,4 +1,4 @@
-package BaseComponent
+package uiComponent
 
 import (
 	eventCenter "KeyMouseSimulation/common/Event"
@@ -11,15 +11,18 @@ import (
 	"time"
 )
 
-// PlaybackT 回放按钮
-type PlaybackT struct {
+type ConfigT struct {
 	mw *walk.MainWindow
 	sync.Once
 
 	*BaseT
-
+	ifMouseTrackLabel *walk.Label
+	ifMouseTrackCheck *walk.CheckBox
 	//文件选择
 	fileLabel *walk.Label
+	basePath  string
+	fileBox   *walk.ComboBox
+	fileNames []string
 
 	//回放次数调整
 	playbackTimesLabel *walk.Label
@@ -35,10 +38,13 @@ type PlaybackT struct {
 	widget []Widget
 }
 
-func (t *PlaybackT) Init() {
+func (t *ConfigT) Init() {
 	language.Center.RegisterChange(t.changeLanguageHandler)
 
 	t.widget = []Widget{
+		//鼠标路径
+		Label{AssignTo: &t.ifMouseTrackLabel, ColumnSpan: 4},
+		CheckBox{AssignTo: &t.ifMouseTrackCheck, ColumnSpan: 4, Checked: true, Alignment: AlignHCenterVCenter, OnCheckedChanged: t.setIfTrackMouseMoveClick},
 
 		//回放文件
 		Label{AssignTo: &t.fileLabel, ColumnSpan: 2},
@@ -59,16 +65,22 @@ func (t *PlaybackT) Init() {
 	eventCenter.Event.Register(events.ServerConfigChange, t.subServerChange)
 }
 
-func (t *PlaybackT) DisPlay(mw *walk.MainWindow) []Widget {
+func (t *ConfigT) DisPlay(mw *walk.MainWindow) []Widget {
 	t.mw = mw
 	t.Once.Do(t.Init)
 
 	return t.widget
 }
 
+// 设置是否追踪鼠标移动路径
+func (t *ConfigT) setIfTrackMouseMoveClick() {
+	// defer t.lockSelf()()
+	// t.sc.SetIfTrackMouseMove(t.ifMouseTrackCheck.Checked())
+}
+
 // --------------------------------------- 基础功能 ----------------------------------------------
 
-func (t *PlaybackT) initCheck() bool {
+func (t *ConfigT) initCheck() bool {
 	for _, per := range []*walk.NumberEdit{
 		t.playbackTimesEdit,
 		t.currentTimesEdit,
@@ -93,20 +105,20 @@ func (t *PlaybackT) initCheck() bool {
 }
 
 // 设置回放速度
-func (t *PlaybackT) setSpeed() {
+func (t *ConfigT) setSpeed() {
 	//	defer t.lockSelf()()
 	//	_ = t.speedEdit.SetValue(math.Pow(2, float64(t.speedSli.Value()-5)))
 	//	t.sc.SetSpeed(t.speedEdit.Value())
 }
 
 // 设置回放次数
-func (t *PlaybackT) setPlaybackTimes() {
+func (t *ConfigT) setPlaybackTimes() {
 	//	defer t.lockSelf()()
 	//	t.sc.SetPlaybackTimes(int(t.playbackTimesEdit.Value()))
 }
 
 // 设置语言
-func (t *PlaybackT) changeLanguageHandler() {
+func (t *ConfigT) changeLanguageHandler() {
 
 	for !t.initCheck() {
 		time.Sleep(10 * time.Millisecond)
@@ -121,7 +133,7 @@ func (t *PlaybackT) changeLanguageHandler() {
 // --------------------------------------- 订阅事件 ----------------------------------------------
 
 // 订阅状态变动事件
-func (t *PlaybackT) subServerChange(data interface{}) (err error) {
+func (t *ConfigT) subServerChange(data interface{}) (err error) {
 	//d := data.(events.ServerChangeData)
 	//
 	//for t.currentTimesEdit == nil || t.fileBox == nil {

@@ -1,4 +1,4 @@
-package recordAndPlayBack
+package component
 
 import (
 	eventCenter "KeyMouseSimulation/common/Event"
@@ -19,11 +19,11 @@ import (
 const FileExt = ".rpf"
 
 type FileControlI interface {
-	Save(name string, data []noteT)
+	Save(name string, data []NoteT)
 	ReadFile(name string) (data MulNote)
 }
 
-var fileControl FileControlI
+var FileControl FileControlI
 
 func init() {
 	var f = FileControlT{}
@@ -32,7 +32,7 @@ func init() {
 		f.basePath, _ = os.Getwd()
 		go f.scanFile()
 	})
-	fileControl = &f
+	FileControl = &f
 }
 
 type FileControlT struct {
@@ -46,7 +46,7 @@ type FileControlT struct {
 }
 
 // Save 存储
-func (f *FileControlT) Save(name string, data []noteT) {
+func (f *FileControlT) Save(name string, data []NoteT) {
 	if name == "" || len(data) == 0 {
 		return
 	}
@@ -70,7 +70,7 @@ func (f *FileControlT) Save(name string, data []noteT) {
 
 // ReadFile 读取文件
 func (f *FileControlT) ReadFile(name string) (data MulNote) {
-	var dealErr = func(err error) []noteT {
+	var dealErr = func(err error) []NoteT {
 		f.publishErr(err)
 		return nil
 	}

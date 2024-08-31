@@ -32,11 +32,10 @@ func (e *factory) Publish(topic Topic, data interface{}) (err error) {
 }
 
 // ASyncPublish 异步
-func (e *factory) ASyncPublish(topic Topic, data interface{}) (err error) {
+func (e *factory) ASyncPublish(topic Topic, data interface{}) {
 	handlers, ok := e.eventMap[topic]
 	if !ok {
-		return errors.New("Topic Unregistered. ")
-
+		return
 	}
 
 	for _, h := range handlers {

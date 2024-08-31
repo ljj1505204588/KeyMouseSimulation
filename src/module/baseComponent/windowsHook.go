@@ -1,4 +1,4 @@
-package recordAndPlayBack
+package component
 
 import (
 	eventCenter "KeyMouseSimulation/common/Event"

@@ -1,8 +1,9 @@
-package recordAndPlayBack
+package svcComponent
 
 import (
 	eventCenter "KeyMouseSimulation/common/Event"
 	"KeyMouseSimulation/common/windowsApiTool/windowsInput/keyMouTool"
+	component "KeyMouseSimulation/module/baseComponent"
 	"KeyMouseSimulation/share/events"
 	"sync/atomic"
 	"time"
@@ -20,10 +21,10 @@ type PlayBackServerI interface {
 
 func GetPlaybackServer() PlayBackServerI {
 	p := playBackServerT{
-		fileControl: fileControl,
+		fileControl: component.FileControl,
 	}
 
-	p.input = map[keyMouTool.InputType]func(note *noteT){
+	p.input = map[keyMouTool.InputType]func(note *component.NoteT){
 		keyMouTool.TYPE_INPUT_MOUSE:    p.mouseInput,
 		keyMouTool.TYPE_INPUT_KEYBOARD: p.keyBoardInput,
 	}
@@ -33,13 +34,13 @@ func GetPlaybackServer() PlayBackServerI {
 
 type playBackServerT struct {
 	run         bool //回放标识
-	fileControl FileControlI
+	fileControl component.FileControlI
 
-	name       string  //读取文件名称
-	notes      []noteT //回放数据
-	notesIndex int64   //当前回放在文件内容位置
+	name       string            //读取文件名称
+	notes      []component.NoteT //回放数据
+	notesIndex int64             //当前回放在文件内容位置
 
-	input map[keyMouTool.InputType]func(note *noteT)
+	input map[keyMouTool.InputType]func(note *component.NoteT)
 }
 
 // Start 开始
@@ -86,7 +87,7 @@ func (p *playBackServerT) checkPlayBackFinish(index int64) (finish bool) {
 
 	return false
 }
-func (p *playBackServerT) mouseInput(note *noteT) {
+func (p *playBackServerT) mouseInput(note *component.NoteT) {
 	if err := eventCenter.Event.Publish(events.WindowsMouseInput, events.WindowsMouseInputData{
 		Data: &keyMouTool.MouseInputT{
 			X:         note.MouseNote.X,
@@ -99,7 +100,7 @@ func (p *playBackServerT) mouseInput(note *noteT) {
 		p.tryPublishServerError(err)
 	}
 }
-func (p *playBackServerT) keyBoardInput(note *noteT) {
+func (p *playBackServerT) keyBoardInput(note *component.NoteT) {
 	if err := eventCenter.Event.Publish(events.WindowsKeyBoardInput, events.WindowsKeyBoardInputData{
 		Data: &keyMouTool.KeyInputT{
 			VK:      note.KeyNote.VK,

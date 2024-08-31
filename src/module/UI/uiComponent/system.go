@@ -1,4 +1,4 @@
-package BaseComponent
+package uiComponent
 
 import (
 	eventCenter "KeyMouseSimulation/common/Event"
@@ -15,21 +15,11 @@ type SystemT struct {
 	mw *walk.MainWindow
 	sync.Once
 
-	*BaseT
-
 	//系统状态
 	statusLabel *walk.Label
 	statusEdit  *walk.LineEdit
 	errorLabel  *walk.Label
 	errorEdit   *walk.TextEdit
-
-	//工具
-	settingMenu     *walk.Action
-	setHotkeyAction *walk.Action
-
-	languageMenu *walk.Action
-	helpMenu     *walk.Action
-	aboutAction  *walk.Action
 
 	widgets []Widget
 }
@@ -60,18 +50,6 @@ func (t *SystemT) DisPlay(mw *walk.MainWindow) []Widget {
 
 // 初始化校验
 func (t *SystemT) initCheck() bool {
-	for _, per := range []*walk.Action{
-
-		t.settingMenu,
-		t.setHotkeyAction,
-		t.languageMenu,
-		t.helpMenu,
-		t.aboutAction,
-	} {
-		if per == nil {
-			return false
-		}
-	}
 	return t.statusLabel != nil && t.statusEdit != nil && t.errorLabel != nil && t.errorEdit != nil
 }
 
@@ -81,14 +59,8 @@ func (t *SystemT) changeLanguageHandler() {
 		time.Sleep(10 * time.Millisecond)
 	}
 
-	_ = t.settingMenu.SetText(language.Center.Get(language.MenuSettingStr))
-	_ = t.languageMenu.SetText(language.Center.Get(language.MenuItemLanguageStr))
-	_ = t.setHotkeyAction.SetText(language.Center.Get(language.ActionSetHotKeyStr))
-	_ = t.helpMenu.SetText(language.Center.Get(language.MenuHelpStr))
-	_ = t.aboutAction.SetText(language.Center.Get(language.ActionAboutStr))
 	_ = t.statusLabel.SetText(language.Center.Get(language.StatusLabelStr))
 	_ = t.errorLabel.SetText(language.Center.Get(language.ErrorLabelStr))
-
 }
 
 // --------------------------------------- 订阅事件 ----------------------------------------------

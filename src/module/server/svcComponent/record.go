@@ -1,7 +1,8 @@
-package recordAndPlayBack
+package svcComponent
 
 import (
 	eventCenter "KeyMouseSimulation/common/Event"
+	component "KeyMouseSimulation/module/baseComponent"
 	"KeyMouseSimulation/share/events"
 	"sync"
 	"time"
@@ -22,7 +23,7 @@ type RecordServerI interface {
 
 func GetRecordServer() *RecordServerT {
 	R := RecordServerT{
-		fileControl: fileControl,
+		fileControl: component.FileControl,
 	}
 	R.registerHandler()
 	return &R
@@ -30,10 +31,10 @@ func GetRecordServer() *RecordServerT {
 
 type RecordServerT struct {
 	l           sync.Mutex
-	fileControl FileControlI
+	fileControl component.FileControlI
 
-	notes     MulNote // 记录
-	saveNotes MulNote // 待存储记录
+	notes     component.MulNote // 记录
+	saveNotes component.MulNote // 待存储记录
 	noteTime  int64
 
 	mouseHs    []func(data interface{})
@@ -66,7 +67,7 @@ func (r *RecordServerT) Stop() {
 	defer r.lockSelf()()
 
 	r.saveNotes = r.notes
-	r.notes = MulNote{}
+	r.notes = component.MulNote{}
 	_ = eventCenter.Event.Publish(events.RecordFinish, events.RecordFinishData{})
 }
 
@@ -95,7 +96,7 @@ func (r *RecordServerT) mouseHandler(data interface{}) {
 	defer r.lockSelf()()
 
 	var info = data.(events.WindowsMouseHookData)
-	r.notes.appendMouseNote(r.noteTime, info.Date)
+	r.notes.AppendMouseNote(r.noteTime, info.Date)
 
 	r.noteTime = info.Date.RecordTime
 }
@@ -106,7 +107,7 @@ func (r *RecordServerT) keyBoardHandler(data interface{}) {
 
 	var info = data.(events.WindowsKeyBoardHookData)
 
-	r.notes.appendKeyBoardNote(r.noteTime, info.Date)
+	r.notes.AppendKeyBoardNote(r.noteTime, info.Date)
 	r.noteTime = info.Date.RecordTime
 }
 

@@ -2,7 +2,7 @@ package ui
 
 import (
 	"KeyMouseSimulation/common/logTool"
-	"KeyMouseSimulation/module/UI/BaseComponent"
+	"KeyMouseSimulation/module/UI/uiComponent"
 	"KeyMouseSimulation/module/language"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
@@ -18,12 +18,12 @@ type ControlT struct {
 
 var c = &ControlT{
 	widgets: []KmWidget{
-		&BaseComponent.FunctionT{},
-		&BaseComponent.PlaybackT{},
-		&BaseComponent.SystemT{},
+		&uiComponent.FunctionT{},
+		&uiComponent.ConfigT{},
+		&uiComponent.SystemT{},
 	},
 	menuItems: []KmMenuItem{
-		&BaseComponent.MenuItemT{},
+		&uiComponent.MenuItemT{},
 	},
 }
 
@@ -37,16 +37,16 @@ func MainWindows() {
 	// todo 设置图标
 	var widget []Widget
 	for _, component := range c.widgets {
-		widget = append(widget, component.DisPlay()...)
+		widget = append(widget, component.DisPlay(c.mw)...)
 	}
 	var menuItems []MenuItem
 	for _, item := range c.menuItems {
-		menuItems = append(menuItems, item.MenuItems()...)
+		menuItems = append(menuItems, item.MenuItems(c.mw)...)
 	}
 
 	_, err := MainWindow{
 		AssignTo: c.MWPoint(),
-		Title:    language.CurrentUse[language.MainWindowTitleStr],
+		Title:    language.Center.Get(language.MainWindowTitleStr),
 		Size:     Size{Width: 320, Height: 240},
 		Layout:   Grid{Columns: 8, Alignment: AlignHNearVCenter},
 		Children: widget,

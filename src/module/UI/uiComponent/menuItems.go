@@ -1,4 +1,4 @@
-package BaseComponent
+package uiComponent
 
 import (
 	eventCenter "KeyMouseSimulation/common/Event"
@@ -7,19 +7,13 @@ import (
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
 	"sync"
+	"time"
 )
 
 // MenuItemT 设置栏
 type MenuItemT struct {
 	mw *walk.MainWindow
 	sync.Once
-	*BaseT
-
-	//系统状态
-	statusLabel *walk.Label
-	statusEdit  *walk.LineEdit
-	errorLabel  *walk.Label
-	errorEdit   *walk.TextEdit
 
 	//工具
 	settingMenu     *walk.Action
@@ -42,7 +36,7 @@ func (t *MenuItemT) MenuItems(mw *walk.MainWindow) []MenuItem {
 func (t *MenuItemT) Init() {
 	t.menuItems = []MenuItem{
 		Menu{AssignActionTo: &t.settingMenu, Items: []MenuItem{
-			Action{AssignTo: &t.setHotkeyAction, OnTriggered: t.setHotKey},
+			Action{AssignTo: &t.setHotkeyAction, OnTriggered: t.setHotKeyPop},
 			Menu{AssignActionTo: &t.languageMenu, Items: []MenuItem{
 				Action{Text: string(language.English), OnTriggered: func() {
 					language.Center.SetLanguage(language.English)
@@ -59,6 +53,7 @@ func (t *MenuItemT) Init() {
 	}
 
 	t.setHotKey()
+	language.Center.RegisterChange(t.changeLanguageHandler)
 }
 
 // 设置热键
@@ -80,12 +75,12 @@ func (t *MenuItemT) setHotKey() {
 }
 
 // 设置热键弹窗
-func (t *MenuItemT) setHotKeyPop() (int, error) {
+func (t *MenuItemT) setHotKeyPop() {
 	var dlg *walk.Dialog
 	var acceptPB, cancelPB *walk.PushButton
 	var tmpList = t.hKList
 
-	cmd, err := Dialog{AssignTo: &dlg, Title: language.Center.Get(language.SetHotKeyWindowTitleStr),
+	cmd, _ := Dialog{AssignTo: &dlg, Title: language.Center.Get(language.SetHotKeyWindowTitleStr),
 		DefaultButton: &acceptPB, CancelButton: &cancelPB,
 		Size: Size{Width: 350, Height: 200}, Layout: Grid{Columns: 4},
 		Children: []Widget{
@@ -138,7 +133,37 @@ func (t *MenuItemT) setHotKeyPop() (int, error) {
 		t.setHotKey()
 	}
 
-	return cmd, err
+}
+
+// 初始化校验
+func (t *MenuItemT) initCheck() bool {
+	for _, per := range []*walk.Action{
+
+		t.settingMenu,
+		t.setHotkeyAction,
+		t.languageMenu,
+		t.helpMenu,
+		t.aboutAction,
+	} {
+		if per == nil {
+			return false
+		}
+	}
+	return true
+}
+
+// 修改语言
+func (t *MenuItemT) changeLanguageHandler() {
+	for !t.initCheck() {
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	_ = t.settingMenu.SetText(language.Center.Get(language.MenuSettingStr))
+	_ = t.languageMenu.SetText(language.Center.Get(language.MenuItemLanguageStr))
+	_ = t.setHotkeyAction.SetText(language.Center.Get(language.ActionSetHotKeyStr))
+	_ = t.helpMenu.SetText(language.Center.Get(language.MenuHelpStr))
+	_ = t.aboutAction.SetText(language.Center.Get(language.ActionAboutStr))
+
 }
 
 // 系统信息

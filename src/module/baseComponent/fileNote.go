@@ -1,4 +1,4 @@
-package recordAndPlayBack
+package component
 
 import (
 	"KeyMouseSimulation/common/commonTool"
@@ -6,8 +6,9 @@ import (
 	"KeyMouseSimulation/common/windowsApiTool/windowsInput/keyMouTool"
 )
 
-// todo 看看能不能补充享元
-type noteT struct {
+// todo 看看能不能 享元 设计模式
+
+type NoteT struct {
 	NoteType  keyMouTool.InputType
 	KeyNote   *keyMouTool.KeyInputT
 	MouseNote *keyMouTool.MouseInputT
@@ -15,13 +16,12 @@ type noteT struct {
 	timeGap   float64
 }
 
-type MulNote []noteT
+type MulNote []NoteT
 
-// 添加记录
-func (m *MulNote) appendMouseNote(startTime int64, event *windowsHook.MouseEvent) {
+func (m *MulNote) AppendMouseNote(startTime int64, event *windowsHook.MouseEvent) {
 	var dw, exist = mouseDwMap[event.Message]
 	if exist {
-		var note = noteT{
+		var note = NoteT{
 			NoteType: keyMouTool.TYPE_INPUT_MOUSE,
 			MouseNote: &keyMouTool.MouseInputT{X: event.X, Y: event.Y,
 				DWFlags:   dw,
@@ -34,20 +34,18 @@ func (m *MulNote) appendMouseNote(startTime int64, event *windowsHook.MouseEvent
 	}
 }
 
-// 添加记录
-func (m *MulNote) appendKeyBoardNote(startTime int64, event *windowsHook.KeyboardEvent) {
+func (m *MulNote) AppendKeyBoardNote(startTime int64, event *windowsHook.KeyboardEvent) {
 	var dw, exist = keyDwMap[event.Message]
 	if exist {
-		if _, ok := t.m[keyMouTool.VKCode(event.VkCode)]; ok {
+		var code = keyMouTool.VKCode(event.VkCode)
+		if _, ok := GetHkByCode(code); ok {
 			return
 		}
 
-		var note = noteT{
+		var note = NoteT{
 			NoteType: keyMouTool.TYPE_INPUT_KEYBOARD,
-			KeyNote: &keyMouTool.KeyInputT{VK: keyMouTool.VKCode(event.VkCode),
-				DwFlags: dw,
-			},
-			TimeGap: commonTool.Max(event.RecordTime-startTime, 0),
+			KeyNote:  &keyMouTool.KeyInputT{VK: code, DwFlags: dw},
+			TimeGap:  commonTool.Max(event.RecordTime-startTime, 0),
 		}
 
 		*m = append(*m, note)

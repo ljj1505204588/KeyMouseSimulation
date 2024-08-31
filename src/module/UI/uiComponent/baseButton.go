@@ -1,11 +1,14 @@
-package BaseComponent
+package uiComponent
 
 import (
 	eventCenter "KeyMouseSimulation/common/Event"
+	"KeyMouseSimulation/common/commonTool"
+	component "KeyMouseSimulation/module/baseComponent"
 	"KeyMouseSimulation/module/language"
 	"KeyMouseSimulation/share/enum"
 	"KeyMouseSimulation/share/events"
 	"errors"
+	"fmt"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
 	"github.com/lxn/win"
@@ -15,33 +18,47 @@ import (
 
 // FunctionT 热键按钮
 type FunctionT struct {
-	mw *walk.MainWindow
 	sync.Once
 
-	recordButton      *walk.PushButton
-	playbackButton    *walk.PushButton
-	pauseButton       *walk.PushButton
-	stopButton        *walk.PushButton
-	ifMouseTrackLabel *walk.Label
-	ifMouseTrackCheck *walk.CheckBox
+	functionWailT
+}
 
-	hotKeyHandler map[string]func()
-	widget        []Widget
+type functionWailT struct {
+	mw      *walk.MainWindow
+	buttons []hotKeyButton
+	widget  []Widget
+}
+
+type hotKeyButton struct {
+	name      enum.HotKey
+	key       string
+	disPlayNo language.DisPlay
+	exec      func()
+
+	*walk.PushButton
+	component.HotKeyI
 }
 
 func (t *FunctionT) Init() {
-
-	t.widget = []Widget{
-		PushButton{AssignTo: &t.recordButton, ColumnSpan: 4, OnClicked: t.recordButtonClick},
-		PushButton{AssignTo: &t.playbackButton, ColumnSpan: 4, OnClicked: t.playbackButtonClick},
-		PushButton{AssignTo: &t.pauseButton, ColumnSpan: 4, OnClicked: t.pauseButtonClick},
-		PushButton{AssignTo: &t.stopButton, ColumnSpan: 4, OnClicked: t.stopButtonClick},
-		//鼠标路径
-		Label{AssignTo: &t.ifMouseTrackLabel, ColumnSpan: 4},
-		CheckBox{AssignTo: &t.ifMouseTrackCheck, ColumnSpan: 4, Checked: true, Alignment: AlignHCenterVCenter, OnCheckedChanged: t.setIfTrackMouseMoveClick},
+	t.buttons = []hotKeyButton{
+		{name: enum.HotKeyRecord, key: "F7", disPlayNo: language.RecordStr, exec: t.recordButtonClick},
+		{name: enum.HotKeyPlayBack, key: "F8", disPlayNo: language.PlaybackStr, exec: t.playbackButtonClick},
+		{name: enum.HotKeyPause, key: "F9", disPlayNo: language.PauseStr, exec: t.pauseButtonClick},
+		{name: enum.HotKeyStop, key: "F10", disPlayNo: language.StopStr, exec: t.stopButtonClick},
 	}
 
-	t.Register()
+	var err error
+	for _, but := range t.buttons {
+		but.HotKeyI, err = component.NewHK(but.name, but.key, but.exec)
+		commonTool.MustNil(err)
+		t.widget = append(t.widget, PushButton{AssignTo: &(but.PushButton), ColumnSpan: 4, OnClicked: but.exec})
+	}
+
+	language.Center.RegisterChange(t.changeLanguageHandler)
+	eventCenter.Event.Register(events.RecordFinish, t.recordFinishHandler)
+
+	t.widget = []Widget{}
+
 }
 
 func (t *FunctionT) DisPlay(mw *walk.MainWindow) []Widget {
@@ -57,33 +74,34 @@ func (t *FunctionT) recordButtonClick() {
 	t.publishButtonClick(enum.RecordButton, "")
 }
 func (t *FunctionT) playbackButtonClick() {
-
 	t.publishButtonClick(enum.PlaybackButton, t.BaseT.fileBox.Text())
 }
 func (t *FunctionT) pauseButtonClick() {
-
 	t.publishButtonClick(enum.PauseButton, "")
 }
 func (t *FunctionT) stopButtonClick() {
-
 	t.publishButtonClick(enum.StopButton, "")
+}
+func (t *FunctionT) simStopButtonClick() {
+	// 停止涉及弹窗，目前考虑是这样特殊实现
+	for _, but := range t.buttons {
+		if but.name == enum.HotKeyStop {
+			t.mw.WndProc(but.Handle(), win.WM_LBUTTONDOWN, 0, 0)
+			t.mw.WndProc(but.Handle(), win.WM_LBUTTONUP, 0, 0)
+		}
+	}
 }
 
 // --------------------------------------- 基础功能 ----------------------------------------------
 
 func (t *FunctionT) initCheck() bool {
-	for _, per := range []*walk.PushButton{
-		t.recordButton,
-		t.playbackButton,
-		t.pauseButton,
-		t.stopButton,
-	} {
-		if per == nil {
+	for _, per := range t.buttons {
+		if per.PushButton == nil {
 			return false
 		}
 	}
 
-	return t.ifMouseTrackLabel != nil && t.ifMouseTrackCheck != nil
+	return true
 }
 
 // 设置文件名称
@@ -110,12 +128,6 @@ func (t *FunctionT) setFileName() {
 	}
 }
 
-// 设置是否追踪鼠标移动路径
-func (t *FunctionT) setIfTrackMouseMoveClick() {
-	// defer t.lockSelf()()
-	// t.sc.SetIfTrackMouseMove(t.ifMouseTrackCheck.Checked())
-}
-
 // 设置语言
 func (t *FunctionT) changeLanguageHandler() {
 
@@ -123,11 +135,9 @@ func (t *FunctionT) changeLanguageHandler() {
 		time.Sleep(10 * time.Millisecond)
 	}
 
-	_ = t.recordButton.SetText(language.Center.Get(language.RecordStr) + " " + t.hKList[0])
-	_ = t.playbackButton.SetText(language.Center.Get(language.PlaybackStr) + " " + t.hKList[1])
-	_ = t.pauseButton.SetText(language.Center.Get(language.PauseStr) + " " + t.hKList[2])
-	_ = t.stopButton.SetText(language.Center.Get(language.StopStr) + " " + t.hKList[3])
-	_ = t.ifMouseTrackLabel.SetText(language.Center.Get(language.MouseTrackStr))
+	for _, but := range t.buttons {
+		_ = but.SetText(fmt.Sprintf("%s %s", language.Center.Get(but.disPlayNo), but.key))
+	}
 }
 
 // --------------------------------------- 订阅事件 ----------------------------------------------
@@ -140,41 +150,9 @@ func (t *FunctionT) publishButtonClick(button enum.Button, name string) {
 
 }
 
-func (t *FunctionT) Register() {
-	language.Center.RegisterChange(t.changeLanguageHandler)
-
-	// 停止涉及弹窗，目前考虑是这样特殊实现
-	var simButtonStopClick = func() {
-		t.mw.WndProc(t.stopButton.Handle(), win.WM_LBUTTONDOWN, 0, 0)
-		t.mw.WndProc(t.stopButton.Handle(), win.WM_LBUTTONUP, 0, 0)
-	}
-
-	t.hotKeyHandler = map[string]func(){
-		t.BaseT.hKList[0]: t.recordButtonClick,
-		t.BaseT.hKList[1]: t.playbackButtonClick,
-		t.BaseT.hKList[2]: t.pauseButtonClick,
-		t.BaseT.hKList[3]: simButtonStopClick,
-	}
-
-	eventCenter.Event.Register(events.ServerHotKeyDown, t.hotKeyDownHandler)
-	eventCenter.Event.Register(events.FileScanNewFile, t.fileChangeHandler)
-	eventCenter.Event.Register(events.RecordFinish, t.recordFinishHandler)
-}
-
 // 记录结束
 func (t *FunctionT) recordFinishHandler(data interface{}) (err error) {
 	t.setFileName()
-	return
-}
-
-// 热键按下
-func (t *FunctionT) hotKeyDownHandler(data interface{}) (err error) {
-	d := data.(events.ServerHotKeyDownData)
-
-	if f, ok := t.hotKeyHandler[d.Key]; ok {
-		f()
-	}
-
 	return
 }
 
