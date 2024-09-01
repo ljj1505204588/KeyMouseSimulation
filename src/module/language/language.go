@@ -30,6 +30,12 @@ func (c *centerT) SetLanguage(typ Type) {
 	}
 }
 
+func (c *centerT) Refresh() {
+	for _, h := range c.changeHandler {
+		h()
+	}
+}
+
 func (c *centerT) RegisterChange(h ...func()) {
 	c.changeHandler = append(c.changeHandler, h...)
 }

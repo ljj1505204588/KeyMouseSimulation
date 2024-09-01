@@ -29,7 +29,7 @@ func GetHk(name enum.HotKey) (HotKeyI, bool) {
 
 func GetAllHk() (res map[enum.HotKey]HotKeyI) {
 	res = make(map[enum.HotKey]HotKeyI)
-	manage.hookM.Range(func(key, value any) bool {
+	manage.nameM.Range(func(key, value any) bool {
 		res[key.(enum.HotKey)] = value.(HotKeyI)
 		return true
 	})

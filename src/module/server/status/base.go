@@ -7,6 +7,7 @@ import (
 	"KeyMouseSimulation/share/enum"
 	"KeyMouseSimulation/share/events"
 	"sync"
+	"time"
 )
 
 type KmStatusI interface {
@@ -46,12 +47,25 @@ func (k *kmStatusT) init() {
 		enum.Playback:      &playbackStatusT{name: enum.Playback, baseStatusT: baseStatus},
 		enum.PlaybackPause: &playbackPauseStatusT{name: enum.PlaybackPause, baseStatusT: baseStatus},
 	}
-	k.KmStatusI = k.statusBox[enum.Free]
+	k.setStatus(enum.Free)
+	go k.syncServerStatus()
 }
 
 func (k *kmStatusT) setStatus(e enum.Status) {
 	defer k.lockSelf()()
 	k.KmStatusI = k.statusBox[e]
+	tryPublishErr(eventCenter.Event.Publish(events.ServerStatus, events.ServerStatusChangeData{
+		Status: e,
+	}))
+}
+func (k *kmStatusT) syncServerStatus() {
+	defer func() { go k.syncServerStatus() }()
+
+	for range time.NewTicker(1 * time.Second).C {
+		tryPublishErr(eventCenter.Event.Publish(events.ServerStatus, events.ServerStatusChangeData{
+			Status: k.KmStatusI.Status(),
+		}))
+	}
 }
 
 func (k *kmStatusT) lockSelf() func() {
@@ -91,4 +105,9 @@ func (s *baseStatusT) Save(name string) {
 	_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{
 		ErrInfo: language.Center.Get(language.ErrorStatusChangeError),
 	})
+}
+func tryPublishErr(err error) {
+	if err != nil {
+		_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{ErrInfo: err.Error()})
+	}
 }

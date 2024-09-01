@@ -24,14 +24,13 @@ type FunctionT struct {
 }
 
 type functionWailT struct {
-	mw      *walk.MainWindow
+	mw      **walk.MainWindow
 	buttons []hotKeyButton
 	widget  []Widget
 }
 
 type hotKeyButton struct {
 	name enum.HotKey
-	key  string
 	exec func()
 
 	*walk.PushButton
@@ -42,27 +41,25 @@ func (t *FunctionT) Init() {
 	t.file = component.FileControl
 
 	t.buttons = []hotKeyButton{
-		{name: enum.HotKeyRecord, key: "F7", exec: t.recordButtonClick, PushButton: &walk.PushButton{}},
-		{name: enum.HotKeyPlayBack, key: "F8", exec: t.playbackButtonClick, PushButton: &walk.PushButton{}},
-		{name: enum.HotKeyPause, key: "F9", exec: t.pauseButtonClick, PushButton: &walk.PushButton{}},
-		{name: enum.HotKeyStop, key: "F10", exec: t.stopButtonClick, PushButton: &walk.PushButton{}},
+		{name: enum.HotKeyRecord, exec: t.recordButtonClick}, // PushButton: &walk.PushButton{}
+		{name: enum.HotKeyPlayBack, exec: t.playbackButtonClick},
+		{name: enum.HotKeyPause, exec: t.pauseButtonClick},
+		{name: enum.HotKeyStop, exec: t.stopButtonClick},
 	}
 
 	var err error
-	for _, but := range t.buttons {
-		but.HotKeyI, err = component.NewHK(but.name, but.key, but.exec)
+	for i, but := range t.buttons {
+		t.buttons[i].HotKeyI, err = component.NewHK(but.name, but.name.DefKey(), but.exec)
 		commonTool.MustNil(err)
-		t.widget = append(t.widget, PushButton{AssignTo: &(but.PushButton), ColumnSpan: 4, OnClicked: but.exec})
+		t.widget = append(t.widget, PushButton{AssignTo: &(t.buttons[i].PushButton), ColumnSpan: 4, OnClicked: but.exec})
 	}
 
 	language.Center.RegisterChange(t.changeLanguageHandler)
 	eventCenter.Event.Register(events.RecordFinish, t.recordFinishHandler)
 
-	t.widget = []Widget{}
-
 }
 
-func (t *FunctionT) DisPlay(mw *walk.MainWindow) []Widget {
+func (t *FunctionT) DisPlay(mw **walk.MainWindow) []Widget {
 	t.mw = mw
 	t.Once.Do(t.Init)
 	return t.widget
@@ -87,8 +84,8 @@ func (t *FunctionT) simStopButtonClick() {
 	// 停止涉及弹窗，目前考虑是这样特殊实现
 	for _, but := range t.buttons {
 		if but.name == enum.HotKeyStop {
-			t.mw.WndProc(but.Handle(), win.WM_LBUTTONDOWN, 0, 0)
-			t.mw.WndProc(but.Handle(), win.WM_LBUTTONUP, 0, 0)
+			(*t.mw).WndProc(but.Handle(), win.WM_LBUTTONDOWN, 0, 0)
+			(*t.mw).WndProc(but.Handle(), win.WM_LBUTTONUP, 0, 0)
 		}
 	}
 }
@@ -122,7 +119,7 @@ func (t *FunctionT) setFileName() {
 			PushButton{AssignTo: &cancelPB, ColumnSpan: 2, Text: language.Center.Get(language.CancelStr), OnClicked: func() { dlg.Cancel() }},
 		},
 		Enabled: true,
-	}.Run(t.mw)
+	}.Run(*t.mw)
 
 	if cmd == walk.DlgCmdOK && err == nil {
 		t.publishButtonClick(enum.SaveFileButton, filename)
@@ -138,7 +135,7 @@ func (t *FunctionT) changeLanguageHandler() {
 	}
 
 	for _, but := range t.buttons {
-		_ = but.SetText(fmt.Sprintf("%s %s", language.Center.Get(but.name.Language()), but.key))
+		tryPublishErr(but.SetText(fmt.Sprintf("%s %s", language.Center.Get(but.name.Language()), but.Key())))
 	}
 }
 

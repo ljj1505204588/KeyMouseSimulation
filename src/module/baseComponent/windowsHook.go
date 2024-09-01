@@ -34,7 +34,7 @@ func (s *windowsHookServerT) start() {
 	eventCenter.Event.Register(events.WindowsMouseInput, s.MouseInput)
 	eventCenter.Event.Register(events.WindowsKeyBoardInput, s.KeyBoardInput)
 
-	//go s.MouseHook()
+	go s.MouseHook()
 	go s.KeyBoardHook()
 }
 

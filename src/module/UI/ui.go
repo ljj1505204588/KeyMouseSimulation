@@ -31,19 +31,28 @@ func (t *ControlT) MWPoint() **walk.MainWindow {
 	return &t.mw
 }
 
+func (t *ControlT) Init() {
+	language.Center.RegisterChange(func() {
+		t.mw.SetVisible(false)
+		t.mw.SetVisible(true)
+	})
+	go language.Center.SetLanguage(language.Chinese)
+}
+
 // ----------------------- 主窗口 -----------------------
 
 func MainWindows() {
 	// todo 设置图标
 	var widget []Widget
 	for _, component := range c.widgets {
-		widget = append(widget, component.DisPlay(c.mw)...)
+		widget = append(widget, component.DisPlay(&c.mw)...)
 	}
 	var menuItems []MenuItem
 	for _, item := range c.menuItems {
-		menuItems = append(menuItems, item.MenuItems(c.mw)...)
+		menuItems = append(menuItems, item.MenuItems(&c.mw)...)
 	}
 
+	c.Init()
 	_, err := MainWindow{
 		AssignTo: c.MWPoint(),
 		Title:    language.Center.Get(language.MainWindowTitleStr),

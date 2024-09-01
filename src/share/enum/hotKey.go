@@ -2,13 +2,13 @@ package enum
 
 import "KeyMouseSimulation/module/language"
 
-type HotKey string
+type HotKey int
 
-const (
-	HotKeyStop     HotKey = "hot_key_stop"
-	HotKeyPause    HotKey = "hot_key_pause"
-	HotKeyRecord   HotKey = "hot_key_record"
-	HotKeyPlayBack HotKey = "hot_key_playback"
+const ( //
+	HotKeyRecord   HotKey = iota + 1 //"hot_key_record"
+	HotKeyPlayBack                   //"hot_key_playback"
+	HotKeyPause                      //"hot_key_pause"
+	HotKeyStop                       //"hot_key_stop"
 )
 
 func TotalHotkey() []HotKey {
@@ -29,4 +29,15 @@ var hkDisplayM = map[HotKey]language.DisPlay{
 
 func (h HotKey) Language() language.DisPlay {
 	return hkDisplayM[h]
+}
+
+var hkDefaultKey = map[HotKey]string{
+	HotKeyStop:     "F10",
+	HotKeyPause:    "F9",
+	HotKeyRecord:   "F7",
+	HotKeyPlayBack: "F8",
+}
+
+func (h HotKey) DefKey() string {
+	return hkDefaultKey[h]
 }

@@ -12,7 +12,7 @@ import (
 
 // SystemT 系统按钮
 type SystemT struct {
-	mw *walk.MainWindow
+	mw **walk.MainWindow
 	sync.Once
 
 	//系统状态
@@ -39,7 +39,7 @@ func (t *SystemT) Init() {
 	t.register()
 }
 
-func (t *SystemT) DisPlay(mw *walk.MainWindow) []Widget {
+func (t *SystemT) DisPlay(mw **walk.MainWindow) []Widget {
 	t.mw = mw
 	t.Once.Do(t.Init)
 
@@ -69,7 +69,7 @@ func (t *SystemT) register() {
 	language.Center.RegisterChange(t.changeLanguageHandler)
 
 	eventCenter.Event.Register(events.ServerError, t.subShowError)
-	eventCenter.Event.Register(events.ServerStatusChange, t.subServerStatusChange)
+	eventCenter.Event.Register(events.ServerStatus, t.subServerStatusChange)
 }
 
 // 订阅错误事件

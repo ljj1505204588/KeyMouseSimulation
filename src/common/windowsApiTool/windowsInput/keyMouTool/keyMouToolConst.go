@@ -1,6 +1,9 @@
 package keyMouTool
 
-import gene "KeyMouseSimulation/common/GenTool"
+import (
+	gene "KeyMouseSimulation/common/GenTool"
+	"sort"
+)
 
 type InputType uint32
 
@@ -233,6 +236,12 @@ const (
 )
 
 var VKCodeStringKeys = gene.Keys(VKCodeStringMap)
+
+func init() {
+	sort.Slice(VKCodeStringKeys, func(i, j int) bool {
+		return VKCodeStringMap[VKCodeStringKeys[i]] < VKCodeStringMap[VKCodeStringKeys[j]]
+	})
+}
 
 var VKCodeStringMap = map[string]VKCode{
 	"0":   VK_0,

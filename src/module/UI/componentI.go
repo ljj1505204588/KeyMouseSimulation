@@ -6,9 +6,9 @@ import (
 )
 
 type KmWidget interface {
-	DisPlay(mw *walk.MainWindow) []Widget
+	DisPlay(mw **walk.MainWindow) []Widget
 }
 
 type KmMenuItem interface {
-	MenuItems(mw *walk.MainWindow) []MenuItem
+	MenuItems(mw **walk.MainWindow) []MenuItem
 }

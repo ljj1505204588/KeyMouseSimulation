@@ -1,10 +1,8 @@
 package uiComponent
 
 import (
-	eventCenter "KeyMouseSimulation/common/Event"
 	component "KeyMouseSimulation/module/baseComponent"
 	"KeyMouseSimulation/module/language"
-	"KeyMouseSimulation/share/events"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
 	"math"
@@ -13,7 +11,7 @@ import (
 )
 
 type ConfigT struct {
-	mw *walk.MainWindow
+	mw **walk.MainWindow
 	sync.Once
 
 	// 文件选择
@@ -71,11 +69,10 @@ func (t *ConfigT) Init() {
 		NumberEdit{AssignTo: &t.currentTimesEdit, StretchFactor: 0, ColumnSpan: 1},
 	}
 
-	eventCenter.Event.Register(events.ServerConfigChange, t.subServerChange)
 	t.fileComponent.FileChange(t.fileChangeHandler)
 }
 
-func (t *ConfigT) DisPlay(mw *walk.MainWindow) []Widget {
+func (t *ConfigT) DisPlay(mw **walk.MainWindow) []Widget {
 	t.mw = mw
 	t.Once.Do(t.Init)
 
@@ -155,36 +152,8 @@ func (t *ConfigT) changeLanguageHandler() {
 		time.Sleep(10 * time.Millisecond)
 	}
 
-	_ = t.fileLabel.SetText(language.Center.Get(language.FileLabelStr))
-	_ = t.playbackTimesLabel.SetText(language.Center.Get(language.PlayBackTimesLabelStr))
-	_ = t.currentTimesLabel.SetText(language.Center.Get(language.CurrentTimesLabelStr))
-	_ = t.speedLabel.SetText(language.Center.Get(language.SpeedLabelStr))
-}
-
-// --------------------------------------- 订阅事件 ----------------------------------------------
-
-// 订阅状态变动事件
-func (t *ConfigT) subServerChange(data interface{}) (err error) {
-	//d := data.(events.ServerChangeData)
-	//
-	//for t.currentTimesEdit == nil || t.fileBox == nil {
-	//	time.Sleep(10 * time.Millisecond)
-	//}
-	//
-	//if err = t.currentTimesEdit.SetValue(float64(d.CurrentTimes)); err != nil {
-	//	return
-	//}
-	//if d.FileNamesData.Change {
-	//	t.fileNames = d.FileNamesData.FileNames
-	//	if err = t.fileBox.SetModel(d.FileNamesData.FileNames); err != nil {
-	//		return
-	//	}
-	//	if t.fileBox.Text() == "" && len(d.FileNamesData.FileNames) != 0 {
-	//		t.sc.SetFileName(d.FileNamesData.FileNames[0])
-	//		if err = t.fileBox.SetText(d.FileNamesData.FileNames[0]); err != nil {
-	//			return
-	//		}
-	//	}
-	//}
-	return
+	tryPublishErr(t.fileLabel.SetText(language.Center.Get(language.FileLabelStr)))
+	tryPublishErr(t.playbackTimesLabel.SetText(language.Center.Get(language.PlayBackTimesLabelStr)))
+	tryPublishErr(t.currentTimesLabel.SetText(language.Center.Get(language.CurrentTimesLabelStr)))
+	tryPublishErr(t.speedLabel.SetText(language.Center.Get(language.SpeedLabelStr)))
 }
