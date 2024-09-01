@@ -1,4 +1,4 @@
-package GenTool
+package gene
 
 // Intersection 取交集
 func Intersection[T comparable](ls ...[]T) (res []T) {

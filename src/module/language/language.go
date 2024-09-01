@@ -90,6 +90,7 @@ const (
 	ErrorSetHotkeyInFreeStatusStr  // 只有空闲状态能够设置热键。
 	ErrorSetHotkeyWithoutHotkeyStr // 非法的空值热键。
 	ErrorSaveFileNameNilStr        // 文件名称为空。
+	ErrorSaveFileNotExist          // 文件不存在。
 )
 
 var chinesMap = map[DisPlay]string{
@@ -137,6 +138,7 @@ var chinesMap = map[DisPlay]string{
 	ErrorSetHotkeyInFreeStatusStr:  "只有空闲状态能够设置热键。",
 	ErrorSetHotkeyWithoutHotkeyStr: "非法的空值热键。",
 	ErrorSaveFileNameNilStr:        "文件名称为空。",
+	ErrorSaveFileNotExist:          "文件不存在。",
 }
 var englishMap = map[DisPlay]string{
 	MainWindowTitleStr:          "RecordAndPlayback",
@@ -183,4 +185,5 @@ var englishMap = map[DisPlay]string{
 	ErrorSetHotkeyInFreeStatusStr:  "Only set hotkey in free status . ",
 	ErrorSetHotkeyWithoutHotkeyStr: "Hotkey is nil. ",
 	ErrorSaveFileNameNilStr:        "File name is nil. ",
+	ErrorSaveFileNotExist:          "File not exist. ",
 }

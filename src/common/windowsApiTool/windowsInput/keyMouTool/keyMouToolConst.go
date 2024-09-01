@@ -1,5 +1,7 @@
 package keyMouTool
 
+import gene "KeyMouseSimulation/common/GenTool"
+
 type InputType uint32
 
 const (
@@ -230,6 +232,8 @@ const (
 	VK_OEM_CLEAR           VKCode = 0xFE // Clear key
 )
 
+var VKCodeStringKeys = gene.Keys(VKCodeStringMap)
+
 var VKCodeStringMap = map[string]VKCode{
 	"0":   VK_0,
 	"1":   VK_1,
@@ -279,4 +283,6 @@ var VKCodeStringMap = map[string]VKCode{
 	"F10": VK_F10,
 	"F11": VK_F11,
 	"F12": VK_F12,
+	"+":   VK_ADD,
+	"-":   VK_SUBTRACT,
 }

@@ -2,6 +2,9 @@ package uiComponent
 
 import (
 	eventCenter "KeyMouseSimulation/common/Event"
+	gene "KeyMouseSimulation/common/GenTool"
+	"KeyMouseSimulation/common/windowsApiTool/windowsInput/keyMouTool"
+	component "KeyMouseSimulation/module/baseComponent"
 	"KeyMouseSimulation/module/language"
 	"KeyMouseSimulation/share/events"
 	"github.com/lxn/walk"
@@ -52,85 +55,65 @@ func (t *MenuItemT) Init() {
 		}},
 	}
 
-	t.setHotKey()
 	language.Center.RegisterChange(t.changeLanguageHandler)
-}
-
-// 设置热键
-func (t *MenuItemT) setHotKey() {
-	_ = eventCenter.Event.Publish(events.SetHotKey, events.SetHotKeyData{
-		Key: t.hKList[0],
-	})
-	_ = eventCenter.Event.Publish(events.SetHotKey, events.SetHotKeyData{
-		Key: t.hKList[1],
-	})
-	_ = eventCenter.Event.Publish(events.SetHotKey, events.SetHotKeyData{
-		Key: t.hKList[2],
-	})
-	_ = eventCenter.Event.Publish(events.SetHotKey, events.SetHotKeyData{
-		Key: t.hKList[3],
-	})
-
-	//t.ChangeLanguage(t.languageTyp, false)
 }
 
 // 设置热键弹窗
 func (t *MenuItemT) setHotKeyPop() {
 	var dlg *walk.Dialog
 	var acceptPB, cancelPB *walk.PushButton
-	var tmpList = t.hKList
+	var hkWidget []Widget
+
+	var resetMethod []func()
+	var setM = make(map[component.HotKeyI]string)
+	for name, hk := range component.GetAllHk() {
+		var box = &walk.ComboBox{}
+		hkWidget = append(hkWidget, []Widget{
+			Label{Text: language.Center.Get(name.Language()), ColumnSpan: 1},
+			ComboBox{AssignTo: &box, ColumnSpan: 1, Model: keyMouTool.VKCodeStringKeys, Editable: true, Value: hk.Key(), OnCurrentIndexChanged: func() {
+				setM[hk] = box.Text()
+			}},
+		}...)
+
+		resetMethod = append(resetMethod, func() {
+			_ = box.SetText(hk.DefaultKey())
+			setM[hk] = hk.DefaultKey()
+		})
+		setM[hk] = hk.Key() // 校验重复性
+	}
 
 	cmd, _ := Dialog{AssignTo: &dlg, Title: language.Center.Get(language.SetHotKeyWindowTitleStr),
 		DefaultButton: &acceptPB, CancelButton: &cancelPB,
 		Size: Size{Width: 350, Height: 200}, Layout: Grid{Columns: 4},
-		Children: []Widget{
-			Label{Text: language.Center.Get(language.RecordStr), ColumnSpan: 1},
-			ComboBox{AssignTo: &t.hKBox[0], ColumnSpan: 1, Model: t.keyList, Editable: true, Value: t.hKList[0], OnCurrentIndexChanged: func() {
-				tmpList[0] = t.hKBox[0].Text()
-			}},
-
-			Label{Text: language.Center.Get(language.PlaybackStr), ColumnSpan: 1},
-			ComboBox{AssignTo: &t.hKBox[1], ColumnSpan: 1, Model: t.keyList, Editable: true, Value: t.hKList[1], OnCurrentIndexChanged: func() {
-				tmpList[1] = t.hKBox[1].Text()
-			}},
-
-			Label{Text: language.Center.Get(language.PauseStr), ColumnSpan: 1},
-			ComboBox{AssignTo: &t.hKBox[2], ColumnSpan: 1, Model: t.keyList, Editable: true, Value: t.hKList[2], OnCurrentIndexChanged: func() {
-				tmpList[2] = t.hKBox[2].Text()
-			}},
-
-			Label{Text: language.Center.Get(language.StopStr), ColumnSpan: 1},
-			ComboBox{AssignTo: &t.hKBox[3], ColumnSpan: 1, Model: t.keyList, Editable: true, Value: t.hKList[3], OnCurrentIndexChanged: func() {
-				tmpList[3] = t.hKBox[3].Text()
-			}},
+		Children: append(hkWidget, []Widget{
 
 			PushButton{ColumnSpan: 4, Text: language.Center.Get(language.ResetStr), OnClicked: func() {
-				tmpList = [4]string{"F7", "F8", "F9", "F10"}
-				_ = t.hKBox[0].SetText(tmpList[0])
-				_ = t.hKBox[1].SetText(tmpList[1])
-				_ = t.hKBox[2].SetText(tmpList[2])
-				_ = t.hKBox[3].SetText(tmpList[3])
+				for _, reset := range resetMethod {
+					reset()
+				}
 			}},
 
 			PushButton{AssignTo: &acceptPB, ColumnSpan: 2, Text: language.Center.Get(language.OKStr), OnClicked: func() {
-				M := make(map[string]bool)
-				for _, v := range tmpList {
-					if M[v] {
-						walk.MsgBox(dlg, language.Center.Get(language.ErrWindowTitleStr), language.Center.Get(language.SetHotKeyErrMessageStr), walk.MsgBoxIconInformation)
-						return
-					} else {
-						M[v] = true
-					}
+				var keys []string
+				for _, key := range setM {
+					keys = append(keys, key)
 				}
-				t.hKList = tmpList
+
+				if len(gene.RemoveDuplicate(keys)) != len(keys) {
+					walk.MsgBox(dlg, language.Center.Get(language.ErrWindowTitleStr), language.Center.Get(language.SetHotKeyErrMessageStr), walk.MsgBoxIconInformation)
+					return
+				}
+
 				dlg.Accept()
 			}},
 			PushButton{AssignTo: &cancelPB, ColumnSpan: 2, Text: language.Center.Get(language.CancelStr), OnClicked: func() { dlg.Cancel() }},
-		},
+		}...),
 	}.Run(t.mw)
 
 	if cmd == walk.DlgCmdOK {
-		t.setHotKey()
+		if err := component.MulSetKey(setM); err != nil {
+			_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{ErrInfo: err.Error()})
+		}
 	}
 
 }

@@ -2,11 +2,13 @@ package component
 
 import (
 	eventCenter "KeyMouseSimulation/common/Event"
-	"KeyMouseSimulation/common/GenTool"
+	gene "KeyMouseSimulation/common/GenTool"
 	"KeyMouseSimulation/common/logTool"
 	windowsApi "KeyMouseSimulation/common/windowsApiTool"
+	"KeyMouseSimulation/module/language"
 	"KeyMouseSimulation/share/events"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -21,12 +23,16 @@ const FileExt = ".rpf"
 type FileControlI interface {
 	Save(name string, data []NoteT)
 	ReadFile(name string) (data MulNote)
+
+	FileChange(exec func(names, newNames []string))
+	Choose(name string) error
+	Current() (name string)
 }
 
 var FileControl FileControlI
 
 func init() {
-	var f = FileControlT{}
+	var f = fileControlT{}
 	f.once.Do(func() {
 		f.getWindowRect()
 		f.basePath, _ = os.Getwd()
@@ -35,18 +41,22 @@ func init() {
 	FileControl = &f
 }
 
-type FileControlT struct {
+type fileControlT struct {
 	once sync.Once
+
+	changeExec func(names, newNames []string)
 
 	windowsX int // 电脑屏幕宽度
 	windowsY int // 电脑屏幕长度
 
 	basePath string
 	fileName []string
+
+	current string
 }
 
 // Save 存储
-func (f *FileControlT) Save(name string, data []NoteT) {
+func (f *fileControlT) Save(name string, data []NoteT) {
 	if name == "" || len(data) == 0 {
 		return
 	}
@@ -69,7 +79,7 @@ func (f *FileControlT) Save(name string, data []NoteT) {
 }
 
 // ReadFile 读取文件
-func (f *FileControlT) ReadFile(name string) (data MulNote) {
+func (f *fileControlT) ReadFile(name string) (data MulNote) {
 	var dealErr = func(err error) []NoteT {
 		f.publishErr(err)
 		return nil
@@ -98,8 +108,28 @@ func (f *FileControlT) ReadFile(name string) (data MulNote) {
 	return
 }
 
+// FileChange 文件变动执行回调
+func (f *fileControlT) FileChange(exec func(names, newNames []string)) {
+	f.changeExec = exec
+}
+
+// Choose 文件选择
+func (f *fileControlT) Choose(name string) error {
+	if !gene.Contain(f.fileName, name) {
+		return errors.New(language.Center.Get(language.ErrorSaveFileNameNilStr))
+	}
+
+	f.current = name
+	return nil
+}
+
+// Current 当前选择文件
+func (f *fileControlT) Current() (name string) {
+	return f.current
+}
+
 // 扫描文件
-func (f *FileControlT) scanFile() {
+func (f *fileControlT) scanFile() {
 	defer func() { go f.scanFile() }()
 	for {
 		var names []string
@@ -114,11 +144,9 @@ func (f *FileControlT) scanFile() {
 		}
 
 		//对比
-		if newFile := GenTool.Exclude(names, f.fileName); len(newFile) != 0 {
-			if err := eventCenter.Event.Publish(events.FileScanNewFile, events.FileScanNewFileData{
-				NewFile:  newFile,
-				FileList: names,
-			}); err == nil {
+		if newFile := gene.Exclude(names, f.fileName); len(newFile) != 0 {
+			if f.changeExec != nil {
+				f.changeExec(names, newFile)
 				f.fileName = names
 			}
 		}
@@ -127,7 +155,7 @@ func (f *FileControlT) scanFile() {
 }
 
 // 获取windows窗口大小
-func (f *FileControlT) getWindowRect() {
+func (f *fileControlT) getWindowRect() {
 	f.windowsX, f.windowsY = 1920, 1080
 
 	x, _, err := windowsApi.DllUser.Call(windowsApi.FuncGetSystemMetrics, windowsApi.SM_CXSCREEN)
@@ -144,7 +172,7 @@ func (f *FileControlT) getWindowRect() {
 
 // ---------------------------------- 发布事件 ----------------------------------
 
-func (f *FileControlT) publishErr(err error) {
+func (f *fileControlT) publishErr(err error) {
 	_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{
 		ErrInfo: err.Error(),
 	})

@@ -2,6 +2,7 @@ package uiComponent
 
 import (
 	eventCenter "KeyMouseSimulation/common/Event"
+	component "KeyMouseSimulation/module/baseComponent"
 	"KeyMouseSimulation/module/language"
 	"KeyMouseSimulation/share/events"
 	"github.com/lxn/walk"
@@ -15,32 +16,40 @@ type ConfigT struct {
 	mw *walk.MainWindow
 	sync.Once
 
-	*BaseT
+	// 文件选择
+	basePath      string
+	fileNames     []string
+	fileComponent component.FileControlI
+
+	configWalk
+	widget []Widget
+}
+
+type configWalk struct {
+	// 文件选择
+	fileLabel *walk.Label
+	fileBox   *walk.ComboBox
+
+	// 鼠标路径记录
 	ifMouseTrackLabel *walk.Label
 	ifMouseTrackCheck *walk.CheckBox
-	//文件选择
-	fileLabel *walk.Label
-	basePath  string
-	fileBox   *walk.ComboBox
-	fileNames []string
 
-	//回放次数调整
+	// 回放次数调整
 	playbackTimesLabel *walk.Label
 	playbackTimesEdit  *walk.NumberEdit
 	currentTimesLabel  *walk.Label
 	currentTimesEdit   *walk.NumberEdit
 
-	//速度
+	// 速度
 	speedLabel *walk.Label
 	speedSli   *walk.Slider
 	speedEdit  *walk.NumberEdit
-
-	widget []Widget
 }
 
 func (t *ConfigT) Init() {
 	language.Center.RegisterChange(t.changeLanguageHandler)
 
+	t.fileComponent = component.FileControl
 	t.widget = []Widget{
 		//鼠标路径
 		Label{AssignTo: &t.ifMouseTrackLabel, ColumnSpan: 4},
@@ -63,6 +72,7 @@ func (t *ConfigT) Init() {
 	}
 
 	eventCenter.Event.Register(events.ServerConfigChange, t.subServerChange)
+	t.fileComponent.FileChange(t.fileChangeHandler)
 }
 
 func (t *ConfigT) DisPlay(mw *walk.MainWindow) []Widget {
@@ -70,6 +80,27 @@ func (t *ConfigT) DisPlay(mw *walk.MainWindow) []Widget {
 	t.Once.Do(t.Init)
 
 	return t.widget
+}
+
+// 文件变动
+func (t *ConfigT) fileChangeHandler(names []string, newFile []string) {
+	if !t.initCheck() {
+		return
+	}
+
+	if err := t.fileBox.SetModel(names); err != nil {
+		tryPublishErr(err)
+		return
+	}
+
+	if len(newFile) != 0 {
+		if err := t.fileBox.SetText(newFile[0]); err != nil {
+			tryPublishErr(err)
+			return
+		}
+	}
+
+	return
 }
 
 // 设置是否追踪鼠标移动路径

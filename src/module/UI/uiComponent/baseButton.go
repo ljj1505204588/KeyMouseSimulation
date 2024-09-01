@@ -7,7 +7,6 @@ import (
 	"KeyMouseSimulation/module/language"
 	"KeyMouseSimulation/share/enum"
 	"KeyMouseSimulation/share/events"
-	"errors"
 	"fmt"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
@@ -20,6 +19,7 @@ import (
 type FunctionT struct {
 	sync.Once
 
+	file component.FileControlI
 	functionWailT
 }
 
@@ -30,21 +30,22 @@ type functionWailT struct {
 }
 
 type hotKeyButton struct {
-	name      enum.HotKey
-	key       string
-	disPlayNo language.DisPlay
-	exec      func()
+	name enum.HotKey
+	key  string
+	exec func()
 
 	*walk.PushButton
 	component.HotKeyI
 }
 
 func (t *FunctionT) Init() {
+	t.file = component.FileControl
+
 	t.buttons = []hotKeyButton{
-		{name: enum.HotKeyRecord, key: "F7", disPlayNo: language.RecordStr, exec: t.recordButtonClick},
-		{name: enum.HotKeyPlayBack, key: "F8", disPlayNo: language.PlaybackStr, exec: t.playbackButtonClick},
-		{name: enum.HotKeyPause, key: "F9", disPlayNo: language.PauseStr, exec: t.pauseButtonClick},
-		{name: enum.HotKeyStop, key: "F10", disPlayNo: language.StopStr, exec: t.stopButtonClick},
+		{name: enum.HotKeyRecord, key: "F7", exec: t.recordButtonClick, PushButton: &walk.PushButton{}},
+		{name: enum.HotKeyPlayBack, key: "F8", exec: t.playbackButtonClick, PushButton: &walk.PushButton{}},
+		{name: enum.HotKeyPause, key: "F9", exec: t.pauseButtonClick, PushButton: &walk.PushButton{}},
+		{name: enum.HotKeyStop, key: "F10", exec: t.stopButtonClick, PushButton: &walk.PushButton{}},
 	}
 
 	var err error
@@ -74,7 +75,7 @@ func (t *FunctionT) recordButtonClick() {
 	t.publishButtonClick(enum.RecordButton, "")
 }
 func (t *FunctionT) playbackButtonClick() {
-	t.publishButtonClick(enum.PlaybackButton, t.BaseT.fileBox.Text())
+	t.publishButtonClick(enum.PlaybackButton, t.file.Current())
 }
 func (t *FunctionT) pauseButtonClick() {
 	t.publishButtonClick(enum.PauseButton, "")
@@ -125,6 +126,7 @@ func (t *FunctionT) setFileName() {
 
 	if cmd == walk.DlgCmdOK && err == nil {
 		t.publishButtonClick(enum.SaveFileButton, filename)
+		tryPublishErr(t.file.Choose(filename))
 	}
 }
 
@@ -136,7 +138,7 @@ func (t *FunctionT) changeLanguageHandler() {
 	}
 
 	for _, but := range t.buttons {
-		_ = but.SetText(fmt.Sprintf("%s %s", language.Center.Get(but.disPlayNo), but.key))
+		_ = but.SetText(fmt.Sprintf("%s %s", language.Center.Get(but.name.Language()), but.key))
 	}
 }
 
@@ -153,25 +155,5 @@ func (t *FunctionT) publishButtonClick(button enum.Button, name string) {
 // 记录结束
 func (t *FunctionT) recordFinishHandler(data interface{}) (err error) {
 	t.setFileName()
-	return
-}
-
-// 文件变动
-func (t *FunctionT) fileChangeHandler(data interface{}) (err error) {
-	if !t.initCheck() {
-		return errors.New("wait init success")
-	}
-
-	var info = data.(events.FileScanNewFileData)
-	if err = t.fileBox.SetModel(info.FileList); err != nil {
-		return
-	}
-
-	if len(info.NewFile) != 0 {
-		if err = t.fileBox.SetText(info.NewFile[0]); err != nil {
-			return
-		}
-	}
-
 	return
 }
