@@ -2,7 +2,7 @@ package svcComponent
 
 import (
 	eventCenter "KeyMouseSimulation/common/Event"
-	"KeyMouseSimulation/share/events"
+	"KeyMouseSimulation/common/share/events"
 )
 
 // 发布服务错误事件

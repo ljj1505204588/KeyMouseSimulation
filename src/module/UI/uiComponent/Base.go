@@ -2,7 +2,7 @@ package uiComponent
 
 import (
 	eventCenter "KeyMouseSimulation/common/Event"
-	"KeyMouseSimulation/share/events"
+	"KeyMouseSimulation/common/share/events"
 )
 
 type BaseT struct {

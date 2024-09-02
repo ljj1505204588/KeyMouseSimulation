@@ -2,9 +2,9 @@ package server
 
 import (
 	eventCenter "KeyMouseSimulation/common/Event"
+	"KeyMouseSimulation/common/share/enum"
+	"KeyMouseSimulation/common/share/events"
 	"KeyMouseSimulation/module/server/status"
-	"KeyMouseSimulation/share/enum"
-	"KeyMouseSimulation/share/events"
 	"sync"
 )
 
@@ -17,8 +17,8 @@ var server = &serverT{
 }
 
 type serverT struct {
-	control status.KmStatusI
 	lock    sync.Mutex
+	control status.KmStatusI
 }
 
 func (s *serverT) buttonClickHandler(dataI interface{}) (err error) {
@@ -37,8 +37,6 @@ func (s *serverT) buttonClickHandler(dataI interface{}) (err error) {
 		s.control.Pause()
 	case enum.StopButton:
 		s.control.Stop()
-	case enum.SaveFileButton:
-		s.control.Save(data.Name)
 	}
 	return
 }

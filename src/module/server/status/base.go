@@ -2,10 +2,11 @@ package status
 
 import (
 	eventCenter "KeyMouseSimulation/common/Event"
+	"KeyMouseSimulation/common/share/enum"
+	"KeyMouseSimulation/common/share/events"
 	"KeyMouseSimulation/module/language"
 	"KeyMouseSimulation/module/server/svcComponent"
-	"KeyMouseSimulation/share/enum"
-	"KeyMouseSimulation/share/events"
+	"fmt"
 	"sync"
 	"time"
 )
@@ -15,7 +16,6 @@ type KmStatusI interface {
 	Playback(name string) // 回放
 	Pause()               // 暂停
 	Stop()                // 停止
-	Save(name string)     // 存储
 
 	Status() enum.Status
 }
@@ -83,27 +83,22 @@ type baseStatusT struct {
 
 func (s *baseStatusT) Record() {
 	_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{
-		ErrInfo: language.Center.Get(language.ErrorStatusChangeError),
+		ErrInfo: fmt.Sprintf("[%s]%s", language.Center.Get(language.RecordStr), language.Center.Get(language.ErrorStatusChangeError)),
 	})
 }
 func (s *baseStatusT) Playback(name string) {
 	_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{
-		ErrInfo: language.Center.Get(language.ErrorStatusChangeError),
+		ErrInfo: fmt.Sprintf("[%s]%s", language.Center.Get(language.PlaybackStr), language.Center.Get(language.ErrorStatusChangeError)),
 	})
 }
 func (s *baseStatusT) Pause() {
 	_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{
-		ErrInfo: language.Center.Get(language.ErrorStatusChangeError),
+		ErrInfo: fmt.Sprintf("[%s]%s", language.Center.Get(language.PauseStr), language.Center.Get(language.ErrorStatusChangeError)),
 	})
 }
 func (s *baseStatusT) Stop() {
 	_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{
-		ErrInfo: language.Center.Get(language.ErrorStatusChangeError),
-	})
-}
-func (s *baseStatusT) Save(name string) {
-	_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{
-		ErrInfo: language.Center.Get(language.ErrorStatusChangeError),
+		ErrInfo: fmt.Sprintf("[%s]%s", language.Center.Get(language.StopStr), language.Center.Get(language.ErrorStatusChangeError)),
 	})
 }
 func tryPublishErr(err error) {

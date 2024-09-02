@@ -3,9 +3,9 @@ package component
 import (
 	eventCenter "KeyMouseSimulation/common/Event"
 	"KeyMouseSimulation/common/commonTool"
+	"KeyMouseSimulation/common/share/events"
 	"KeyMouseSimulation/common/windowsApiTool/windowsHook"
 	"KeyMouseSimulation/common/windowsApiTool/windowsInput/keyMouTool"
-	"KeyMouseSimulation/share/events"
 )
 
 func init() {
@@ -24,7 +24,7 @@ type windowsHookServerT struct {
 }
 
 func (s *windowsHookServerT) start() {
-	//获取key、mouse发送通道
+	//获取key、mouse发送通道2
 	var err error
 	s.keySend, err = keyMouTool.GetKeySendInputChan(3000)
 	commonTool.MustNil(err)

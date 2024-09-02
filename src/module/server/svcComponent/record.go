@@ -2,9 +2,10 @@ package svcComponent
 
 import (
 	eventCenter "KeyMouseSimulation/common/Event"
+	events2 "KeyMouseSimulation/common/share/events"
 	"KeyMouseSimulation/common/windowsApiTool/windowsHook"
+	"KeyMouseSimulation/common/windowsApiTool/windowsInput/keyMouTool"
 	component "KeyMouseSimulation/module/baseComponent"
-	"KeyMouseSimulation/share/events"
 	"sync"
 	"time"
 )
@@ -32,8 +33,8 @@ type RecordServerT struct {
 	l           sync.Mutex
 	fileControl component.FileControlI
 
-	notes     component.MulNote // 记录
-	saveNotes component.MulNote // 待存储记录
+	notes     keyMouTool.MulNote // 记录
+	saveNotes keyMouTool.MulNote // 待存储记录
 	noteTime  int64
 
 	mouseHs    []func(data interface{})
@@ -66,8 +67,11 @@ func (r *RecordServerT) Stop() {
 	defer r.lockSelf()()
 
 	r.saveNotes = r.notes
-	r.notes = component.MulNote{}
-	_ = eventCenter.Event.Publish(events.RecordFinish, events.RecordFinishData{})
+	r.notes = keyMouTool.MulNote{}
+	var err = eventCenter.Event.Publish(events2.RecordFinish, events2.RecordFinishData{
+		Notes: r.saveNotes,
+	})
+	tryPublishServerError(err)
 }
 
 // Save 存储
@@ -76,13 +80,13 @@ func (r *RecordServerT) Save(name string) {
 }
 
 func (r *RecordServerT) registerHandler() {
-	eventCenter.Event.Register(events.WindowsMouseHook, func(data interface{}) (err error) {
+	eventCenter.Event.Register(events2.WindowsMouseHook, func(data interface{}) (err error) {
 		for _, per := range r.mouseHs {
 			per(data)
 		}
 		return
 	})
-	eventCenter.Event.Register(events.WindowsKeyBoardHook, func(data interface{}) (err error) {
+	eventCenter.Event.Register(events2.WindowsKeyBoardHook, func(data interface{}) (err error) {
 		for _, per := range r.keyBoardHs {
 			per(data)
 		}
@@ -98,7 +102,7 @@ func (r *RecordServerT) registerHandler() {
 func (r *RecordServerT) mouseHandler(data interface{}) {
 	defer r.lockSelf()()
 
-	var info = data.(events.WindowsMouseHookData)
+	var info = data.(events2.WindowsMouseHookData)
 	r.notes.AppendMouseNote(r.noteTime, info.Date)
 
 	r.noteTime = info.Date.RecordTime
@@ -108,7 +112,10 @@ func (r *RecordServerT) mouseHandler(data interface{}) {
 func (r *RecordServerT) keyBoardHandler(data interface{}) {
 	defer r.lockSelf()()
 
-	var info = data.(events.WindowsKeyBoardHookData)
+	var info = data.(events2.WindowsKeyBoardHookData)
+	if _, ok := component.GetHkByCode(keyMouTool.VKCode(info.Date.VkCode)); ok {
+		return
+	}
 
 	r.notes.AppendKeyBoardNote(r.noteTime, info.Date)
 	r.noteTime = info.Date.RecordTime

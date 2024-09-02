@@ -1,6 +1,7 @@
 package uiComponent
 
 import (
+	gene "KeyMouseSimulation/common/GenTool"
 	component "KeyMouseSimulation/module/baseComponent"
 	"KeyMouseSimulation/module/language"
 	"github.com/lxn/walk"
@@ -55,7 +56,7 @@ type fileConfig struct {
 func (c *fileConfig) init() {
 	c.widget = []Widget{
 		Label{AssignTo: &c.fileLabel, ColumnSpan: 2},
-		ComboBox{AssignTo: &c.fileBox, ColumnSpan: 6, Model: c.fileNames, Editable: true}, // OnCurrentIndexChanged: t.setFileName},
+		ComboBox{AssignTo: &c.fileBox, ColumnSpan: 6, Model: c.fileNames, Editable: true, OnCurrentIndexChanged: c.chooseFile},
 	}
 
 	c.fileComponent = component.FileControl
@@ -78,21 +79,34 @@ func (c *fileConfig) languageHandler() {
 	tryPublishErr(c.fileLabel.SetText(language.Center.Get(language.FileLabelStr)))
 }
 
+// chooseFile 选择文件
+func (c *fileConfig) chooseFile() {
+	tryPublishErr(c.fileComponent.Choose(c.fileBox.Text()))
+}
+
 // 文件变动
 func (c *fileConfig) fileChangeHandler(names []string, newFile []string) {
 	if c.fileLabel == nil || c.fileBox == nil {
 		return
 	}
 
-	err := c.fileBox.SetModel(names)
-	tryPublishErr(err)
+	// 模式设置
+	tryPublishErr(c.fileBox.SetModel(names))
 
+	// 新文件设置
 	if len(newFile) != 0 {
-		err = c.fileBox.SetText(newFile[0])
-		tryPublishErr(err)
+		tryPublishErr(c.fileComponent.Choose(newFile[0]))
+		tryPublishErr(c.fileBox.SetText(newFile[0]))
+	}
 
-		err = c.fileComponent.Choose(newFile[0])
-		tryPublishErr(err)
+	// 文件删除重设
+	if !gene.Contain(names, c.fileBox.Text()) {
+		var current = ""
+		if len(names) > 0 {
+			current = names[0]
+		}
+		tryPublishErr(c.fileComponent.Choose(current))
+		tryPublishErr(c.fileBox.SetText(current))
 	}
 
 	return
@@ -112,14 +126,26 @@ type recordConfig struct {
 func (c *recordConfig) init() {
 	c.widget = []Widget{
 		//鼠标路径
-		Label{AssignTo: &c.ifMouseTrackLabel, ColumnSpan: 4},
+		Label{AssignTo: &c.ifMouseTrackLabel, Text: language.Center.Get(language.MouseTrackStr), ColumnSpan: 4},
 		CheckBox{AssignTo: &c.ifMouseTrackCheck, ColumnSpan: 4, Checked: true, Alignment: AlignHCenterVCenter, OnCheckedChanged: c.setIfTrackMouseMoveClick},
 	}
 }
 func (c *recordConfig) disPlay() []Widget {
 	return c.widget
 }
-func (c *recordConfig) register() {}
+func (c *recordConfig) register() {
+	language.Center.RegisterChange(c.languageHandler)
+
+}
+
+// 语言变动回调
+func (c *recordConfig) languageHandler() {
+	for c.ifMouseTrackLabel == nil {
+		time.Sleep(20 * time.Millisecond)
+	}
+
+	tryPublishErr(c.ifMouseTrackLabel.SetText(language.Center.Get(language.MouseTrackStr)))
+}
 
 // 设置是否追踪鼠标移动路径
 func (c *recordConfig) setIfTrackMouseMoveClick() {

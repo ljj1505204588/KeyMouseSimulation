@@ -1,7 +1,7 @@
 package status
 
 import (
-	"KeyMouseSimulation/share/enum"
+	"KeyMouseSimulation/common/share/enum"
 )
 
 // "RecordPause" 状态机

@@ -3,10 +3,10 @@ package component
 import (
 	eventCenter "KeyMouseSimulation/common/Event"
 	gene "KeyMouseSimulation/common/GenTool"
+	"KeyMouseSimulation/common/share/enum"
+	"KeyMouseSimulation/common/share/events"
 	"KeyMouseSimulation/common/windowsApiTool/windowsInput/keyMouTool"
 	"KeyMouseSimulation/module/language"
-	"KeyMouseSimulation/share/enum"
-	"KeyMouseSimulation/share/events"
 	"errors"
 	"sync"
 	"time"
@@ -109,12 +109,11 @@ type HotKeyI interface {
 type hotKeyT struct {
 	name enum.HotKey
 
-	defKey string
-	key    string
-	code   keyMouTool.VKCode
-	exec   func()
-
-	lastExec time.Time
+	defKey   string            // 默认Key
+	key      string            // 当前Key
+	code     keyMouTool.VKCode // 对应windowsCode
+	exec     func()            // 执行方法
+	lastExec time.Time         // 上次执行时间
 }
 
 func (h *hotKeyT) DefaultKey() string {

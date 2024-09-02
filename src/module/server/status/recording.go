@@ -1,7 +1,7 @@
 package status
 
 import (
-	"KeyMouseSimulation/share/enum"
+	"KeyMouseSimulation/common/share/enum"
 )
 
 // "Recording" 状态机
@@ -17,9 +17,6 @@ func (s *recordingStatusT) Pause() {
 func (s *recordingStatusT) Stop() {
 	s.record.Stop()
 	s.setStatus(enum.Free)
-}
-func (s *recordingStatusT) Save(name string) {
-	s.record.Save(name)
 }
 func (s *recordingStatusT) Status() enum.Status {
 	return enum.Recording

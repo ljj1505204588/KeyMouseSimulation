@@ -2,8 +2,8 @@ package uiComponent
 
 import (
 	eventCenter "KeyMouseSimulation/common/Event"
+	"KeyMouseSimulation/common/share/events"
 	"KeyMouseSimulation/module/language"
-	"KeyMouseSimulation/share/events"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
 	"strings"
@@ -83,12 +83,10 @@ func (t *SystemT) subShowError(dataI interface{}) (err error) {
 
 	// 日志记录
 	var data = dataI.(events.ServerErrorData)
-	t.historyErr = append(t.historyErr, data.ErrInfo+"\n")
-
-	var textBuild = strings.Builder{}
-	textBuild.WriteString(data.ErrInfo)
+	t.historyErr = append(t.historyErr, data.ErrInfo+" \r\n")
 
 	var hisLen = len(t.historyErr)
+	var textBuild = strings.Builder{}
 	for i := hisLen - 1; i >= 0 && i >= hisLen-10; i-- {
 		textBuild.WriteString(t.historyErr[i])
 	}

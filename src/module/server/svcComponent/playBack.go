@@ -3,9 +3,9 @@ package svcComponent
 import (
 	eventCenter "KeyMouseSimulation/common/Event"
 	gene "KeyMouseSimulation/common/GenTool"
+	events2 "KeyMouseSimulation/common/share/events"
 	"KeyMouseSimulation/common/windowsApiTool/windowsInput/keyMouTool"
 	component "KeyMouseSimulation/module/baseComponent"
-	"KeyMouseSimulation/share/events"
 	"sync/atomic"
 	"time"
 )
@@ -15,7 +15,7 @@ func GetPlaybackServer() PlayBackServerI {
 		fileControl: component.FileControl,
 	}
 
-	p.input = map[keyMouTool.InputType]func(note *component.NoteT){
+	p.input = map[keyMouTool.InputType]func(note *keyMouTool.NoteT){
 		keyMouTool.TYPE_INPUT_MOUSE:    p.mouseInput,
 		keyMouTool.TYPE_INPUT_KEYBOARD: p.keyBoardInput,
 	}
@@ -40,15 +40,15 @@ type playBackServerT struct {
 	run         bool //回放标识
 	fileControl component.FileControlI
 
-	name       string            //读取文件名称
-	notes      []component.NoteT //回放数据
-	notesIndex int64             //当前回放在文件内容位置
+	name       string             //读取文件名称
+	notes      []keyMouTool.NoteT //回放数据
+	notesIndex int64              //当前回放在文件内容位置
 
 	speed       float64 // 回放速度
 	times       int64   // 回放次数
 	remainTimes int64   // 剩余次数
 
-	input map[keyMouTool.InputType]func(note *component.NoteT)
+	input map[keyMouTool.InputType]func(note *keyMouTool.NoteT)
 }
 
 // Start 开始
@@ -99,7 +99,7 @@ func (p *playBackServerT) checkPlayBackFinish(index int64) bool {
 
 		if p.remainTimes >= 1 {
 			if p.remainTimes == 1 {
-				_ = eventCenter.Event.Publish(events.PlayBackFinish, events.PlayBackFinishData{})
+				_ = eventCenter.Event.Publish(events2.PlayBackFinish, events2.PlayBackFinishData{})
 				p.run = false
 				return true
 			}
@@ -116,8 +116,8 @@ func (p *playBackServerT) sleep(gap int64) {
 	time.Sleep(time.Duration(slTime))
 }
 
-func (p *playBackServerT) mouseInput(note *component.NoteT) {
-	if err := eventCenter.Event.Publish(events.WindowsMouseInput, events.WindowsMouseInputData{
+func (p *playBackServerT) mouseInput(note *keyMouTool.NoteT) {
+	if err := eventCenter.Event.Publish(events2.WindowsMouseInput, events2.WindowsMouseInputData{
 		Data: &keyMouTool.MouseInputT{
 			X:         note.MouseNote.X,
 			Y:         note.MouseNote.Y,
@@ -129,8 +129,8 @@ func (p *playBackServerT) mouseInput(note *component.NoteT) {
 		publishServerError(err)
 	}
 }
-func (p *playBackServerT) keyBoardInput(note *component.NoteT) {
-	if err := eventCenter.Event.Publish(events.WindowsKeyBoardInput, events.WindowsKeyBoardInputData{
+func (p *playBackServerT) keyBoardInput(note *keyMouTool.NoteT) {
+	if err := eventCenter.Event.Publish(events2.WindowsKeyBoardInput, events2.WindowsKeyBoardInputData{
 		Data: &keyMouTool.KeyInputT{
 			VK:      note.KeyNote.VK,
 			DwFlags: note.KeyNote.DwFlags,

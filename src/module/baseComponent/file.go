@@ -5,9 +5,10 @@ import (
 	gene "KeyMouseSimulation/common/GenTool"
 	"KeyMouseSimulation/common/commonTool"
 	"KeyMouseSimulation/common/logTool"
+	"KeyMouseSimulation/common/share/events"
 	windowsApi "KeyMouseSimulation/common/windowsApiTool"
+	"KeyMouseSimulation/common/windowsApiTool/windowsInput/keyMouTool"
 	"KeyMouseSimulation/module/language"
-	"KeyMouseSimulation/share/events"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -22,8 +23,8 @@ import (
 const FileExt = ".rpf"
 
 type FileControlI interface {
-	Save(name string, data []NoteT)
-	ReadFile(name string) (data MulNote)
+	Save(name string, data []keyMouTool.NoteT)
+	ReadFile(name string) (data keyMouTool.MulNote)
 
 	FileChange(exec func(names, newNames []string))
 	Choose(name string) error
@@ -61,7 +62,7 @@ type fileControlT struct {
 }
 
 // Save 存储
-func (f *fileControlT) Save(name string, data []NoteT) {
+func (f *fileControlT) Save(name string, data []keyMouTool.NoteT) {
 	if name == "" || len(data) == 0 {
 		return
 	}
@@ -83,11 +84,14 @@ func (f *fileControlT) Save(name string, data []NoteT) {
 	}
 
 	f.fileName = append(f.fileName, name)
+	if f.changeExec != nil {
+		f.changeExec(f.fileName, []string{name})
+	}
 }
 
 // ReadFile 读取文件
-func (f *fileControlT) ReadFile(name string) (data MulNote) {
-	var dealErr = func(err error) []NoteT {
+func (f *fileControlT) ReadFile(name string) (data keyMouTool.MulNote) {
+	var dealErr = func(err error) []keyMouTool.NoteT {
 		f.publishErr(err)
 		return nil
 	}
@@ -109,7 +113,7 @@ func (f *fileControlT) ReadFile(name string) (data MulNote) {
 		return dealErr(err)
 	}
 
-	data.adaptWindow(f.windowsX, f.windowsY)
+	data.AdaptWindow(f.windowsX, f.windowsY)
 
 	logTool.DebugAJ(fmt.Sprintf("playback 加载文件[%s]成功,长度[%d]", name, len(data)))
 	return
@@ -150,13 +154,15 @@ func (f *fileControlT) scanFile() {
 			}
 		}
 
-		//对比
-		if newFile := gene.Exclude(names, f.fileName); len(newFile) != 0 {
+		// 对比
+		if len(names) != len(f.fileName) || len(gene.Intersection(names, f.fileName)) != len(names) {
 			if f.changeExec != nil {
+				newFile := gene.Exclude(names, f.fileName)
 				f.fileName = names
 				f.changeExec(names, newFile)
 			}
 		}
+
 		time.Sleep(2 * time.Second)
 	}
 }

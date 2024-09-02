@@ -7,5 +7,4 @@ const (
 	PlaybackButton
 	PauseButton
 	StopButton
-	SaveFileButton
 )

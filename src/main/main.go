@@ -10,6 +10,7 @@ import (
 )
 
 func main() {
+	// todo 整理锁关系
 	_ = logTool.SetLogLevel(logTool.LEVEL_DEBUG_STR)
 	go func() {
 		err := http.ListenAndServe(":6060", nil)
