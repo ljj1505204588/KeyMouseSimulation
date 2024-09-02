@@ -86,8 +86,7 @@ func (f *fileCenterT) WatchWorker() {
 	for {
 		select {
 		case event := <-f.watcher.Events:
-			switch event.Op {
-			case fsnotify.Write:
+			if event.Op == fsnotify.Write {
 				f.update()
 			}
 		case _ = <-f.watcher.Errors:

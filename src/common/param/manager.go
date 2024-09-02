@@ -7,16 +7,20 @@ import (
 	"sync"
 )
 
+// ModuleI 配置模块接口·
 type ModuleI interface {
 	ParamName() (name string)
 }
 
+// CenterI 配置中心接口
+// 当前实现：[本地文件]
 type CenterI interface {
 	Read(name string) (data any, exist bool)
 	Write(name string, data any) (err error)
 	UpdateRegister(name string, f func(name string, data any) error)
 }
 
+// ManagerI 管理中心接口
 type ManagerI interface {
 	Register(c ModuleI, options ...paramoption.Option)
 	RegisterUpdate(name string, h func())

@@ -2,22 +2,13 @@ package svcComponent
 
 import (
 	eventCenter "KeyMouseSimulation/common/Event"
+	gene "KeyMouseSimulation/common/GenTool"
 	"KeyMouseSimulation/common/windowsApiTool/windowsInput/keyMouTool"
 	component "KeyMouseSimulation/module/baseComponent"
 	"KeyMouseSimulation/share/events"
 	"sync/atomic"
 	"time"
 )
-
-type PlayBackServerI interface {
-	Start(fileName string)
-	Pause()
-	Stop()
-}
-
-/*
-*	PlayBackServerI实现接口
- */
 
 func GetPlaybackServer() PlayBackServerI {
 	p := playBackServerT{
@@ -29,8 +20,21 @@ func GetPlaybackServer() PlayBackServerI {
 		keyMouTool.TYPE_INPUT_KEYBOARD: p.keyBoardInput,
 	}
 
+	p.registerHandler()
+
+	go p.playBack()
 	return &p
 }
+
+type PlayBackServerI interface {
+	Start(fileName string)
+	Pause()
+	Stop()
+}
+
+/*
+*	---------------------------------------------------- PlayBackServerI实现接口 ----------------------------------------------------
+ */
 
 type playBackServerT struct {
 	run         bool //回放标识
@@ -40,15 +44,19 @@ type playBackServerT struct {
 	notes      []component.NoteT //回放数据
 	notesIndex int64             //当前回放在文件内容位置
 
+	speed       float64 // 回放速度
+	times       int64   // 回放次数
+	remainTimes int64   // 剩余次数
+
 	input map[keyMouTool.InputType]func(note *component.NoteT)
 }
 
 // Start 开始
 func (p *playBackServerT) Start(fileName string) {
 	p.tryLoadFile(fileName)
-	p.run = true
+	component.PlaybackConfig.SetPlaybackRemainTimes(p.times)
 
-	go p.playBack()
+	p.run = true
 }
 
 // Pause 暂停
@@ -65,28 +73,49 @@ func (p *playBackServerT) Stop() {
 // ----------------------- playBack 模块主体功能函数 -----------------------
 
 func (p *playBackServerT) playBack() {
-	for p.run {
-		var index = atomic.LoadInt64(&p.notesIndex)
-		if p.checkPlayBackFinish(index) {
-			return
-		}
+	defer func() {
+		recover()
+		go p.playBack()
+	}()
 
-		var n = &p.notes[index]
-		p.input[n.NoteType](n)
-		time.Sleep(time.Duration(n.TimeGap))
-		atomic.CompareAndSwapInt64(&p.notesIndex, index, index+1)
+	for {
+		for p.run {
+			var index = atomic.LoadInt64(&p.notesIndex)
+			if p.checkPlayBackFinish(index) {
+				break
+			}
+
+			var n = &p.notes[index]
+			p.input[n.NoteType](n)
+			p.sleep(n.TimeGap)
+			atomic.CompareAndSwapInt64(&p.notesIndex, index, index+1)
+		}
+		time.Sleep(50 * time.Millisecond)
 	}
 }
-func (p *playBackServerT) checkPlayBackFinish(index int64) (finish bool) {
-
+func (p *playBackServerT) checkPlayBackFinish(index int64) bool {
 	if index >= int64(len(p.notes)) {
 		atomic.SwapInt64(&p.notesIndex, 0)
-		_ = eventCenter.Event.Publish(events.PlayBackFinish, events.PlayBackFinishData{})
-		return true
-	}
 
+		if p.remainTimes >= 1 {
+			if p.remainTimes == 1 {
+				_ = eventCenter.Event.Publish(events.PlayBackFinish, events.PlayBackFinishData{})
+				p.run = false
+				return true
+			}
+			component.PlaybackConfig.SetPlaybackRemainTimes(p.remainTimes - 1)
+		}
+
+	}
 	return false
 }
+
+func (p *playBackServerT) sleep(gap int64) {
+	// 性能优化时候看看能不能按位来操作
+	var slTime = float64(gap) / p.speed
+	time.Sleep(time.Duration(slTime))
+}
+
 func (p *playBackServerT) mouseInput(note *component.NoteT) {
 	if err := eventCenter.Event.Publish(events.WindowsMouseInput, events.WindowsMouseInputData{
 		Data: &keyMouTool.MouseInputT{
@@ -97,7 +126,7 @@ func (p *playBackServerT) mouseInput(note *component.NoteT) {
 			Time:      note.MouseNote.Time,
 		},
 	}); err != nil {
-		p.tryPublishServerError(err)
+		publishServerError(err)
 	}
 }
 func (p *playBackServerT) keyBoardInput(note *component.NoteT) {
@@ -107,8 +136,21 @@ func (p *playBackServerT) keyBoardInput(note *component.NoteT) {
 			DwFlags: note.KeyNote.DwFlags,
 		},
 	}); err != nil {
-		p.tryPublishServerError(err)
+		publishServerError(err)
 	}
+}
+
+// 注册回调
+func (p *playBackServerT) registerHandler() {
+	component.PlaybackConfig.SetSpeedChange(true, func(speed float64) {
+		p.speed = gene.Choose(speed > 0, speed, 1)
+	})
+	component.PlaybackConfig.SetPlaybackTimesChange(true, func(times int64) {
+		p.times = gene.Choose(times > 0, times, 1)
+	})
+	component.PlaybackConfig.SetPlaybackRemainTimesChange(false, func(times int64) {
+		p.remainTimes = gene.Choose(times >= 0, times, 0)
+	})
 }
 
 // 加载文件
@@ -117,16 +159,5 @@ func (p *playBackServerT) tryLoadFile(fileName string) {
 		p.run = false
 		p.name = fileName
 		p.notes = p.fileControl.ReadFile(fileName)
-	}
-}
-
-// ----------------------- Util -----------------------
-
-// 发布服务错误事件
-func (p *playBackServerT) tryPublishServerError(err error) {
-	if err != nil {
-		_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{
-			ErrInfo: err.Error(),
-		})
 	}
 }

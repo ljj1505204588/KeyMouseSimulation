@@ -9,6 +9,7 @@ import (
 	"KeyMouseSimulation/share/events"
 	"errors"
 	"sync"
+	"time"
 )
 
 func NewHK(name enum.HotKey, key string, exec func()) (HotKeyI, error) {
@@ -112,6 +113,8 @@ type hotKeyT struct {
 	key    string
 	code   keyMouTool.VKCode
 	exec   func()
+
+	lastExec time.Time
 }
 
 func (h *hotKeyT) DefaultKey() string {
@@ -123,11 +126,13 @@ func (h *hotKeyT) SetKey(key string) error {
 		return nil
 	}
 
+	// 冲突判断
 	var code = keyMouTool.VKCodeStringMap[key]
 	if _, ok := manage.hookM.Load(code); ok {
 		return errors.New(language.Center.Get(language.SetHotKeyErrMessageStr))
 	}
 
+	// 旧值删除
 	if h.key != "" {
 		manage.hookM.Delete(h.code)
 	}
@@ -146,7 +151,14 @@ func (h *hotKeyT) SetMethod(f func()) {
 	h.exec = f
 }
 func (h *hotKeyT) ExecMethod() {
-	if h.exec != nil {
+	if h.exec == nil {
+		return
+	}
+
+	// 执行间隔
+	var execTime = time.Now()
+	if time.Since(h.lastExec) > 300*time.Millisecond {
 		h.exec()
+		h.lastExec = execTime
 	}
 }

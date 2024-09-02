@@ -2,24 +2,12 @@ package svcComponent
 
 import (
 	eventCenter "KeyMouseSimulation/common/Event"
+	"KeyMouseSimulation/common/windowsApiTool/windowsHook"
 	component "KeyMouseSimulation/module/baseComponent"
 	"KeyMouseSimulation/share/events"
 	"sync"
 	"time"
 )
-
-type RecordServerI interface {
-	Start()           // 开始
-	Pause()           // 暂停
-	Stop()            // 停止
-	Save(name string) // 存储
-
-	//SetIfTrackMouseMove(sign bool)                        //设置是否记录鼠标移动路径
-}
-
-/*
-*	RecordServerI 实现接口
- */
 
 func GetRecordServer() *RecordServerT {
 	R := RecordServerT{
@@ -28,6 +16,17 @@ func GetRecordServer() *RecordServerT {
 	R.registerHandler()
 	return &R
 }
+
+type RecordServerI interface {
+	Start()           // 开始
+	Pause()           // 暂停
+	Stop()            // 停止
+	Save(name string) // 存储
+}
+
+/*
+*	---------------------------------------------------- RecordServerI ----------------------------------------------------
+ */
 
 type RecordServerT struct {
 	l           sync.Mutex
@@ -40,8 +39,8 @@ type RecordServerT struct {
 	mouseHs    []func(data interface{})
 	keyBoardHs []func(data interface{})
 
-	//recordMouseTrack bool                    //是否记录鼠标移动路径使用
-	//lastMoveEven     *windowsHook.MouseEvent //最后移动事件，配合是否记录鼠标移动路径使用
+	recordMouseTrack bool                    //是否记录鼠标移动路径使用
+	lastMoveEven     *windowsHook.MouseEvent //最后移动事件，配合是否记录鼠标移动路径使用
 }
 
 // Start 开始
@@ -89,6 +88,10 @@ func (r *RecordServerT) registerHandler() {
 		}
 		return
 	})
+
+	component.RecordConfig.SetMouseTrackChange(true, func(record bool) {
+		r.recordMouseTrack = record
+	})
 }
 
 // mouseHandler 鼠标记录
@@ -114,15 +117,4 @@ func (r *RecordServerT) keyBoardHandler(data interface{}) {
 func (r *RecordServerT) lockSelf() func() {
 	r.l.Lock()
 	return r.l.Unlock
-}
-
-// ----------------------- publish -----------------------
-
-// 发布服务错误事件
-func (r *RecordServerT) tryPublishServerError(err error) {
-	if err != nil {
-		_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{
-			ErrInfo: err.Error(),
-		})
-	}
 }

@@ -30,8 +30,9 @@ type functionWailT struct {
 }
 
 type hotKeyButton struct {
-	name enum.HotKey
-	exec func()
+	name   enum.HotKey
+	exec   func()
+	hkExec func()
 
 	*walk.PushButton
 	component.HotKeyI
@@ -41,15 +42,15 @@ func (t *FunctionT) Init() {
 	t.file = component.FileControl
 
 	t.buttons = []hotKeyButton{
-		{name: enum.HotKeyRecord, exec: t.recordButtonClick}, // PushButton: &walk.PushButton{}
-		{name: enum.HotKeyPlayBack, exec: t.playbackButtonClick},
-		{name: enum.HotKeyPause, exec: t.pauseButtonClick},
-		{name: enum.HotKeyStop, exec: t.stopButtonClick},
+		{name: enum.HotKeyRecord, exec: t.recordButtonClick, hkExec: t.recordButtonClick},
+		{name: enum.HotKeyPlayBack, exec: t.playbackButtonClick, hkExec: t.playbackButtonClick},
+		{name: enum.HotKeyPause, exec: t.pauseButtonClick, hkExec: t.pauseButtonClick},
+		{name: enum.HotKeyStop, exec: t.stopButtonClick, hkExec: t.simStopButtonClick},
 	}
 
 	var err error
 	for i, but := range t.buttons {
-		t.buttons[i].HotKeyI, err = component.NewHK(but.name, but.name.DefKey(), but.exec)
+		t.buttons[i].HotKeyI, err = component.NewHK(but.name, but.name.DefKey(), but.hkExec)
 		commonTool.MustNil(err)
 		t.widget = append(t.widget, PushButton{AssignTo: &(t.buttons[i].PushButton), ColumnSpan: 4, OnClicked: but.exec})
 	}
@@ -68,7 +69,6 @@ func (t *FunctionT) DisPlay(mw **walk.MainWindow) []Widget {
 // --------------------------------------- 按钮功能 ----------------------------------------------
 
 func (t *FunctionT) recordButtonClick() {
-	// todo 考虑要不要锁
 	t.publishButtonClick(enum.RecordButton, "")
 }
 func (t *FunctionT) playbackButtonClick() {

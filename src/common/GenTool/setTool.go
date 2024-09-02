@@ -96,3 +96,10 @@ func Equal[T comparable](ls ...[]T) bool {
 
 	return true
 }
+
+func Choose[T any](j bool, x, y T) T {
+	if j {
+		return x
+	}
+	return y
+}

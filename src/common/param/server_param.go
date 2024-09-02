@@ -2,10 +2,10 @@ package param
 
 var ServerParam serverParamT
 
-func init() {
-	ServerParam.defaultParam()
-	Manager.Register(&ServerParam)
-}
+//func init() {
+//	ServerParam.defaultParam()
+//	Manager.Register(&ServerParam)
+//}
 
 type serverParamT struct {
 	ServerPort int

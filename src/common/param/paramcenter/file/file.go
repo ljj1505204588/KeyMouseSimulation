@@ -29,7 +29,6 @@ func (fd *fileDealT) init() {
 }
 
 func (fd *fileDealT) Read() (data []modData, err error) {
-
 	var text []byte
 	if text, err = os.ReadFile(fd.path); err != nil {
 		return

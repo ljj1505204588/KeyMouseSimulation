@@ -1,6 +1,9 @@
 package commonTool
 
-import "runtime"
+import (
+	"runtime"
+	"sync"
+)
 
 var sysPath string
 
@@ -37,4 +40,9 @@ func Min[T Number](a, b T) T {
 		return a
 	}
 	return b
+}
+
+func LockSelf(l *sync.Mutex) func() {
+	l.Lock()
+	return l.Unlock
 }

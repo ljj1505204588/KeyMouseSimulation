@@ -5,27 +5,40 @@ import (
 	"KeyMouseSimulation/module/server/status"
 	"KeyMouseSimulation/share/enum"
 	"KeyMouseSimulation/share/events"
+	"sync"
 )
 
 func init() {
-	eventCenter.Event.Register(events.ButtonClick, buttonClickHandler)
+	eventCenter.Event.Register(events.ButtonClick, server.buttonClickHandler)
 }
 
-var control = status.NewKmStatusI()
+var server = &serverT{
+	control: status.NewKmStatusI(),
+}
 
-func buttonClickHandler(data interface{}) (err error) {
-	var d = data.(events.ButtonClickData)
-	switch d.Button {
+type serverT struct {
+	control status.KmStatusI
+	lock    sync.Mutex
+}
+
+func (s *serverT) buttonClickHandler(dataI interface{}) (err error) {
+	if !s.lock.TryLock() {
+		return
+	}
+	defer s.lock.Unlock()
+
+	var data = dataI.(events.ButtonClickData)
+	switch data.Button {
 	case enum.RecordButton:
-		control.Record()
+		s.control.Record()
 	case enum.PlaybackButton:
-		control.Playback(d.Name)
+		s.control.Playback(data.Name)
 	case enum.PauseButton:
-		control.Pause()
+		s.control.Pause()
 	case enum.StopButton:
-		control.Stop()
+		s.control.Stop()
 	case enum.SaveFileButton:
-		control.Save(d.Name)
+		s.control.Save(data.Name)
 	}
 	return
 }

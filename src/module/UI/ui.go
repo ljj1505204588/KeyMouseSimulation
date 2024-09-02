@@ -19,7 +19,7 @@ type ControlT struct {
 var c = &ControlT{
 	widgets: []KmWidget{
 		&uiComponent.FunctionT{},
-		&uiComponent.ConfigT{},
+		&uiComponent.ConfigManageT{},
 		&uiComponent.SystemT{},
 	},
 	menuItems: []KmMenuItem{
@@ -56,7 +56,7 @@ func MainWindows() {
 	_, err := MainWindow{
 		AssignTo: c.MWPoint(),
 		Title:    language.Center.Get(language.MainWindowTitleStr),
-		Size:     Size{Width: 320, Height: 240},
+		Size:     Size{Width: 320, Height: 400},
 		Layout:   Grid{Columns: 8, Alignment: AlignHNearVCenter},
 		Children: widget,
 		//工具栏

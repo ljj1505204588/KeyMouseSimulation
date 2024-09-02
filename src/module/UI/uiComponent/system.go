@@ -6,6 +6,7 @@ import (
 	"KeyMouseSimulation/share/events"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
+	"strings"
 	"sync"
 	"time"
 )
@@ -18,8 +19,10 @@ type SystemT struct {
 	//系统状态
 	statusLabel *walk.Label
 	statusEdit  *walk.LineEdit
-	errorLabel  *walk.Label
-	errorEdit   *walk.TextEdit
+
+	errorLabel *walk.Label
+	errorEdit  *walk.TextEdit
+	historyErr []string
 
 	widgets []Widget
 }
@@ -73,14 +76,28 @@ func (t *SystemT) register() {
 }
 
 // 订阅错误事件
-func (t *SystemT) subShowError(data interface{}) (err error) {
-	d := data.(events.ServerErrorData)
-
+func (t *SystemT) subShowError(dataI interface{}) (err error) {
 	if t.errorEdit == nil {
 		return
 	}
 
-	return t.errorEdit.SetText(d.ErrInfo)
+	// 日志记录
+	var data = dataI.(events.ServerErrorData)
+	t.historyErr = append(t.historyErr, data.ErrInfo+"\n")
+
+	var textBuild = strings.Builder{}
+	textBuild.WriteString(data.ErrInfo)
+
+	var hisLen = len(t.historyErr)
+	for i := hisLen - 1; i >= 0 && i >= hisLen-10; i-- {
+		textBuild.WriteString(t.historyErr[i])
+	}
+
+	if len(t.historyErr) > 1000 {
+		t.historyErr = t.historyErr[hisLen-100:]
+	}
+
+	return t.errorEdit.SetText(textBuild.String())
 }
 
 // 订阅状态变动事件

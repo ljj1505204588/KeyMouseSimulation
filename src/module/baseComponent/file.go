@@ -3,6 +3,7 @@ package component
 import (
 	eventCenter "KeyMouseSimulation/common/Event"
 	gene "KeyMouseSimulation/common/GenTool"
+	"KeyMouseSimulation/common/commonTool"
 	"KeyMouseSimulation/common/logTool"
 	windowsApi "KeyMouseSimulation/common/windowsApiTool"
 	"KeyMouseSimulation/module/language"
@@ -35,7 +36,11 @@ func init() {
 	var f = fileControlT{}
 	f.once.Do(func() {
 		f.getWindowRect()
+
 		f.basePath, _ = os.Getwd()
+		f.basePath = filepath.Join(f.basePath, "record")
+		commonTool.MustNil(os.MkdirAll(f.basePath, 0666))
+
 		go f.scanFile()
 	})
 	FileControl = &f
@@ -63,8 +68,8 @@ func (f *fileControlT) Save(name string, data []NoteT) {
 	logTool.DebugAJ(fmt.Sprintf("record 开始记录文件[%s],长度[%d]", name, len(data)))
 
 	// 打开文件
-	name = filepath.Join(f.basePath, name+FileExt)
-	var file, err = os.OpenFile(name, os.O_CREATE|os.O_RDWR|os.O_APPEND|os.O_TRUNC, 0772)
+	var filePath = filepath.Join(f.basePath, name+FileExt)
+	var file, err = os.OpenFile(filePath, os.O_CREATE|os.O_RDWR|os.O_APPEND|os.O_TRUNC, 0772)
 	if err != nil {
 		f.publishErr(err)
 		return
@@ -76,6 +81,8 @@ func (f *fileControlT) Save(name string, data []NoteT) {
 	if _, err = file.Write(js); err != nil {
 		f.publishErr(err)
 	}
+
+	f.fileName = append(f.fileName, name)
 }
 
 // ReadFile 读取文件
@@ -134,7 +141,7 @@ func (f *fileControlT) scanFile() {
 	for {
 		var names []string
 		//遍历存储当前文件名字
-		if fs, err := os.ReadDir("./"); err == nil {
+		if fs, err := os.ReadDir(f.basePath); err == nil {
 			for _, per := range fs {
 				if filepath.Ext(per.Name()) == FileExt {
 					name := filepath.Base(per.Name())
@@ -146,8 +153,8 @@ func (f *fileControlT) scanFile() {
 		//对比
 		if newFile := gene.Exclude(names, f.fileName); len(newFile) != 0 {
 			if f.changeExec != nil {
-				f.changeExec(names, newFile)
 				f.fileName = names
+				f.changeExec(names, newFile)
 			}
 		}
 		time.Sleep(2 * time.Second)
