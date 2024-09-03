@@ -98,12 +98,13 @@ func (p *playBackServerT) checkPlayBackFinish(index int64) bool {
 		atomic.SwapInt64(&p.notesIndex, 0)
 
 		if p.remainTimes >= 1 {
+			defer component.PlaybackConfig.SetPlaybackRemainTimes(p.remainTimes - 1)
+
 			if p.remainTimes == 1 {
-				_ = eventCenter.Event.Publish(events2.PlayBackFinish, events2.PlayBackFinishData{})
+				_ = eventCenter.Event.Publish(events2.PlaybackFinish, events2.PlayBackFinishData{})
 				p.run = false
 				return true
 			}
-			component.PlaybackConfig.SetPlaybackRemainTimes(p.remainTimes - 1)
 		}
 
 	}
@@ -129,6 +130,7 @@ func (p *playBackServerT) mouseInput(note *keyMouTool.NoteT) {
 		publishServerError(err)
 	}
 }
+
 func (p *playBackServerT) keyBoardInput(note *keyMouTool.NoteT) {
 	if err := eventCenter.Event.Publish(events2.WindowsKeyBoardInput, events2.WindowsKeyBoardInputData{
 		Data: &keyMouTool.KeyInputT{

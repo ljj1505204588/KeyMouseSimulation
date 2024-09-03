@@ -139,7 +139,7 @@ var chinesMap = map[DisPlay]string{
 	HotKeyPauseStr:              "热键暂停",
 	HotKeyRecordStartStr:        "热键记录",
 	HotKeyPlaybackStartStr:      "热键回放",
-	ErrorStatusChangeError:      "状态变动错误。",
+	ErrorStatusChangeError:      "状态错误调用方法。",
 
 	ErrorSetHotkeyInFreeStatusStr:  "只有空闲状态能够设置热键。",
 	ErrorSetHotkeyWithoutHotkeyStr: "非法的空值热键。",

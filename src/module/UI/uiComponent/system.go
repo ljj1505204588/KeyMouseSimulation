@@ -106,7 +106,7 @@ func (t *SystemT) subServerStatusChange(data interface{}) (err error) {
 		time.Sleep(10 * time.Millisecond)
 	}
 
-	if err = t.statusEdit.SetText(string(d.Status)); err != nil {
+	if err = t.statusEdit.SetText(d.Status.Language()); err != nil {
 		return
 	}
 

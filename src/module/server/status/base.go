@@ -37,6 +37,7 @@ func (k *kmStatusT) init() {
 
 	var baseStatus = &baseStatusT{
 		setStatus: k.setStatus,
+		getStatus: k.getStatus,
 		playBack:  svcComponent.GetPlaybackServer(),
 		record:    svcComponent.GetRecordServer(),
 	}
@@ -51,6 +52,10 @@ func (k *kmStatusT) init() {
 	go k.syncServerStatus()
 }
 
+func (k *kmStatusT) getStatus() enum.Status {
+	return k.KmStatusI.Status()
+}
+
 func (k *kmStatusT) setStatus(e enum.Status) {
 	defer k.lockSelf()()
 	k.KmStatusI = k.statusBox[e]
@@ -58,6 +63,7 @@ func (k *kmStatusT) setStatus(e enum.Status) {
 		Status: e,
 	}))
 }
+
 func (k *kmStatusT) syncServerStatus() {
 	defer func() { go k.syncServerStatus() }()
 
@@ -77,30 +83,39 @@ func (k *kmStatusT) lockSelf() func() {
 
 type baseStatusT struct {
 	setStatus func(enum.Status)
+	getStatus func() enum.Status
 	playBack  svcComponent.PlayBackServerI
 	record    svcComponent.RecordServerI
 }
 
 func (s *baseStatusT) Record() {
 	_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{
-		ErrInfo: fmt.Sprintf("[%s]%s", language.Center.Get(language.RecordStr), language.Center.Get(language.ErrorStatusChangeError)),
+		ErrInfo: fmt.Sprintf("[%s]->[%s] %s",
+			s.getStatus().Language(), language.Center.Get(language.RecordStr), language.Center.Get(language.ErrorStatusChangeError)),
 	})
 }
+
 func (s *baseStatusT) Playback(name string) {
 	_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{
-		ErrInfo: fmt.Sprintf("[%s]%s", language.Center.Get(language.PlaybackStr), language.Center.Get(language.ErrorStatusChangeError)),
+		ErrInfo: fmt.Sprintf("[%s]->[%s] %s",
+			s.getStatus().Language(), language.Center.Get(language.PlaybackStr), language.Center.Get(language.ErrorStatusChangeError)),
 	})
 }
+
 func (s *baseStatusT) Pause() {
 	_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{
-		ErrInfo: fmt.Sprintf("[%s]%s", language.Center.Get(language.PauseStr), language.Center.Get(language.ErrorStatusChangeError)),
+		ErrInfo: fmt.Sprintf("[%s]->[%s] %s",
+			s.getStatus().Language(), language.Center.Get(language.PauseStr), language.Center.Get(language.ErrorStatusChangeError)),
 	})
 }
+
 func (s *baseStatusT) Stop() {
 	_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{
-		ErrInfo: fmt.Sprintf("[%s]%s", language.Center.Get(language.StopStr), language.Center.Get(language.ErrorStatusChangeError)),
+		ErrInfo: fmt.Sprintf("[%s]->[%s] %s",
+			s.getStatus().Language(), language.Center.Get(language.StopStr), language.Center.Get(language.ErrorStatusChangeError)),
 	})
 }
+
 func tryPublishErr(err error) {
 	if err != nil {
 		_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{ErrInfo: err.Error()})

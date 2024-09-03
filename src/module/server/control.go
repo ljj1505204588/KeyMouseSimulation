@@ -2,6 +2,7 @@ package server
 
 import (
 	eventCenter "KeyMouseSimulation/common/Event"
+	"KeyMouseSimulation/common/commonTool"
 	"KeyMouseSimulation/common/share/enum"
 	"KeyMouseSimulation/common/share/events"
 	"KeyMouseSimulation/module/server/status"
@@ -10,6 +11,7 @@ import (
 
 func init() {
 	eventCenter.Event.Register(events.ButtonClick, server.buttonClickHandler)
+	eventCenter.Event.Register(events.PlaybackFinish, server.playbackHandler)
 }
 
 var server = &serverT{
@@ -21,6 +23,12 @@ type serverT struct {
 	control status.KmStatusI
 }
 
+func (s *serverT) playbackHandler(dataI interface{}) (err error) {
+	defer commonTool.LockSelf(&s.lock)()
+
+	s.control.Stop()
+	return
+}
 func (s *serverT) buttonClickHandler(dataI interface{}) (err error) {
 	if !s.lock.TryLock() {
 		return
