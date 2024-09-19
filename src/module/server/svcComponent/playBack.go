@@ -51,6 +51,11 @@ type playBackServerT struct {
 	input map[keyMouTool.InputType]func(note *keyMouTool.NoteT)
 }
 
+type playBackDebug struct {
+	start      time.Time
+	recordTime int64
+}
+
 // Start 开始
 func (p *playBackServerT) Start(fileName string) {
 	p.tryLoadFile(fileName)

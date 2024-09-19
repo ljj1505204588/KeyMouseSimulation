@@ -135,7 +135,7 @@ func (c *recordConfig) disPlay() []Widget {
 }
 func (c *recordConfig) register() {
 	language.Center.RegisterChange(c.languageHandler)
-
+	component.RecordConfig.SetMouseTrackChange(false, c.ifTrackMouseMoveRegister)
 }
 
 // 语言变动回调
@@ -150,6 +150,11 @@ func (c *recordConfig) languageHandler() {
 // 设置是否追踪鼠标移动路径
 func (c *recordConfig) setIfTrackMouseMoveClick() {
 	component.RecordConfig.SetMouseTrack(c.ifMouseTrackCheck.Checked())
+}
+
+// 鼠标移动路径变动回调
+func (c *recordConfig) ifTrackMouseMoveRegister(track bool) {
+	c.ifMouseTrackCheck.SetChecked(track)
 }
 
 // --------------------------------------- 回放 ----------------------------------------------

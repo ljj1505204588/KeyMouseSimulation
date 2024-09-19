@@ -29,6 +29,7 @@ func (s *serverT) playbackHandler(dataI interface{}) (err error) {
 	s.control.Stop()
 	return
 }
+
 func (s *serverT) buttonClickHandler(dataI interface{}) (err error) {
 	if !s.lock.TryLock() {
 		return
