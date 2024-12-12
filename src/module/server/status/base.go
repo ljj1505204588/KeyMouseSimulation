@@ -4,7 +4,7 @@ import (
 	eventCenter "KeyMouseSimulation/common/Event"
 	"KeyMouseSimulation/common/share/enum"
 	"KeyMouseSimulation/common/share/events"
-	"KeyMouseSimulation/module/language"
+	"KeyMouseSimulation/module/baseComponent"
 	"KeyMouseSimulation/module/server/svcComponent"
 	"fmt"
 	"sync"
@@ -91,28 +91,28 @@ type baseStatusT struct {
 func (s *baseStatusT) Record() {
 	_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{
 		ErrInfo: fmt.Sprintf("[%s]->[%s] %s",
-			s.getStatus().Language(), language.Center.Get(language.RecordStr), language.Center.Get(language.ErrorStatusChangeError)),
+			s.getStatus().Language(), component.Center.Get(component.RecordStr), component.Center.Get(component.ErrorStatusChangeError)),
 	})
 }
 
 func (s *baseStatusT) Playback(name string) {
 	_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{
 		ErrInfo: fmt.Sprintf("[%s]->[%s] %s",
-			s.getStatus().Language(), language.Center.Get(language.PlaybackStr), language.Center.Get(language.ErrorStatusChangeError)),
+			s.getStatus().Language(), component.Center.Get(component.PlaybackStr), component.Center.Get(component.ErrorStatusChangeError)),
 	})
 }
 
 func (s *baseStatusT) Pause() {
 	_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{
 		ErrInfo: fmt.Sprintf("[%s]->[%s] %s",
-			s.getStatus().Language(), language.Center.Get(language.PauseStr), language.Center.Get(language.ErrorStatusChangeError)),
+			s.getStatus().Language(), component.Center.Get(component.PauseStr), component.Center.Get(component.ErrorStatusChangeError)),
 	})
 }
 
 func (s *baseStatusT) Stop() {
 	_ = eventCenter.Event.Publish(events.ServerError, events.ServerErrorData{
 		ErrInfo: fmt.Sprintf("[%s]->[%s] %s",
-			s.getStatus().Language(), language.Center.Get(language.StopStr), language.Center.Get(language.ErrorStatusChangeError)),
+			s.getStatus().Language(), component.Center.Get(component.StopStr), component.Center.Get(component.ErrorStatusChangeError)),
 	})
 }
 

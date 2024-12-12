@@ -3,7 +3,6 @@ package uiComponent
 import (
 	gene "KeyMouseSimulation/common/GenTool"
 	component "KeyMouseSimulation/module/baseComponent"
-	"KeyMouseSimulation/module/language"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
 	"math"
@@ -67,7 +66,7 @@ func (c *fileConfig) disPlay() []Widget {
 }
 
 func (c *fileConfig) register() {
-	language.Center.RegisterChange(c.languageHandler)
+	component.Center.RegisterChange(c.languageHandler)
 	c.fileComponent.FileChange(c.fileChangeHandler)
 }
 
@@ -76,7 +75,7 @@ func (c *fileConfig) languageHandler() {
 	for c.fileLabel == nil {
 		time.Sleep(20 * time.Millisecond)
 	}
-	tryPublishErr(c.fileLabel.SetText(language.Center.Get(language.FileLabelStr)))
+	tryPublishErr(c.fileLabel.SetText(component.Center.Get(component.FileLabelStr)))
 }
 
 // chooseFile 选择文件
@@ -126,7 +125,7 @@ type recordConfig struct {
 func (c *recordConfig) init() {
 	c.widget = []Widget{
 		//鼠标路径
-		Label{AssignTo: &c.ifMouseTrackLabel, Text: language.Center.Get(language.MouseTrackStr), ColumnSpan: 4},
+		Label{AssignTo: &c.ifMouseTrackLabel, Text: component.Center.Get(component.MouseTrackStr), ColumnSpan: 4},
 		CheckBox{AssignTo: &c.ifMouseTrackCheck, ColumnSpan: 4, Checked: true, Alignment: AlignHCenterVCenter, OnCheckedChanged: c.setIfTrackMouseMoveClick},
 	}
 }
@@ -134,7 +133,7 @@ func (c *recordConfig) disPlay() []Widget {
 	return c.widget
 }
 func (c *recordConfig) register() {
-	language.Center.RegisterChange(c.languageHandler)
+	component.Center.RegisterChange(c.languageHandler)
 	component.RecordConfig.SetMouseTrackChange(false, c.ifTrackMouseMoveRegister)
 }
 
@@ -144,7 +143,7 @@ func (c *recordConfig) languageHandler() {
 		time.Sleep(20 * time.Millisecond)
 	}
 
-	tryPublishErr(c.ifMouseTrackLabel.SetText(language.Center.Get(language.MouseTrackStr)))
+	tryPublishErr(c.ifMouseTrackLabel.SetText(component.Center.Get(component.MouseTrackStr)))
 }
 
 // 设置是否追踪鼠标移动路径
@@ -194,7 +193,7 @@ func (c *playbackConfig) disPlay() []Widget {
 }
 
 func (c *playbackConfig) register() {
-	language.Center.RegisterChange(c.languageHandler)
+	component.Center.RegisterChange(c.languageHandler)
 	component.PlaybackConfig.SetPlaybackRemainTimesChange(false, c.playbackRemainTimesHandler)
 }
 
@@ -204,9 +203,9 @@ func (c *playbackConfig) languageHandler() {
 		time.Sleep(20 * time.Millisecond)
 	}
 
-	tryPublishErr(c.playbackTimesLabel.SetText(language.Center.Get(language.PlayBackTimesLabelStr)))
-	tryPublishErr(c.currentTimesLabel.SetText(language.Center.Get(language.CurrentTimesLabelStr)))
-	tryPublishErr(c.speedLabel.SetText(language.Center.Get(language.SpeedLabelStr)))
+	tryPublishErr(c.playbackTimesLabel.SetText(component.Center.Get(component.PlayBackTimesLabelStr)))
+	tryPublishErr(c.currentTimesLabel.SetText(component.Center.Get(component.CurrentTimesLabelStr)))
+	tryPublishErr(c.speedLabel.SetText(component.Center.Get(component.SpeedLabelStr)))
 }
 
 // 设置回放速度

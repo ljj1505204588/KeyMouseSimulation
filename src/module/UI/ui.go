@@ -3,7 +3,7 @@ package ui
 import (
 	"KeyMouseSimulation/common/logTool"
 	"KeyMouseSimulation/module/UI/uiComponent"
-	"KeyMouseSimulation/module/language"
+	"KeyMouseSimulation/module/baseComponent"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
 	"time"
@@ -32,11 +32,11 @@ func (t *ControlT) MWPoint() **walk.MainWindow {
 }
 
 func (t *ControlT) Init() {
-	language.Center.RegisterChange(func() {
+	component.Center.RegisterChange(func() {
 		t.mw.SetVisible(false)
 		t.mw.SetVisible(true)
 	})
-	go language.Center.SetLanguage(language.Chinese)
+	go component.Center.SetLanguage(component.Chinese)
 }
 
 // ----------------------- 主窗口 -----------------------
@@ -55,7 +55,7 @@ func MainWindows() {
 	c.Init()
 	_, err := MainWindow{
 		AssignTo: c.MWPoint(),
-		Title:    language.Center.Get(language.MainWindowTitleStr),
+		Title:    component.Center.Get(component.MainWindowTitleStr),
 		Size:     Size{Width: 320, Height: 400},
 		Layout:   Grid{Columns: 8, Alignment: AlignHNearVCenter},
 		Children: widget,

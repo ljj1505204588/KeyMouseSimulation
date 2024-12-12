@@ -5,7 +5,6 @@ import (
 	"KeyMouseSimulation/common/share/enum"
 	"KeyMouseSimulation/common/windowsApiTool/windowsInput/keyMouTool"
 	component "KeyMouseSimulation/module/baseComponent"
-	"KeyMouseSimulation/module/language"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
 	"sort"
@@ -42,11 +41,11 @@ func (t *MenuItemT) Init() {
 		Menu{AssignActionTo: &t.settingMenu, Items: []MenuItem{
 			Action{AssignTo: &t.setHotkeyAction, OnTriggered: t.setHotKeyPop},
 			Menu{AssignActionTo: &t.languageMenu, Items: []MenuItem{
-				Action{Text: string(language.English), OnTriggered: func() {
-					language.Center.SetLanguage(language.English)
+				Action{Text: string(component.English), OnTriggered: func() {
+					component.Center.SetLanguage(component.English)
 				}},
-				Action{Text: string(language.Chinese), OnTriggered: func() {
-					language.Center.SetLanguage(language.Chinese)
+				Action{Text: string(component.Chinese), OnTriggered: func() {
+					component.Center.SetLanguage(component.Chinese)
 				}},
 			},
 			},
@@ -56,7 +55,7 @@ func (t *MenuItemT) Init() {
 		}},
 	}
 
-	language.Center.RegisterChange(t.changeLanguageHandler)
+	component.Center.RegisterChange(t.changeLanguageHandler)
 }
 
 // 设置热键弹窗
@@ -75,7 +74,7 @@ func (t *MenuItemT) setHotKeyPop() {
 	for name, hk := range component.GetAllHk() {
 		var set = hkSetT{name: name, hk: hk, box: &walk.ComboBox{}}
 		set.widget = []Widget{
-			Label{Text: language.Center.Get(name.Language()), ColumnSpan: 1},
+			Label{Text: component.Center.Get(name.Language()), ColumnSpan: 1},
 			ComboBox{AssignTo: &set.box, ColumnSpan: 1, Model: keyMouTool.VKCodeStringKeys, Editable: true, Value: hk.Key(), OnCurrentIndexChanged: func() {
 				setM[set.hk] = set.box.Text()
 			}},
@@ -101,29 +100,29 @@ func (t *MenuItemT) setHotKeyPop() {
 
 	var dlg *walk.Dialog
 	hkWidget = append(hkWidget, []Widget{
-		PushButton{ColumnSpan: 4, Text: language.Center.Get(language.ResetStr), OnClicked: func() {
+		PushButton{ColumnSpan: 4, Text: component.Center.Get(component.ResetStr), OnClicked: func() {
 			for _, reset := range resetMethod {
 				reset()
 			}
 		}},
 
-		PushButton{AssignTo: &t.acceptPB, ColumnSpan: 2, Text: language.Center.Get(language.OKStr), OnClicked: func() {
+		PushButton{AssignTo: &t.acceptPB, ColumnSpan: 2, Text: component.Center.Get(component.OKStr), OnClicked: func() {
 			var keys []string
 			for _, key := range setM {
 				keys = append(keys, key)
 			}
 
 			if len(gene.RemoveDuplicate(keys)) != len(keys) {
-				walk.MsgBox(dlg, language.Center.Get(language.ErrWindowTitleStr), language.Center.Get(language.SetHotKeyErrMessageStr), walk.MsgBoxIconInformation)
+				walk.MsgBox(dlg, component.Center.Get(component.ErrWindowTitleStr), component.Center.Get(component.SetHotKeyErrMessageStr), walk.MsgBoxIconInformation)
 				return
 			}
 
 			dlg.Accept()
 		}},
-		PushButton{AssignTo: &t.cancelPB, ColumnSpan: 2, Text: language.Center.Get(language.CancelStr), OnClicked: func() { dlg.Cancel() }},
+		PushButton{AssignTo: &t.cancelPB, ColumnSpan: 2, Text: component.Center.Get(component.CancelStr), OnClicked: func() { dlg.Cancel() }},
 	}...)
 
-	cmd, _ := Dialog{AssignTo: &dlg, Title: language.Center.Get(language.SetHotKeyWindowTitleStr),
+	cmd, _ := Dialog{AssignTo: &dlg, Title: component.Center.Get(component.SetHotKeyWindowTitleStr),
 		DefaultButton: &t.acceptPB, CancelButton: &t.cancelPB,
 		Size: Size{Width: 350, Height: 200}, Layout: Grid{Columns: 4},
 		Children: hkWidget,
@@ -131,7 +130,7 @@ func (t *MenuItemT) setHotKeyPop() {
 
 	if cmd == walk.DlgCmdOK {
 		tryPublishErr(component.MulSetKey(setM))
-		language.Center.Refresh()
+		component.Center.Refresh()
 	}
 }
 
@@ -157,14 +156,14 @@ func (t *MenuItemT) changeLanguageHandler() {
 		time.Sleep(10 * time.Millisecond)
 	}
 
-	tryPublishErr(t.settingMenu.SetText(language.Center.Get(language.MenuSettingStr)))
-	tryPublishErr(t.languageMenu.SetText(language.Center.Get(language.MenuItemLanguageStr)))
-	tryPublishErr(t.setHotkeyAction.SetText(language.Center.Get(language.ActionSetHotKeyStr)))
-	tryPublishErr(t.helpMenu.SetText(language.Center.Get(language.MenuHelpStr)))
-	tryPublishErr(t.aboutAction.SetText(language.Center.Get(language.ActionAboutStr)))
+	tryPublishErr(t.settingMenu.SetText(component.Center.Get(component.MenuSettingStr)))
+	tryPublishErr(t.languageMenu.SetText(component.Center.Get(component.MenuItemLanguageStr)))
+	tryPublishErr(t.setHotkeyAction.SetText(component.Center.Get(component.ActionSetHotKeyStr)))
+	tryPublishErr(t.helpMenu.SetText(component.Center.Get(component.MenuHelpStr)))
+	tryPublishErr(t.aboutAction.SetText(component.Center.Get(component.ActionAboutStr)))
 }
 
 // 系统信息
 func (t *MenuItemT) showAboutBoxAction() {
-	walk.MsgBox(*t.mw, language.Center.Get(language.AboutWindowTitleStr), language.Center.Get(language.AboutMessageStr), walk.MsgBoxIconInformation)
+	walk.MsgBox(*t.mw, component.Center.Get(component.AboutWindowTitleStr), component.Center.Get(component.AboutMessageStr), walk.MsgBoxIconInformation)
 }

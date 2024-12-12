@@ -1,4 +1,4 @@
-package language
+package component
 
 type (
 	DisPlay int64

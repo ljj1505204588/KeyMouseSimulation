@@ -6,7 +6,6 @@ import (
 	"KeyMouseSimulation/common/share/enum"
 	"KeyMouseSimulation/common/share/events"
 	"KeyMouseSimulation/common/windowsApiTool/windowsInput/keyMouTool"
-	"KeyMouseSimulation/module/language"
 	"errors"
 	"sync"
 	"time"
@@ -53,7 +52,7 @@ func MulSetKey(mul map[HotKeyI]string) (err error) {
 		current[hk.Key()] = hk
 	}
 	if len(gene.RemoveDuplicate(saveKeys)) != len(saveKeys) {
-		return errors.New(language.Center.Get(language.SetHotKeyErrMessageStr))
+		return errors.New(Center.Get(SetHotKeyErrMessageStr))
 	}
 
 	for hk, key := range mul {
@@ -128,7 +127,7 @@ func (h *hotKeyT) SetKey(key string) error {
 	// 冲突判断
 	var code = keyMouTool.VKCodeStringMap[key]
 	if _, ok := manage.hookM.Load(code); ok {
-		return errors.New(language.Center.Get(language.SetHotKeyErrMessageStr))
+		return errors.New(Center.Get(SetHotKeyErrMessageStr))
 	}
 
 	// 旧值删除

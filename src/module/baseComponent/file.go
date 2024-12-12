@@ -8,7 +8,6 @@ import (
 	"KeyMouseSimulation/common/share/events"
 	windowsApi "KeyMouseSimulation/common/windowsApiTool"
 	"KeyMouseSimulation/common/windowsApiTool/windowsInput/keyMouTool"
-	"KeyMouseSimulation/module/language"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -127,7 +126,7 @@ func (f *fileControlT) FileChange(exec func(names, newNames []string)) {
 // Choose 文件选择
 func (f *fileControlT) Choose(name string) error {
 	if !gene.Contain(f.fileName, name) {
-		return errors.New(language.Center.Get(language.ErrorSaveFileNameNilStr))
+		return errors.New(Center.Get(ErrorSaveFileNameNilStr))
 	}
 
 	f.current = name

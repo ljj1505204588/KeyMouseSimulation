@@ -6,7 +6,6 @@ import (
 	enum2 "KeyMouseSimulation/common/share/enum"
 	"KeyMouseSimulation/common/share/events"
 	component "KeyMouseSimulation/module/baseComponent"
-	"KeyMouseSimulation/module/language"
 	"fmt"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
@@ -55,7 +54,7 @@ func (t *FunctionT) Init() {
 		t.widget = append(t.widget, PushButton{AssignTo: &(t.buttons[i].PushButton), ColumnSpan: 4, OnClicked: but.exec})
 	}
 
-	language.Center.RegisterChange(t.changeLanguageHandler)
+	component.Center.RegisterChange(t.changeLanguageHandler)
 	eventCenter.Event.Register(events.RecordFinish, t.recordFinishHandler)
 }
 
@@ -115,14 +114,14 @@ func (t *FunctionT) setFileName() (fileName string, ok bool) {
 	var dlg *walk.Dialog
 	var acceptPB, cancelPB *walk.PushButton
 
-	cmd, err := Dialog{AssignTo: &dlg, Title: language.Center.Get(language.SetFileWindowTitleStr),
+	cmd, err := Dialog{AssignTo: &dlg, Title: component.Center.Get(component.SetFileWindowTitleStr),
 		DefaultButton: &acceptPB, CancelButton: &cancelPB,
 		Size: Size{Width: 350, Height: 200}, Layout: Grid{Columns: 4},
 		Children: []Widget{
-			TextLabel{Text: language.Center.Get(language.SetFileLabelStr), ColumnSpan: 4},
+			TextLabel{Text: component.Center.Get(component.SetFileLabelStr), ColumnSpan: 4},
 			LineEdit{AssignTo: &nameEdit, ColumnSpan: 4, OnTextChanged: func() { fileName = nameEdit.Text() }},
-			PushButton{AssignTo: &acceptPB, ColumnSpan: 2, Text: language.Center.Get(language.OKStr), OnClicked: func() { dlg.Accept() }},
-			PushButton{AssignTo: &cancelPB, ColumnSpan: 2, Text: language.Center.Get(language.CancelStr), OnClicked: func() { dlg.Cancel() }},
+			PushButton{AssignTo: &acceptPB, ColumnSpan: 2, Text: component.Center.Get(component.OKStr), OnClicked: func() { dlg.Accept() }},
+			PushButton{AssignTo: &cancelPB, ColumnSpan: 2, Text: component.Center.Get(component.CancelStr), OnClicked: func() { dlg.Cancel() }},
 		},
 		Enabled: true,
 	}.Run(*t.mw)
@@ -139,7 +138,7 @@ func (t *FunctionT) changeLanguageHandler() {
 	}
 
 	for _, but := range t.buttons {
-		tryPublishErr(but.SetText(fmt.Sprintf("%s %s", language.Center.Get(but.name.Language()), but.Key())))
+		tryPublishErr(but.SetText(fmt.Sprintf("%s %s", component.Center.Get(but.name.Language()), but.Key())))
 	}
 }
 

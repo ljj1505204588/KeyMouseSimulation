@@ -3,7 +3,7 @@ package uiComponent
 import (
 	eventCenter "KeyMouseSimulation/common/Event"
 	"KeyMouseSimulation/common/share/events"
-	"KeyMouseSimulation/module/language"
+	"KeyMouseSimulation/module/baseComponent"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
 	"strings"
@@ -62,14 +62,14 @@ func (t *SystemT) changeLanguageHandler() {
 		time.Sleep(10 * time.Millisecond)
 	}
 
-	_ = t.statusLabel.SetText(language.Center.Get(language.StatusLabelStr))
-	_ = t.errorLabel.SetText(language.Center.Get(language.ErrorLabelStr))
+	_ = t.statusLabel.SetText(component.Center.Get(component.StatusLabelStr))
+	_ = t.errorLabel.SetText(component.Center.Get(component.ErrorLabelStr))
 }
 
 // --------------------------------------- 订阅事件 ----------------------------------------------
 
 func (t *SystemT) register() {
-	language.Center.RegisterChange(t.changeLanguageHandler)
+	component.Center.RegisterChange(t.changeLanguageHandler)
 
 	eventCenter.Event.Register(events.ServerError, t.subShowError)
 	eventCenter.Event.Register(events.ServerStatus, t.subServerStatusChange)

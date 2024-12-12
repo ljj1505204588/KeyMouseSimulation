@@ -1,6 +1,8 @@
 package enum
 
-import "KeyMouseSimulation/module/language"
+import (
+	"KeyMouseSimulation/module/baseComponent"
+)
 
 type Status string
 
@@ -12,15 +14,15 @@ const (
 	PlaybackPause Status = "PlaybackPause"
 )
 
-var statusLanguageM = map[Status]language.DisPlay{
-	Free:          language.ControlTypeFreeStr,
-	Recording:     language.ControlTypeRecordingStr,
-	RecordPause:   language.ControlTypeRecordPauseStr,
-	Playback:      language.ControlTypePlaybackStr,
-	PlaybackPause: language.ControlTypePlaybackPauseStr,
+var statusLanguageM = map[Status]component.DisPlay{
+	Free:          component.ControlTypeFreeStr,
+	Recording:     component.ControlTypeRecordingStr,
+	RecordPause:   component.ControlTypeRecordPauseStr,
+	Playback:      component.ControlTypePlaybackStr,
+	PlaybackPause: component.ControlTypePlaybackPauseStr,
 }
 
 func (s Status) Language() string {
 	var no = statusLanguageM[s]
-	return language.Center.Get(no)
+	return component.Center.Get(no)
 }
