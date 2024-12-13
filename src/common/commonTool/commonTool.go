@@ -46,3 +46,12 @@ func LockSelf(l *sync.Mutex) func() {
 	l.Lock()
 	return l.Unlock
 }
+
+func RLockSelf(l *sync.RWMutex) func() {
+	l.Lock()
+	return l.Unlock
+}
+func RRLockSelf(l *sync.RWMutex) func() {
+	l.RLock()
+	return l.RUnlock
+}
