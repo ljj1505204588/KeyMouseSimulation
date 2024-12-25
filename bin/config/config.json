@@ -1,0 +1,26 @@
+[
+   {
+      "Name": "logParam",
+      "Data": {
+         "ExtendLogger": null,
+         "LogKeepDay": 7,
+         "LogLevel": "INFO",
+         "LogPath": "\\logs",
+         "LogRenameSize": 500
+      }
+   },
+   {
+      "Name": "record_param",
+      "Data": {
+         "MouseTrack": true
+      }
+   },
+   {
+      "Name": "playback_param",
+      "Data": {
+         "Speed": 1,
+         "PlaybackTimes": 1,
+         "PlaybackRemainTimes": 0
+      }
+   }
+]

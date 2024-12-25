@@ -1,9 +1,9 @@
 package main
 
 import (
-	"KeyMouseSimulation/common/logTool"
-	ui "KeyMouseSimulation/module/UI"
-	_ "KeyMouseSimulation/module/server"
+	"KeyMouseSimulation/pkg/common/logTool"
+	ui "KeyMouseSimulation/pkg/module/UI"
+	_ "KeyMouseSimulation/pkg/module/server"
 	"net/http"
 	_ "net/http/pprof"
 	"time"

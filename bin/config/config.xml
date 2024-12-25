@@ -1,0 +1,8 @@
+<paramT>
+    <LogParam>
+        <LogLevel>INFO</LogLevel>
+        <LogPath>\logs</LogPath>
+        <LogKeepDay>7</LogKeepDay>
+        <LogRenameSize>500</LogRenameSize>
+    </LogParam>
+</paramT>
