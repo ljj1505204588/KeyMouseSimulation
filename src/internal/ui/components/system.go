@@ -1,9 +1,7 @@
 package uiComponent
 
 import (
-	eventCenter "KeyMouseSimulation/common/Event"
-	"KeyMouseSimulation/common/share/events"
-	"KeyMouseSimulation/module/baseComponent"
+	eventCenter "KeyMouseSimulation/pkg/event"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
 	"strings"

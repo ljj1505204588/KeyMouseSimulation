@@ -12,13 +12,13 @@ type dllLazyT struct {
 	dllFuncMap map[string]*syscall.Proc
 }
 
-//包含Point信息
+// 包含Point信息
 type POINT struct {
 	X int32
 	Y int32
 }
 
-//包含GetMessage中MSG
+// 包含GetMessage中MSG
 type MSG struct {
 	Hwnd    uintptr
 	Message uint32

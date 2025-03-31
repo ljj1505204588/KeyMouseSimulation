@@ -1,10 +1,10 @@
 package file
 
 import (
-	"KeyMouseSimulation/pkg/common/commonTool"
-	gene "KeyMouseSimulation/pkg/common/gene"
-	windowsApi "KeyMouseSimulation/pkg/common/windowsApiTool"
-	"KeyMouseSimulation/pkg/common/windowsApiTool/windowsInput/keyMouTool"
+	"KeyMouseSimulation/common/common"
+	"KeyMouseSimulation/common/gene"
+	"KeyMouseSimulation/common/windowsApi"
+	"KeyMouseSimulation/common/windowsApi/windowsInput/keyMouTool"
 	eventCenter "KeyMouseSimulation/pkg/event"
 	"KeyMouseSimulation/pkg/language"
 	"KeyMouseSimulation/share/event_topic"
@@ -38,7 +38,7 @@ func init() {
 
 		f.basePath, _ = os.Getwd()
 		f.basePath = filepath.Join(f.basePath, "record")
-		commonTool.MustNil(os.MkdirAll(f.basePath, 0666))
+		common.MustNil(os.MkdirAll(f.basePath, 0666))
 
 		go f.scanFile()
 	})

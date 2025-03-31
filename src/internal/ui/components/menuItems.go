@@ -3,7 +3,7 @@ package uiComponent
 import (
 	gene "KeyMouseSimulation/common/GenTool"
 	"KeyMouseSimulation/common/share/enum"
-	"KeyMouseSimulation/common/windowsApiTool/windowsInput/keyMouTool"
+	"KeyMouseSimulation/common/windowsApi/windowsInput/keyMouTool"
 	component "KeyMouseSimulation/module/baseComponent"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"

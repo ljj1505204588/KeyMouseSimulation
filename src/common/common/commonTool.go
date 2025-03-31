@@ -1,4 +1,4 @@
-package commonTool
+package common
 
 import (
 	"runtime"

@@ -1,8 +1,8 @@
 package keyMouTool
 
 import (
-	"KeyMouseSimulation/pkg/common/commonTool"
-	"KeyMouseSimulation/pkg/common/windowsApiTool/windowsHook"
+	"KeyMouseSimulation/common/common"
+	"KeyMouseSimulation/common/windowsApi/windowsHook"
 )
 
 type NoteT struct {
@@ -24,7 +24,7 @@ func (m *MulNote) AppendMouseNote(startTime int64, event *windowsHook.MouseEvent
 				DWFlags:   dw,
 				MouseData: event.MouseData,
 			},
-			TimeGap: commonTool.Max(event.RecordTime-startTime, 0),
+			TimeGap: common.Max(event.RecordTime-startTime, 0),
 		}
 
 		*m = append(*m, note)
@@ -39,7 +39,7 @@ func (m *MulNote) AppendKeyBoardNote(startTime int64, event *windowsHook.Keyboar
 		var note = NoteT{
 			NoteType: TYPE_INPUT_KEYBOARD,
 			KeyNote:  &KeyInputT{VK: code, DwFlags: dw},
-			TimeGap:  commonTool.Max(event.RecordTime-startTime, 0),
+			TimeGap:  common.Max(event.RecordTime-startTime, 0),
 		}
 
 		*m = append(*m, note)

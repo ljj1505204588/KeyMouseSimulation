@@ -1,9 +1,9 @@
 package event_topic
 
 import (
-	"KeyMouseSimulation/common/windowsApiTool/windowsInput/keyMouTool"
+	"KeyMouseSimulation/common/windowsApi/windowsInput/keyMouTool"
 	"KeyMouseSimulation/pkg/event"
-	enum2 "KeyMouseSimulation/share/enum"
+	"KeyMouseSimulation/share/enum"
 )
 
 const ServerStatus eventCenter.Topic = "server_status"     // 服务状态
@@ -19,7 +19,7 @@ const LanguageChange eventCenter.Topic = "language_change" // 语言改变
 // -------------------- 数据 --------------------
 
 type ServerStatusChangeData struct {
-	Status enum2.Status // 服务状态
+	Status enum.Status // 服务状态
 }
 
 type ServerErrorData struct {
@@ -32,7 +32,7 @@ type RecordFinishData struct {
 }
 
 type ButtonClickData struct {
-	Button enum2.Button
+	Button enum.Button
 	Name   string
 }
 
@@ -41,4 +41,5 @@ type ConfigChangeData struct {
 }
 
 type LanguageChangeData struct {
+	Typ enum.LanguageType // 语言类型
 }

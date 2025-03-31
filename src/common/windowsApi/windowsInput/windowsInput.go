@@ -1,7 +1,7 @@
 package windowsInput
 
 import (
-	windowsApi "KeyMouseSimulation/pkg/common/windowsApiTool"
+	windowsApi "KeyMouseSimulation/common/windowsApi"
 	"fmt"
 	"unsafe"
 )

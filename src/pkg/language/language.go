@@ -2,23 +2,19 @@ package language
 
 import (
 	eventCenter "KeyMouseSimulation/pkg/event"
+	"KeyMouseSimulation/share/enum"
 	"KeyMouseSimulation/share/event_topic"
 )
 
-type Type string
+var langType enum.LanguageType = enum.Chinese
 
-var langType Type = Chinese
-
-// SetLanguage 设置语言
-func SetLanguage(lang Type) {
-	langType = lang
-	eventCenter.Event.Publish(event_topic.LanguageChange, event_topic.LanguageChangeData{})
+func init() {
+	eventCenter.Event.Register(event_topic.LanguageChange, func(data interface{}) (err error) {
+		var dataValue = data.(*event_topic.LanguageChangeData)
+		langType = dataValue.Typ
+		return
+	}, eventCenter.SetOrderLv(100))
 }
-
-const (
-	Chinese Type = "中文"
-	English Type = "english"
-)
 
 // -------------------- 语言键 --------------------
 
@@ -34,7 +30,7 @@ type languageKeyT struct {
 
 // ToString 获取字符串
 func (l *languageKeyT) ToString() string {
-	if langType == Chinese {
+	if langType == enum.Chinese {
 		return l.chinese
 	}
 	return l.english

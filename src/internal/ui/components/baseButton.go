@@ -1,7 +1,7 @@
 package uiComponent
 
 import (
-	"KeyMouseSimulation/common/commonTool"
+	"KeyMouseSimulation/common/common"
 	enum2 "KeyMouseSimulation/common/share/enum"
 	"KeyMouseSimulation/common/share/events"
 	eventCenter "KeyMouseSimulation/event"
@@ -51,7 +51,7 @@ func (t *FunctionT) Init() {
 	var err error
 	for i, but := range t.buttons {
 		t.buttons[i].HotKeyI, err = component.NewHK(but.name, but.name.DefKey(), but.hkExec)
-		commonTool.MustNil(err)
+		common.MustNil(err)
 		t.widget = append(t.widget, PushButton{AssignTo: &(t.buttons[i].PushButton), ColumnSpan: 4, OnClicked: but.exec})
 	}
 

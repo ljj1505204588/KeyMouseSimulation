@@ -1,7 +1,7 @@
 package keyMouTool
 
 import (
-	"KeyMouseSimulation/pkg/common/gene"
+	"KeyMouseSimulation/common/gene"
 	"sort"
 )
 

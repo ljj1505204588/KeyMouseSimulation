@@ -21,7 +21,7 @@ func init() {
 	}
 }
 
-//DllLazyInit 初始化
+// DllLazyInit 初始化
 func (T *dllLazyT) dllLazyInit(dllName string) error {
 	T.Lock()
 	defer T.Unlock()
@@ -34,7 +34,7 @@ func (T *dllLazyT) dllLazyInit(dllName string) error {
 	return nil
 }
 
-//GetUserDllFunc get window which is Active
+// GetUserDllFunc get window which is Active
 func (T *dllLazyT) getUserDllFunc(funcName string) (*syscall.Proc, error) {
 	T.Lock()
 	defer T.Unlock()
@@ -55,7 +55,7 @@ func (T *dllLazyT) getUserDllFunc(funcName string) (*syscall.Proc, error) {
 	return DllUser.dllFuncMap[funcName], nil
 }
 
-//Call use func in by funcName
+// Call use func in by funcName
 func (T *dllLazyT) Call(funcName string, a ...uintptr) (r1, r2 uintptr, lastErr error) {
 	if len(a) > 18 {
 		return 0, 0, errors.New("Call " + funcName + " with too many arguments " + strconv.Itoa(len(a)) + ".")

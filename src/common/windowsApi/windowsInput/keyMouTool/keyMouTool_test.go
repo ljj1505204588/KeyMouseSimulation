@@ -1,7 +1,6 @@
-package keyMouTool_test
+package keyMouTool
 
 import (
-	. "KeyMouseSimulation/pkg/common/windowsApiTool/windowsInput/keyMouTool"
 	"testing"
 )
 

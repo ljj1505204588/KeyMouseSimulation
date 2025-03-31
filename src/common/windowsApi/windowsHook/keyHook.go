@@ -1,25 +1,25 @@
 package windowsHook
 
 import (
-	windowsApi "KeyMouseSimulation/pkg/common/windowsApiTool"
+	windowsApi "KeyMouseSimulation/common/windowsApi"
 	"time"
 	"unsafe"
 )
 
-type mouseHookHandler func() (HOOKPROC, chan *MouseEvent)
+type keyBoardHookHandler func() (HOOKPROC, chan *KeyboardEvent)
 
-func mouseDefaultHookHandler() (HOOKPROC, chan *MouseEvent) {
-	c := make(chan *MouseEvent, 30000)
+func keyBoardDefaultHookHandler() (HOOKPROC, chan *KeyboardEvent) {
+	c := make(chan *KeyboardEvent, 30000)
 	return func(code int32, wParam, lParam uintptr) uintptr {
 		if lParam != 0 {
-			mouseEvent := MouseEvent{
-				Message:               Message(wParam),
-				STRUCT_MSLLHOOKSTRUCT: *(*STRUCT_MSLLHOOKSTRUCT)(unsafe.Pointer(lParam)),
-				RecordTime:            time.Now().UnixNano(),
+			keyboardEvent := KeyboardEvent{
+				Message:                Message(wParam),
+				STRUCT_KBDLLHOOKSTRUCT: *(*STRUCT_KBDLLHOOKSTRUCT)(unsafe.Pointer(lParam)),
+				RecordTime:             time.Now().UnixNano(),
 			}
 
 			select {
-			case c <- &mouseEvent:
+			case c <- &keyboardEvent:
 				r, _, _ := windowsApi.DllUser.Call(windowsApi.FuncCallNextHookEx, 0, uintptr(code), wParam, lParam)
 				return r
 			default:
@@ -27,17 +27,17 @@ func mouseDefaultHookHandler() (HOOKPROC, chan *MouseEvent) {
 				return r
 			}
 		}
-
 		r, _, _ := windowsApi.DllUser.Call(windowsApi.FuncCallNextHookEx, 0, uintptr(code), wParam, lParam)
 		return r
 	}, c
 }
-func MouseHook(h mouseHookHandler) (chan *MouseEvent, error) {
+
+func KeyBoardHook(h keyBoardHookHandler) (chan *KeyboardEvent, error) {
 	hook.Lock()
 	defer hook.Unlock()
 
 	if h == nil {
-		h = mouseDefaultHookHandler
+		h = keyBoardDefaultHookHandler
 	}
 	if hook.HandlerM == nil {
 		hook.HandlerM = make(map[IdHook]interface{})
@@ -45,16 +45,15 @@ func MouseHook(h mouseHookHandler) (chan *MouseEvent, error) {
 
 	fn, ch := h()
 	hook.Unlock()
-	err := install(WH_MOUSE_LL, fn)
+	err := install(WH_KEYBOARD_LL, fn)
 	hook.Lock()
 	if err != nil {
 		return nil, err
 	}
 
-	hook.HandlerM[WH_MOUSE_LL] = h
+	hook.HandlerM[WH_KEYBOARD_LL] = h
 	return ch, nil
 }
-
-func MouseUnhook() error {
-	return uninstall(WH_MOUSE_LL)
+func KeyBoardUnhook() error {
+	return uninstall(WH_KEYBOARD_LL)
 }

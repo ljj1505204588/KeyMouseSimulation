@@ -368,7 +368,7 @@ const (
 */
 
 /*
-	GetSystemMetrics function  详情:https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getsystemmetrics
+GetSystemMetrics function  详情:https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getsystemmetrics
 */
 const (
 	SM_ARRANGE                     = 56

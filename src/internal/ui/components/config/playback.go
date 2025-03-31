@@ -62,6 +62,7 @@ func (c *playbackConfig) languageHandler(data interface{}) (err error) {
 	tryPublishErr(c.playbackTimesLabel.SetText(language.PlayBackTimesLabelStr.ToString()))
 	tryPublishErr(c.currentTimesLabel.SetText(language.CurrentTimesLabelStr.ToString()))
 	tryPublishErr(c.speedLabel.SetText(language.SpeedLabelStr.ToString()))
+	return
 }
 
 // 回放剩余次数变动回调
@@ -75,6 +76,7 @@ func (c *playbackConfig) playbackRemainTimesHandler(data interface{}) (err error
 			}
 		}
 	}
+	return
 }
 
 // 设置回放速度

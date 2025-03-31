@@ -1,7 +1,6 @@
-package windowsInput_test
+package windowsInput
 
 import (
-	. "KeyMouseSimulation/pkg/common/windowsApiTool/windowsInput"
 	"fmt"
 	"syscall"
 	"testing"

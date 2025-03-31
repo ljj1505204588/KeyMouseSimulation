@@ -1,8 +1,8 @@
 package event_topic
 
 import (
-	"KeyMouseSimulation/common/windowsApiTool/windowsHook"
-	"KeyMouseSimulation/common/windowsApiTool/windowsInput/keyMouTool"
+	"KeyMouseSimulation/common/windowsApi/windowsHook"
+	"KeyMouseSimulation/common/windowsApi/windowsInput/keyMouTool"
 	"KeyMouseSimulation/pkg/event"
 )
 

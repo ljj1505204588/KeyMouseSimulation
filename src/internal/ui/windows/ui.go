@@ -3,8 +3,9 @@ package uiWindows
 import (
 	"KeyMouseSimulation/internal/ui"
 	uiComponent "KeyMouseSimulation/internal/ui/components"
-	"time"
-
+	eventCenter "KeyMouseSimulation/pkg/event"
+	"KeyMouseSimulation/pkg/language"
+	"KeyMouseSimulation/share/event_topic"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
 )
@@ -32,16 +33,18 @@ func (t *ControlT) MWPoint() **walk.MainWindow {
 }
 
 func (t *ControlT) Init() {
-	eventCenter.Event.Register(eventCenter.LanguageChange, func() {
+	eventCenter.Event.Register(event_topic.LanguageChange, func(data interface{}) (err error) {
 		t.mw.SetVisible(false)
 		t.mw.SetVisible(true)
+		return nil
 	})
-	go eventCenter.Event.Publish(eventCenter.LanguageChange, eventCenter.LanguageChangeData{})
+	go eventCenter.Event.Publish(event_topic.LanguageChange, event_topic.LanguageChangeData{})
 }
 
 // ----------------------- 主窗口 -----------------------
 
-func MainWindows() {
+func MainWindows() (err error) {
+	var app = c.MWPoint()
 	// todo 设置图标
 	var widget []Widget
 	for _, component := range c.widgets {
@@ -52,19 +55,27 @@ func MainWindows() {
 		menuItems = append(menuItems, item.MenuItems(&c.mw)...)
 	}
 
-	c.Init()
-	_, err := MainWindow{
-		AssignTo: c.MWPoint(),
-		Title:    component.Center.Get(component.MainWindowTitleStr),
+	var mwT = &MainWindow{
+		AssignTo: app,
+		Title:    language.MainWindowTitleStr.ToString(),
 		Size:     Size{Width: 320, Height: 400},
 		Layout:   Grid{Columns: 8, Alignment: AlignHNearVCenter},
 		Children: widget,
-		//工具栏
+		// 工具栏
 		MenuItems: menuItems,
-	}.Run()
-
-	if err != nil {
-		logTool.ErrorAJ(err)
-		time.Sleep(5 * time.Second)
 	}
+	//c.Init()
+	if err = mwT.Create(); err != nil {
+		return
+	}
+	// 手动绑定 Loaded 事件
+	mainWindow.Loaded().Attach(func() {
+		walk.MsgBox(mainWindow, "提示", "窗口加载完成！", walk.MsgBoxIconInformation)
+	})
+
+	// 显示窗口并运行消息循环
+	mainWindow.Show()
+	walk.RunMainWindow(mainWindow)
+	_, err = app.Run()
+	return
 }

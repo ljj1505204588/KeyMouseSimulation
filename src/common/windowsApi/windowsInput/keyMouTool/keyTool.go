@@ -1,7 +1,7 @@
 package keyMouTool
 
 import (
-	KeyboardMouseInput "KeyMouseSimulation/pkg/common/windowsApiTool/windowsInput"
+	KeyboardMouseInput "KeyMouseSimulation/common/windowsApi/windowsInput"
 	"sync"
 )
 

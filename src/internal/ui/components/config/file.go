@@ -1,8 +1,8 @@
 package uiConfig
 
 import (
+	"KeyMouseSimulation/common/gene"
 	"KeyMouseSimulation/internal/core/file"
-	"KeyMouseSimulation/pkg/common/gene"
 	eventCenter "KeyMouseSimulation/pkg/event"
 	"KeyMouseSimulation/pkg/language"
 	"KeyMouseSimulation/share/event_topic"
