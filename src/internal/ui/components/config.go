@@ -31,3 +31,8 @@ func (t *ConfigManageT) DisPlay(mw **walk.MainWindow) (res []Widget) {
 	}
 	return
 }
+
+// LanguageChange 设置语言
+func (t *ConfigManageT) LanguageChange(data interface{}) (err error) {
+	return
+}

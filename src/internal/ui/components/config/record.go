@@ -1,6 +1,7 @@
 package uiConfig
 
 import (
+	"KeyMouseSimulation/pkg/language"
 	"time"
 
 	"github.com/lxn/walk"
@@ -21,7 +22,7 @@ type recordConfig struct {
 func (c *recordConfig) init() {
 	c.widget = []Widget{
 		//鼠标路径
-		Label{AssignTo: &c.ifMouseTrackLabel, Text: component.Center.Get(component.MouseTrackStr), ColumnSpan: 4},
+		Label{AssignTo: &c.ifMouseTrackLabel, Text: language.MouseTrackStr), ColumnSpan: 4},
 		CheckBox{AssignTo: &c.ifMouseTrackCheck, ColumnSpan: 4, Checked: true, Alignment: AlignHCenterVCenter, OnCheckedChanged: c.setIfTrackMouseMoveClick},
 	}
 }
@@ -39,7 +40,7 @@ func (c *recordConfig) languageHandler() {
 		time.Sleep(20 * time.Millisecond)
 	}
 
-	tryPublishErr(c.ifMouseTrackLabel.SetText(component.Center.Get(component.MouseTrackStr)))
+	tryPublishErr(c.ifMouseTrackLabel.SetText(language.MouseTrackStr)))
 }
 
 // 设置是否追踪鼠标移动路径

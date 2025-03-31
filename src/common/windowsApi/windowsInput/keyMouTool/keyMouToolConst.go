@@ -295,3 +295,5 @@ var VKCodeStringMap = map[string]VKCode{
 	"+":   VK_ADD,
 	"-":   VK_SUBTRACT,
 }
+
+var VKCodeStringMapReverse = gene.Reverse(VKCodeStringMap)

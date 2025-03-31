@@ -49,7 +49,7 @@ var (
 	MenuHelpStr                    LanguageKeyI = &languageKeyT{chinese: "帮助", english: "Help"}
 	ActionAboutStr                 LanguageKeyI = &languageKeyT{chinese: "关于", english: "About"}
 	RecordStr                      LanguageKeyI = &languageKeyT{chinese: "记录", english: "Record"}
-	PlaybackStr                    LanguageKeyI = &languageKeyT{chinese: "回放", english: "Playback"}
+	PlayBackStr                    LanguageKeyI = &languageKeyT{chinese: "回放", english: "Playback"}
 	PauseStr                       LanguageKeyI = &languageKeyT{chinese: "暂停", english: "Pause"}
 	StopStr                        LanguageKeyI = &languageKeyT{chinese: "停止", english: "Stop"}
 	ResetStr                       LanguageKeyI = &languageKeyT{chinese: "重置", english: "Reset"}

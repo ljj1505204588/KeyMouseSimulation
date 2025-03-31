@@ -21,11 +21,11 @@ const (
 	WH_JOURNALRECORD = IdHook(0)
 	//Installs a hook procedure that monitors keystroke messages. For more information, see the KeyboardProc hook procedure.
 	WH_KEYBOARD = IdHook(2)
-	//Installs a hook procedure that monitors low-level keyboard input events. For more information, see the LowLevelKeyboardProc hook procedure.
+	//Installs a hook procedure that monitors low-level keyboard input event_topic. For more information, see the LowLevelKeyboardProc hook procedure.
 	WH_KEYBOARD_LL = IdHook(13)
 	//Installs a hook procedure that monitors mouse messages. For more information, see the MouseProc hook procedure.
 	WH_MOUSE = IdHook(7)
-	//Installs a hook procedure that monitors low-level mouse input events. For more information, see the LowLevelMouseProc hook procedure.
+	//Installs a hook procedure that monitors low-level mouse input event_topic. For more information, see the LowLevelMouseProc hook procedure.
 	WH_MOUSE_LL = IdHook(14)
 	//Installs a hook procedure that monitors messages generated as a result of an input event in a dialog box, message box, menu, or scroll bar. For more information, see the MessageProc hook procedure.
 	WH_MSGFILTER = IdHook(-1)

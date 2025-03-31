@@ -2,6 +2,8 @@ package uiComponent
 
 import (
 	eventCenter "KeyMouseSimulation/pkg/event"
+	"KeyMouseSimulation/pkg/language"
+	"KeyMouseSimulation/share/event_topic"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
 	"strings"
@@ -54,23 +56,23 @@ func (t *SystemT) initCheck() bool {
 	return t.statusLabel != nil && t.statusEdit != nil && t.errorLabel != nil && t.errorEdit != nil
 }
 
-// 修改语言
-func (t *SystemT) changeLanguageHandler() {
+// LanguageChange 设置语言
+func (t *SystemT) LanguageChange(data interface{}) (err error) {
 	for !t.initCheck() {
 		time.Sleep(10 * time.Millisecond)
 	}
 
-	_ = t.statusLabel.SetText(component.Center.Get(component.StatusLabelStr))
-	_ = t.errorLabel.SetText(component.Center.Get(component.ErrorLabelStr))
+	_ = t.statusLabel.SetText(language.StatusLabelStr.ToString())
+	_ = t.errorLabel.SetText(language.ErrorLabelStr.ToString())
+	return
 }
 
 // --------------------------------------- 订阅事件 ----------------------------------------------
 
 func (t *SystemT) register() {
-	component.Center.RegisterChange(t.changeLanguageHandler)
 
-	eventCenter.Event.Register(events.ServerError, t.subShowError)
-	eventCenter.Event.Register(events.ServerStatus, t.subServerStatusChange)
+	eventCenter.Event.Register(event_topic.ServerError, t.subShowError)
+	eventCenter.Event.Register(event_topic.ServerStatus, t.subServerStatusChange)
 }
 
 // 订阅错误事件
@@ -80,7 +82,7 @@ func (t *SystemT) subShowError(dataI interface{}) (err error) {
 	}
 
 	// 日志记录
-	var data = dataI.(events.ServerErrorData)
+	var data = dataI.(event_topic.ServerErrorData)
 	t.historyErr = append(t.historyErr, data.ErrInfo+" \r\n")
 
 	var hisLen = len(t.historyErr)
@@ -98,13 +100,13 @@ func (t *SystemT) subShowError(dataI interface{}) (err error) {
 
 // 订阅状态变动事件
 func (t *SystemT) subServerStatusChange(data interface{}) (err error) {
-	d := data.(events.ServerStatusChangeData)
+	d := data.(event_topic.ServerStatusChangeData)
 
 	for t.statusEdit == nil {
 		time.Sleep(10 * time.Millisecond)
 	}
 
-	if err = t.statusEdit.SetText(d.Status.Language()); err != nil {
+	if err = t.statusEdit.SetText(d.Show.ToString()); err != nil {
 		return
 	}
 

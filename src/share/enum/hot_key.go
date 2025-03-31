@@ -1,6 +1,6 @@
 package enum
 
-type HotKey int
+type HotKey int32
 
 const ( //
 	HotKeyRecord   HotKey = iota + 1 // 记录热键

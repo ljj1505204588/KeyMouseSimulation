@@ -1,10 +1,13 @@
 package uiComponent
 
 import (
-	gene "KeyMouseSimulation/common/GenTool"
-	"KeyMouseSimulation/common/share/enum"
+	"KeyMouseSimulation/common/gene"
 	"KeyMouseSimulation/common/windowsApi/windowsInput/keyMouTool"
-	component "KeyMouseSimulation/module/baseComponent"
+	eventCenter "KeyMouseSimulation/pkg/event"
+	hk "KeyMouseSimulation/pkg/hotkey"
+	"KeyMouseSimulation/pkg/language"
+	"KeyMouseSimulation/share/enum"
+	"KeyMouseSimulation/share/event_topic"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
 	"sort"
@@ -41,11 +44,15 @@ func (t *MenuItemT) Init() {
 		Menu{AssignActionTo: &t.settingMenu, Items: []MenuItem{
 			Action{AssignTo: &t.setHotkeyAction, OnTriggered: t.setHotKeyPop},
 			Menu{AssignActionTo: &t.languageMenu, Items: []MenuItem{
-				Action{Text: string(component.English), OnTriggered: func() {
-					component.Center.SetLanguage(component.English)
+				Action{Text: string(enum.English), OnTriggered: func() {
+					_ = eventCenter.Event.Publish(event_topic.LanguageChange, &event_topic.LanguageChangeData{
+						Typ: enum.English,
+					})
 				}},
-				Action{Text: string(component.Chinese), OnTriggered: func() {
-					component.Center.SetLanguage(component.Chinese)
+				Action{Text: string(enum.Chinese), OnTriggered: func() {
+					_ = eventCenter.Event.Publish(event_topic.LanguageChange, &event_topic.LanguageChangeData{
+						Typ: enum.Chinese,
+					})
 				}},
 			},
 			},
@@ -55,39 +62,36 @@ func (t *MenuItemT) Init() {
 		}},
 	}
 
-	component.Center.RegisterChange(t.changeLanguageHandler)
 }
 
 // 设置热键弹窗
 func (t *MenuItemT) setHotKeyPop() {
 	type hkSetT struct {
 		name   enum.HotKey
-		hk     component.HotKeyI
 		box    *walk.ComboBox
 		widget []Widget
 	}
 
-	var setM = make(map[component.HotKeyI]string)
 	var resetMethod []func()
 
 	var hkSets []hkSetT
-	for name, hk := range component.GetAllHk() {
-		var set = hkSetT{name: name, hk: hk, box: &walk.ComboBox{}}
+	for _, key := range enum.TotalHotkey() {
+		var set = hkSetT{name: key, box: &walk.ComboBox{}}
 		set.widget = []Widget{
-			Label{Text: component.Center.Get(name.Language()), ColumnSpan: 1},
-			ComboBox{AssignTo: &set.box, ColumnSpan: 1, Model: keyMouTool.VKCodeStringKeys, Editable: true, Value: hk.Key(), OnCurrentIndexChanged: func() {
+			Label{Text: hk.Show(key), ColumnSpan: 1},
+			ComboBox{AssignTo: &set.box, ColumnSpan: 1, Model: keyMouTool.VKCodeStringKeys, Editable: true, Value: hk.ShowSign(key), OnCurrentIndexChanged: func() {
 				setM[set.hk] = set.box.Text()
 			}},
 		}
 
 		hkSets = append(hkSets, set)
 
-		var defKey = hk.DefaultKey()
+		var defKey = key.DefaultKey()
 		resetMethod = append(resetMethod, func() {
 			_ = set.box.SetText(defKey)
-			setM[hk] = defKey
+			setM[key] = defKey
 		})
-		setM[hk] = hk.Key() // 校验重复性
+		setM[key] = key.Key() // 校验重复性
 	}
 	sort.Slice(hkSets, func(i, j int) bool {
 		return hkSets[i].name < hkSets[j].name
@@ -100,37 +104,37 @@ func (t *MenuItemT) setHotKeyPop() {
 
 	var dlg *walk.Dialog
 	hkWidget = append(hkWidget, []Widget{
-		PushButton{ColumnSpan: 4, Text: component.Center.Get(component.ResetStr), OnClicked: func() {
+		PushButton{ColumnSpan: 4, Text: language.ResetStr.ToString(), OnClicked: func() {
 			for _, reset := range resetMethod {
 				reset()
 			}
 		}},
 
-		PushButton{AssignTo: &t.acceptPB, ColumnSpan: 2, Text: component.Center.Get(component.OKStr), OnClicked: func() {
+		PushButton{AssignTo: &t.acceptPB, ColumnSpan: 2, Text: language.OKStr.ToString(), OnClicked: func() {
 			var keys []string
 			for _, key := range setM {
 				keys = append(keys, key)
 			}
 
 			if len(gene.RemoveDuplicate(keys)) != len(keys) {
-				walk.MsgBox(dlg, component.Center.Get(component.ErrWindowTitleStr), component.Center.Get(component.SetHotKeyErrMessageStr), walk.MsgBoxIconInformation)
+				walk.MsgBox(dlg, language.ErrWindowTitleStr.ToString(), language.SetHotKeyErrMessageStr.ToString(), walk.MsgBoxIconInformation)
 				return
 			}
 
 			dlg.Accept()
 		}},
-		PushButton{AssignTo: &t.cancelPB, ColumnSpan: 2, Text: component.Center.Get(component.CancelStr), OnClicked: func() { dlg.Cancel() }},
+		PushButton{AssignTo: &t.cancelPB, ColumnSpan: 2, Text: language.CancelStr.ToString(), OnClicked: func() { dlg.Cancel() }},
 	}...)
 
-	cmd, _ := Dialog{AssignTo: &dlg, Title: component.Center.Get(component.SetHotKeyWindowTitleStr),
+	cmd, _ := Dialog{AssignTo: &dlg, Title: language.SetHotKeyWindowTitleStr.ToString(),
 		DefaultButton: &t.acceptPB, CancelButton: &t.cancelPB,
 		Size: Size{Width: 350, Height: 200}, Layout: Grid{Columns: 4},
 		Children: hkWidget,
 	}.Run(*t.mw)
 
 	if cmd == walk.DlgCmdOK {
-		tryPublishErr(component.MulSetKey(setM))
-		component.Center.Refresh()
+		//tryPublishErr(component.MulSetKey(setM))
+		//component.Center.Refresh()
 	}
 }
 
@@ -150,20 +154,22 @@ func (t *MenuItemT) initCheck() bool {
 	return true
 }
 
-// 修改语言
-func (t *MenuItemT) changeLanguageHandler() {
+// LanguageChange 设置语言
+func (t *MenuItemT) LanguageChange(data interface{}) (err error) {
 	for !t.initCheck() {
 		time.Sleep(10 * time.Millisecond)
 	}
 
-	tryPublishErr(t.settingMenu.SetText(component.Center.Get(component.MenuSettingStr)))
-	tryPublishErr(t.languageMenu.SetText(component.Center.Get(component.MenuItemLanguageStr)))
-	tryPublishErr(t.setHotkeyAction.SetText(component.Center.Get(component.ActionSetHotKeyStr)))
-	tryPublishErr(t.helpMenu.SetText(component.Center.Get(component.MenuHelpStr)))
-	tryPublishErr(t.aboutAction.SetText(component.Center.Get(component.ActionAboutStr)))
+	tryPublishErr(t.settingMenu.SetText(language.MenuSettingStr.ToString()))
+	tryPublishErr(t.languageMenu.SetText(language.MenuItemLanguageStr.ToString()))
+	tryPublishErr(t.setHotkeyAction.SetText(language.ActionSetHotKeyStr.ToString()))
+	tryPublishErr(t.helpMenu.SetText(language.MenuHelpStr.ToString()))
+	tryPublishErr(t.aboutAction.SetText(language.ActionAboutStr.ToString()))
+
+	return
 }
 
 // 系统信息
 func (t *MenuItemT) showAboutBoxAction() {
-	walk.MsgBox(*t.mw, component.Center.Get(component.AboutWindowTitleStr), component.Center.Get(component.AboutMessageStr), walk.MsgBoxIconInformation)
+	walk.MsgBox(*t.mw, language.AboutWindowTitleStr.ToString(), language.AboutMessageStr.ToString(), walk.MsgBoxIconInformation)
 }

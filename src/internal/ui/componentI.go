@@ -7,8 +7,10 @@ import (
 
 type KmWidget interface {
 	DisPlay(mw **walk.MainWindow) []Widget
+	LanguageChange(data interface{}) (err error)
 }
 
 type KmMenuItem interface {
 	MenuItems(mw **walk.MainWindow) []MenuItem
+	LanguageChange(data interface{}) (err error)
 }

@@ -2,7 +2,6 @@ package main
 
 import (
 	uiWindows "KeyMouseSimulation/internal/ui/windows"
-	"fmt"
 	"net/http"
 	_ "net/http/pprof"
 	"time"
@@ -16,8 +15,6 @@ func main() {
 		}
 	}()
 
-	if err := uiWindows.MainWindows(); err != nil {
-		fmt.Println(err.Error())
-	}
+	uiWindows.MainWindows()
 	time.Sleep(10 * time.Second)
 }

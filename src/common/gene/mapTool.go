@@ -13,3 +13,11 @@ func Values[K comparable, V any](m map[K]V) (vs []V) {
 	}
 	return
 }
+
+func Reverse[K comparable, V comparable](m map[K]V) map[V]K {
+	r := make(map[V]K)
+	for k, v := range m {
+		r[v] = k
+	}
+	return r
+}

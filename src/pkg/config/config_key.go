@@ -1,4 +1,3 @@
-// config_key.go
 package conf
 
 import (

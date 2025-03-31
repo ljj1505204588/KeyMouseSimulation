@@ -1,3 +1,6 @@
+//go:build windows
+// +build windows
+
 package uiWindows
 
 import (
@@ -6,6 +9,8 @@ import (
 	eventCenter "KeyMouseSimulation/pkg/event"
 	"KeyMouseSimulation/pkg/language"
 	"KeyMouseSimulation/share/event_topic"
+	"fmt"
+
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
 )
@@ -33,18 +38,25 @@ func (t *ControlT) MWPoint() **walk.MainWindow {
 }
 
 func (t *ControlT) Init() {
+	for _, widget := range t.widgets {
+		eventCenter.Event.Register(event_topic.LanguageChange, widget.LanguageChange)
+	}
+	for _, item := range t.menuItems {
+		eventCenter.Event.Register(event_topic.LanguageChange, item.LanguageChange)
+	}
+
 	eventCenter.Event.Register(event_topic.LanguageChange, func(data interface{}) (err error) {
 		t.mw.SetVisible(false)
 		t.mw.SetVisible(true)
 		return nil
 	})
+
 	go eventCenter.Event.Publish(event_topic.LanguageChange, event_topic.LanguageChangeData{})
 }
 
 // ----------------------- 主窗口 -----------------------
 
-func MainWindows() (err error) {
-	var app = c.MWPoint()
+func MainWindows() {
 	// todo 设置图标
 	var widget []Widget
 	for _, component := range c.widgets {
@@ -55,8 +67,8 @@ func MainWindows() (err error) {
 		menuItems = append(menuItems, item.MenuItems(&c.mw)...)
 	}
 
-	var mwT = &MainWindow{
-		AssignTo: app,
+	var mw = &MainWindow{
+		AssignTo: c.MWPoint(),
 		Title:    language.MainWindowTitleStr.ToString(),
 		Size:     Size{Width: 320, Height: 400},
 		Layout:   Grid{Columns: 8, Alignment: AlignHNearVCenter},
@@ -64,18 +76,17 @@ func MainWindows() (err error) {
 		// 工具栏
 		MenuItems: menuItems,
 	}
-	//c.Init()
-	if err = mwT.Create(); err != nil {
+
+	// 创建窗口后初始化
+	if err := mw.Create(); err != nil {
 		return
 	}
-	// 手动绑定 Loaded 事件
-	mainWindow.Loaded().Attach(func() {
-		walk.MsgBox(mainWindow, "提示", "窗口加载完成！", walk.MsgBoxIconInformation)
-	})
 
-	// 显示窗口并运行消息循环
-	mainWindow.Show()
-	walk.RunMainWindow(mainWindow)
-	_, err = app.Run()
-	return
+	c.Init()
+	c.mw.Show()
+
+	if _, err := mw.Run(); err != nil {
+		fmt.Println(err.Error())
+		return
+	}
 }

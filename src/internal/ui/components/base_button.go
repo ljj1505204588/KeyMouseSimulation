@@ -2,10 +2,12 @@ package uiComponent
 
 import (
 	"KeyMouseSimulation/common/common"
-	enum2 "KeyMouseSimulation/common/share/enum"
-	"KeyMouseSimulation/common/share/events"
-	eventCenter "KeyMouseSimulation/event"
-	component "KeyMouseSimulation/module/baseComponent"
+	component "KeyMouseSimulation/pkg/config"
+	eventCenter "KeyMouseSimulation/pkg/event"
+	"KeyMouseSimulation/pkg/file"
+	"KeyMouseSimulation/pkg/language"
+	"KeyMouseSimulation/share/enum"
+	"KeyMouseSimulation/share/event_topic"
 	"fmt"
 	"sync"
 	"time"
@@ -19,7 +21,7 @@ import (
 type FunctionT struct {
 	sync.Once
 
-	file component.FileControlI
+	file file.FileControlI
 	functionWailT
 }
 
@@ -30,7 +32,7 @@ type functionWailT struct {
 }
 
 type hotKeyButton struct {
-	name   enum2.HotKey
+	name   enum.HotKey
 	exec   func()
 	hkExec func()
 
@@ -39,13 +41,13 @@ type hotKeyButton struct {
 }
 
 func (t *FunctionT) Init() {
-	t.file = component.FileControl
+	t.file = file.FileControl
 
 	t.buttons = []hotKeyButton{
-		{name: enum2.HotKeyRecord, exec: t.recordButtonClick, hkExec: t.recordButtonClick},
-		{name: enum2.HotKeyPlayBack, exec: t.playbackButtonClick, hkExec: t.playbackButtonClick},
-		{name: enum2.HotKeyPause, exec: t.pauseButtonClick, hkExec: t.pauseButtonClick},
-		{name: enum2.HotKeyStop, exec: t.stopButtonClick, hkExec: t.simStopButtonClick},
+		{name: enum.HotKeyRecord, exec: t.recordButtonClick, hkExec: t.recordButtonClick},
+		{name: enum.HotKeyPlayBack, exec: t.playbackButtonClick, hkExec: t.playbackButtonClick},
+		{name: enum.HotKeyPause, exec: t.pauseButtonClick, hkExec: t.pauseButtonClick},
+		{name: enum.HotKeyStop, exec: t.stopButtonClick, hkExec: t.simStopButtonClick},
 	}
 
 	var err error
@@ -55,8 +57,7 @@ func (t *FunctionT) Init() {
 		t.widget = append(t.widget, PushButton{AssignTo: &(t.buttons[i].PushButton), ColumnSpan: 4, OnClicked: but.exec})
 	}
 
-	component.Center.RegisterChange(t.changeLanguageHandler)
-	eventCenter.Event.Register(events.RecordFinish, t.recordFinishHandler)
+	eventCenter.Event.Register(event_topic.RecordFinish, t.recordFinishHandler)
 }
 
 func (t *FunctionT) DisPlay(mw **walk.MainWindow) []Widget {
@@ -68,21 +69,21 @@ func (t *FunctionT) DisPlay(mw **walk.MainWindow) []Widget {
 // --------------------------------------- 按钮功能 ----------------------------------------------
 
 func (t *FunctionT) recordButtonClick() {
-	t.publishButtonClick(enum2.RecordButton, "")
+	t.publishButtonClick(enum.RecordButton, "")
 }
 func (t *FunctionT) playbackButtonClick() {
-	t.publishButtonClick(enum2.PlaybackButton, t.file.Current())
+	t.publishButtonClick(enum.PlaybackButton, t.file.Current())
 }
 func (t *FunctionT) pauseButtonClick() {
-	t.publishButtonClick(enum2.PauseButton, "")
+	t.publishButtonClick(enum.PauseButton, "")
 }
 func (t *FunctionT) stopButtonClick() {
-	t.publishButtonClick(enum2.StopButton, "")
+	t.publishButtonClick(enum.StopButton, "")
 }
 func (t *FunctionT) simStopButtonClick() {
 	// 停止涉及弹窗，目前考虑是这样特殊实现
 	for _, but := range t.buttons {
-		if but.name == enum2.HotKeyStop {
+		if but.name == enum.HotKeyStop {
 			(*t.mw).WndProc(but.Handle(), win.WM_LBUTTONDOWN, 0, 0)
 			(*t.mw).WndProc(but.Handle(), win.WM_LBUTTONUP, 0, 0)
 		}
@@ -102,7 +103,7 @@ func (t *FunctionT) initCheck() bool {
 }
 
 func (t *FunctionT) recordFinishHandler(dataI any) error {
-	var data = dataI.(events.RecordFinishData)
+	var data = dataI.(event_topic.RecordFinishData)
 	if fileName, ok := t.setFileName(); ok {
 		t.file.Save(fileName, data.Notes)
 	}
@@ -115,14 +116,14 @@ func (t *FunctionT) setFileName() (fileName string, ok bool) {
 	var dlg *walk.Dialog
 	var acceptPB, cancelPB *walk.PushButton
 
-	cmd, err := Dialog{AssignTo: &dlg, Title: component.Center.Get(component.SetFileWindowTitleStr),
+	cmd, err := Dialog{AssignTo: &dlg, Title: language.SetFileWindowTitleStr.ToString(),
 		DefaultButton: &acceptPB, CancelButton: &cancelPB,
 		Size: Size{Width: 350, Height: 200}, Layout: Grid{Columns: 4},
 		Children: []Widget{
-			TextLabel{Text: component.Center.Get(component.SetFileLabelStr), ColumnSpan: 4},
+			TextLabel{Text: language.SetFileLabelStr), ColumnSpan: 4},
 			LineEdit{AssignTo: &nameEdit, ColumnSpan: 4, OnTextChanged: func() { fileName = nameEdit.Text() }},
-			PushButton{AssignTo: &acceptPB, ColumnSpan: 2, Text: component.Center.Get(component.OKStr), OnClicked: func() { dlg.Accept() }},
-			PushButton{AssignTo: &cancelPB, ColumnSpan: 2, Text: component.Center.Get(component.CancelStr), OnClicked: func() { dlg.Cancel() }},
+			PushButton{AssignTo: &acceptPB, ColumnSpan: 2, Text: language.OKStr), OnClicked: func() { dlg.Accept() }},
+			PushButton{AssignTo: &cancelPB, ColumnSpan: 2, Text: language.CancelStr), OnClicked: func() { dlg.Cancel() }},
 		},
 		Enabled: true,
 	}.Run(*t.mw)
@@ -131,22 +132,24 @@ func (t *FunctionT) setFileName() (fileName string, ok bool) {
 	return fileName, cmd == walk.DlgCmdOK && err == nil
 }
 
-// 设置语言
-func (t *FunctionT) changeLanguageHandler() {
+// LanguageChange 设置语言
+func (t *FunctionT) LanguageChange(data interface{}) (err error)  {
 
 	for !t.initCheck() {
 		time.Sleep(10 * time.Millisecond)
 	}
 
 	for _, but := range t.buttons {
-		tryPublishErr(but.SetText(fmt.Sprintf("%s %s", component.Center.Get(but.name.Language()), but.Key())))
+		tryPublishErr(but.SetText(fmt.Sprintf("%s %s", component.Center.Get(but.name.Language), but.Key())))
 	}
+
+	reutrn
 }
 
 // --------------------------------------- 订阅事件 ----------------------------------------------
 
-func (t *FunctionT) publishButtonClick(button enum2.Button, name string) {
-	_ = eventCenter.Event.Publish(events.ButtonClick, events.ButtonClickData{
+func (t *FunctionT) publishButtonClick(button enum.Button, name string) {
+	_ = eventCenter.Event.Publish(event_topic.ButtonClick, event_topic.ButtonClickData{
 		Button: button,
 		Name:   name,
 	})
