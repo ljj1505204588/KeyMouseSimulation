@@ -16,47 +16,64 @@ import (
 	"syscall"
 )
 
-// Show 显示文字
-func Show(key enum.HotKey) string {
-	switch key {
-	case enum.HotKeyRecord:
-		return language.RecordStr.ToString()
-	case enum.HotKeyPlayBack:
-		return language.PlayBackStr.ToString()
-	case enum.HotKeyPause:
-		return language.PauseStr.ToString()
-	case enum.HotKeyStop:
-		return language.StopStr.ToString()
+func (c *centerT) DefaultShow() (res map[enum.HotKey]string) {
+	return map[enum.HotKey]string{
+		enum.HotKeyRecord:   "F7",
+		enum.HotKeyPlayBack: "F8",
+		enum.HotKeyPause:    "F9",
+		enum.HotKeyStop:     "F10",
 	}
-	return ""
+}
+
+// Show 显示文字
+func (c *centerT) Show() (res map[enum.HotKey]string) {
+	res = make(map[enum.HotKey]string)
+	for _, key := range enum.TotalHotkey() {
+		switch key {
+		case enum.HotKeyRecord:
+			res[key] = language.RecordStr.ToString()
+		case enum.HotKeyPlayBack:
+			res[key] = language.PlayBackStr.ToString()
+		case enum.HotKeyPause:
+			res[key] = language.PauseStr.ToString()
+		case enum.HotKeyStop:
+			res[key] = language.StopStr.ToString()
+		}
+	}
+
+	return
 }
 
 // ShowSign 显示热键标识
-func ShowSign(key enum.HotKey) string {
-	defer common.LockSelf(&center.lock)()
+func (c *centerT) ShowSign() (res map[enum.HotKey]string) {
+	defer common.LockSelf(&Center.lock)()
 
-	if hk, ok := center.hotKeyMap[key]; ok {
-		return hk.show()
+	res = make(map[enum.HotKey]string)
+	// 遍历所有值
+	for _, key := range enum.TotalHotkey() {
+		if hk, ok := Center.hotKeyMap[key]; ok {
+			res[key] = hk.show()
+		}
 	}
 
-	return ""
+	return
 }
 
 //  --------------------------------- 热键中心 ---------------------------------
 
-var center = &centerT{
+var Center = &centerT{
 	hotKeyMap: make(map[enum.HotKey]hotKeyI),
 }
 
 func init() {
-	eventCenter.Event.Register(event_topic.HotKeySet, center.hotKeySetHandler)
+	eventCenter.Event.Register(event_topic.HotKeySet, Center.hotKeySetHandler)
 
 	// 监听系统退出信号
 	go func() {
 		sigChan := make(chan os.Signal, 1)
 		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 		<-sigChan
-		center.cleanup()
+		Center.cleanup()
 		os.Exit(0)
 	}()
 }

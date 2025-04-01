@@ -42,30 +42,33 @@ func (t *MenuItemT) MenuItems(mw **walk.MainWindow) []MenuItem {
 func (t *MenuItemT) Init() {
 	t.menuItems = []MenuItem{
 		Menu{AssignActionTo: &t.settingMenu, Items: []MenuItem{
-			Action{AssignTo: &t.setHotkeyAction, OnTriggered: t.setHotKeyPop},
-			Menu{AssignActionTo: &t.languageMenu, Items: []MenuItem{
-				Action{Text: string(enum.English), OnTriggered: func() {
-					_ = eventCenter.Event.Publish(event_topic.LanguageChange, &event_topic.LanguageChangeData{
-						Typ: enum.English,
-					})
-				}},
-				Action{Text: string(enum.Chinese), OnTriggered: func() {
-					_ = eventCenter.Event.Publish(event_topic.LanguageChange, &event_topic.LanguageChangeData{
-						Typ: enum.Chinese,
-					})
-				}},
-			},
-			},
+			t.hotKeyInit(),
+			t.languageInit(),
 		}},
-		Menu{AssignActionTo: &t.helpMenu, Items: []MenuItem{
-			Action{AssignTo: &t.aboutAction, OnTriggered: t.showAboutBoxAction},
-		}},
+		t.aboutInit(),
 	}
 
 }
 
+// ---------------------------------------- 热键设置 ----------------------------------------
+
+// 热键初始化
+func (t *MenuItemT) hotKeyInit() MenuItem {
+	return Action{AssignTo: &t.setHotkeyAction, OnTriggered: t.setHotKeyPop}
+}
+
 // 设置热键弹窗
 func (t *MenuItemT) setHotKeyPop() {
+	var (
+		setBox      = make(map[enum.HotKey]string)
+		name        = hk.Center.Show()
+		defaultName = hk.Center.DefaultShow()
+		sign        = hk.Center.ShowSign()
+	)
+}
+
+// 设置热键弹窗
+func (t *MenuItemT) setHotKeyPop2() {
 	type hkSetT struct {
 		name   enum.HotKey
 		box    *walk.ComboBox
@@ -138,20 +141,23 @@ func (t *MenuItemT) setHotKeyPop() {
 	}
 }
 
-// 初始化校验
-func (t *MenuItemT) initCheck() bool {
-	for _, per := range []*walk.Action{
-		t.settingMenu,
-		t.setHotkeyAction,
-		t.languageMenu,
-		t.helpMenu,
-		t.aboutAction,
-	} {
-		if per == nil {
-			return false
-		}
+// ---------------------------------------- 语言设置 ----------------------------------------
+
+// 语言初始化
+func (t *MenuItemT) languageInit() MenuItem {
+	return Menu{AssignActionTo: &t.languageMenu, Items: []MenuItem{
+		Action{Text: string(enum.English), OnTriggered: func() {
+			_ = eventCenter.Event.Publish(event_topic.LanguageChange, &event_topic.LanguageChangeData{
+				Typ: enum.English,
+			})
+		}},
+		Action{Text: string(enum.Chinese), OnTriggered: func() {
+			_ = eventCenter.Event.Publish(event_topic.LanguageChange, &event_topic.LanguageChangeData{
+				Typ: enum.Chinese,
+			})
+		}},
+	},
 	}
-	return true
 }
 
 // LanguageChange 设置语言
@@ -160,13 +166,35 @@ func (t *MenuItemT) LanguageChange(data interface{}) (err error) {
 		time.Sleep(10 * time.Millisecond)
 	}
 
-	tryPublishErr(t.settingMenu.SetText(language.MenuSettingStr.ToString()))
-	tryPublishErr(t.languageMenu.SetText(language.MenuItemLanguageStr.ToString()))
-	tryPublishErr(t.setHotkeyAction.SetText(language.ActionSetHotKeyStr.ToString()))
-	tryPublishErr(t.helpMenu.SetText(language.MenuHelpStr.ToString()))
-	tryPublishErr(t.aboutAction.SetText(language.ActionAboutStr.ToString()))
+	tryPublishErr(t.settingMenu.SetText(language.MenuSettingStr.ToString()))         // 设置
+	tryPublishErr(t.languageMenu.SetText(language.MenuItemLanguageStr.ToString()))   // 语言设置
+	tryPublishErr(t.setHotkeyAction.SetText(language.ActionSetHotKeyStr.ToString())) // 热键设置
+	tryPublishErr(t.helpMenu.SetText(language.MenuHelpStr.ToString()))               // 帮助
+	tryPublishErr(t.aboutAction.SetText(language.ActionAboutStr.ToString()))         // 关于
 
 	return
+}
+
+// 初始化校验
+func (t *MenuItemT) initCheck() bool {
+	for _, per := range []*walk.Action{
+		t.settingMenu, t.setHotkeyAction, t.languageMenu,
+		t.helpMenu, t.aboutAction,
+	} {
+		if per == nil {
+			return false
+		}
+	}
+	return true
+}
+
+// ---------------------------------------- 关于信息 ----------------------------------------
+
+// 关于初始化
+func (t *MenuItemT) aboutInit() MenuItem {
+	return Menu{AssignActionTo: &t.helpMenu, Items: []MenuItem{
+		Action{AssignTo: &t.aboutAction, OnTriggered: t.showAboutBoxAction},
+	}}
 }
 
 // 系统信息

@@ -37,7 +37,6 @@ type hotKeyButton struct {
 	hkExec func()
 
 	*walk.PushButton
-	component.HotKeyI
 }
 
 func (t *FunctionT) Init() {
@@ -120,10 +119,10 @@ func (t *FunctionT) setFileName() (fileName string, ok bool) {
 		DefaultButton: &acceptPB, CancelButton: &cancelPB,
 		Size: Size{Width: 350, Height: 200}, Layout: Grid{Columns: 4},
 		Children: []Widget{
-			TextLabel{Text: language.SetFileLabelStr), ColumnSpan: 4},
+			TextLabel{Text: language.SetFileLabelStr.ToString(), ColumnSpan: 4},
 			LineEdit{AssignTo: &nameEdit, ColumnSpan: 4, OnTextChanged: func() { fileName = nameEdit.Text() }},
-			PushButton{AssignTo: &acceptPB, ColumnSpan: 2, Text: language.OKStr), OnClicked: func() { dlg.Accept() }},
-			PushButton{AssignTo: &cancelPB, ColumnSpan: 2, Text: language.CancelStr), OnClicked: func() { dlg.Cancel() }},
+			PushButton{AssignTo: &acceptPB, ColumnSpan: 2, Text: language.OKStr.ToString(), OnClicked: func() { dlg.Accept() }},
+			PushButton{AssignTo: &cancelPB, ColumnSpan: 2, Text: language.CancelStr.ToString(), OnClicked: func() { dlg.Cancel() }},
 		},
 		Enabled: true,
 	}.Run(*t.mw)
@@ -133,7 +132,7 @@ func (t *FunctionT) setFileName() (fileName string, ok bool) {
 }
 
 // LanguageChange 设置语言
-func (t *FunctionT) LanguageChange(data interface{}) (err error)  {
+func (t *FunctionT) LanguageChange(data interface{}) (err error) {
 
 	for !t.initCheck() {
 		time.Sleep(10 * time.Millisecond)
