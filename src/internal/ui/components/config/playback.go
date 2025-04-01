@@ -1,10 +1,12 @@
-package uiConfig
+package component_config
 
 import (
+	uiComponent "KeyMouseSimulation/internal/ui/components"
 	conf "KeyMouseSimulation/pkg/config"
 	eventCenter "KeyMouseSimulation/pkg/event"
 	"KeyMouseSimulation/pkg/language"
-	"KeyMouseSimulation/share/event_topic"
+	"KeyMouseSimulation/share/enum"
+	"KeyMouseSimulation/share/topic"
 	"math"
 	"time"
 
@@ -43,50 +45,39 @@ func (c *playbackConfig) init() {
 		NumberEdit{AssignTo: &c.currentTimesEdit, StretchFactor: 0, ColumnSpan: 1},
 	}
 
+	// 注册回调
+	eventCenter.Event.Register(topic.ConfigChange, func(data interface{}) (err error) {
+		if confData, ok := data.(topic.ConfigChangeData); ok {
+			if confData.Key == enum.PlaybackTimesConf {
+				uiComponent.TryPublishErr(c.currentTimesEdit.SetValue(float64(confData.Value.(int64))))
+			}
+		}
+		return
+	})
+
 }
 func (c *playbackConfig) disPlay() []Widget {
 	return c.widget
 }
 
-func (c *playbackConfig) register() {
-	eventCenter.Event.Register(event_topic.LanguageChange, c.languageHandler)
-	eventCenter.Event.Register(event_topic.ConfigChange, c.playbackRemainTimesHandler)
-}
-
-// 语言变动回调
-func (c *playbackConfig) languageHandler(data interface{}) (err error) {
-	for c.playbackTimesLabel == nil || c.currentTimesLabel == nil || c.speedLabel == nil {
-		time.Sleep(20 * time.Millisecond)
-	}
-
-	tryPublishErr(c.playbackTimesLabel.SetText(language.PlayBackTimesLabelStr.ToString()))
-	tryPublishErr(c.currentTimesLabel.SetText(language.CurrentTimesLabelStr.ToString()))
-	tryPublishErr(c.speedLabel.SetText(language.SpeedLabelStr.ToString()))
-	return
-}
-
-// 回放剩余次数变动回调
-func (c *playbackConfig) playbackRemainTimesHandler(data interface{}) (err error) {
-	if confData, ok := data.(event_topic.ConfigChangeData); ok {
-		if confData.Key == conf.KeyPlaybackTimes.GetKey() {
-			// 获取回放次数
-			var value = conf.KeyPlaybackTimes.GetValue()
-			if value, ok := value.(int64); ok {
-				tryPublishErr(c.currentTimesEdit.SetValue(float64(value)))
-			}
-		}
-	}
-	return
-}
-
 // 设置回放速度
 func (c *playbackConfig) setSpeed() {
-	tryPublishErr(c.speedEdit.SetValue(math.Pow(2, float64(c.speedSli.Value()-5))))
-
-	conf.KeyPlaybackSpeed.SetValue(c.speedEdit.Value())
+	uiComponent.TryPublishErr(c.speedEdit.SetValue(math.Pow(2, float64(c.speedSli.Value()-5))))
+	uiComponent.TryPublishErr(conf.PlaybackSpeedConf.SetValue(c.speedEdit.Value()))
 }
 
 // 设置回放次数
 func (c *playbackConfig) setPlaybackTimes() {
-	conf.KeyPlaybackTimes.SetValue(int64(c.playbackTimesEdit.Value()))
+	uiComponent.TryPublishErr(conf.PlaybackTimesConf.SetValue(int64(c.playbackTimesEdit.Value())))
+}
+
+// 语言变动回调
+func (c *playbackConfig) languageChange() {
+	for c.playbackTimesLabel == nil || c.currentTimesLabel == nil || c.speedLabel == nil {
+		time.Sleep(20 * time.Millisecond)
+	}
+
+	uiComponent.TryPublishErr(c.playbackTimesLabel.SetText(language.PlayBackTimesLabelStr.ToString()))
+	uiComponent.TryPublishErr(c.currentTimesLabel.SetText(language.CurrentTimesLabelStr.ToString()))
+	uiComponent.TryPublishErr(c.speedLabel.SetText(language.SpeedLabelStr.ToString()))
 }

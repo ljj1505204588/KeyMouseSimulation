@@ -2,29 +2,40 @@ package conf
 
 import (
 	eventCenter "KeyMouseSimulation/pkg/event"
-	"KeyMouseSimulation/share/event_topic"
+	"KeyMouseSimulation/share/enum"
+	"KeyMouseSimulation/share/topic"
 	"fmt"
 )
 
-type ConfigKeyI interface {
-	GetKey() string
-	GetValue() any
-	SetValue(value any) error
-}
+// 预定义配置键
+var (
+	RecordHotKeyConf     = &configKeyT[string]{key: enum.RecordHotKeyConf, val: "F9"}
+	PlaybackHotKeyConf   = &configKeyT[string]{key: enum.PlaybackHotKeyConf, val: "F10"}
+	PauseHotKeyConf      = &configKeyT[string]{key: enum.PauseHotKeyConf, val: "F11"}
+	StopHotKeyConf       = &configKeyT[string]{key: enum.StopHotKeyConf, val: "F12"}
+	RecordMouseTrackConf = &configKeyT[bool]{key: enum.RecordMouseTrackConf, val: true}
+	PlaybackSpeedConf    = &configKeyT[float64]{key: enum.PlaybackSpeedConf, val: 1.0}
+	PlaybackTimesConf    = &configKeyT[int64]{key: enum.PlaybackTimesConf, val: int64(1)}
+	LanguageConf         = &configKeyT[string]{key: enum.LanguageConf, val: "zh_CN"}
+)
 
 // configKeyT 泛型配置键
 type configKeyT[T any] struct {
-	key string
+	key enum.ConfEnum
 	val T
 }
 
-func (c *configKeyT[T]) GetKey() string {
+// GetKey 获取键
+func (c *configKeyT[T]) GetKey() enum.ConfEnum {
 	return c.key
 }
 
+// GetValue 获取值
 func (c *configKeyT[T]) GetValue() any {
 	return c.val
 }
+
+// SetValue 设置值
 func (c *configKeyT[T]) SetValue(value any) error {
 	val, ok := value.(T)
 	if !ok {
@@ -34,32 +45,6 @@ func (c *configKeyT[T]) SetValue(value any) error {
 	c.val = val
 
 	// 发布配置改变事件
-	eventCenter.Event.Publish(event_topic.ConfigChange, event_topic.ConfigChangeData{Key: c.key})
+	_ = eventCenter.Event.Publish(topic.ConfigChange, &topic.ConfigChangeData{Key: c.key, Value: c.val})
 	return nil
-}
-
-// 预定义配置键
-var (
-	KeyRecordHotKey     = &configKeyT[string]{key: "record.hotkey", val: "F9"}
-	KeyPlaybackHotKey   = &configKeyT[string]{key: "playback.hotkey", val: "F10"}
-	KeyPauseHotKey      = &configKeyT[string]{key: "pause.hotkey", val: "F11"}
-	KeyStopHotKey       = &configKeyT[string]{key: "stop.hotkey", val: "F12"}
-	KeyRecordMouseTrack = &configKeyT[bool]{key: "record.mousetrack", val: true}
-	KeyPlaybackSpeed    = &configKeyT[float64]{key: "playback.speed", val: 1.0}
-	KeyPlaybackTimes    = &configKeyT[int64]{key: "playback.times", val: int64(1)}
-	KeyLanguage         = &configKeyT[string]{key: "system.language", val: "zh_CN"}
-)
-
-// 获取所有配置键
-func allKeys() []ConfigKeyI {
-	return []ConfigKeyI{
-		KeyRecordHotKey,
-		KeyPlaybackHotKey,
-		KeyPauseHotKey,
-		KeyStopHotKey,
-		KeyRecordMouseTrack,
-		KeyPlaybackSpeed,
-		KeyPlaybackTimes,
-		KeyLanguage,
-	}
 }

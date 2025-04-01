@@ -1,4 +1,4 @@
-package uiComponent
+package component_config
 
 import (
 	"sync"
@@ -18,7 +18,6 @@ func (t *ConfigManageT) Init() {
 	t.configs = []configI{&fileConfig{}, &recordConfig{}, &playbackConfig{}}
 	for _, conf := range t.configs {
 		conf.init()
-		conf.register()
 	}
 }
 
@@ -34,5 +33,9 @@ func (t *ConfigManageT) DisPlay(mw **walk.MainWindow) (res []Widget) {
 
 // LanguageChange 设置语言
 func (t *ConfigManageT) LanguageChange(data interface{}) (err error) {
+	for _, conf := range t.configs {
+		conf.languageChange()
+	}
+
 	return
 }

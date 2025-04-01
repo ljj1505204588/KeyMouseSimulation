@@ -1,4 +1,4 @@
-package file
+package rp_file
 
 import (
 	"KeyMouseSimulation/common/common"
@@ -7,14 +7,14 @@ import (
 	"KeyMouseSimulation/common/windowsApi/windowsInput/keyMouTool"
 	eventCenter "KeyMouseSimulation/pkg/event"
 	"KeyMouseSimulation/pkg/language"
-	"KeyMouseSimulation/share/event_topic"
+	"KeyMouseSimulation/share/topic"
 	"encoding/json"
 	"errors"
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -24,7 +24,6 @@ type FileControlI interface {
 	Save(name string, data []keyMouTool.NoteT)
 	ReadFile(name string) (data keyMouTool.MulNote)
 
-	FileChange(exec func(names, newNames []string))
 	Choose(name string) error
 	Current() (name string)
 }
@@ -33,7 +32,7 @@ var FileControl FileControlI
 
 func init() {
 	var f = fileControlT{}
-	f.once.Do(func() {
+	{
 		f.getWindowRect()
 
 		f.basePath, _ = os.Getwd()
@@ -41,28 +40,29 @@ func init() {
 		common.MustNil(os.MkdirAll(f.basePath, 0666))
 
 		go f.scanFile()
-	})
+	}
 	FileControl = &f
 }
 
 type fileControlT struct {
-	once sync.Once
-
-	changeExec func(names, newNames []string)
-
 	windowsX int // 电脑屏幕宽度
 	windowsY int // 电脑屏幕长度
 
-	basePath string
-	fileName []string
+	current  string   // 当前文件
+	fileName []string // 所有文件
 
-	current string
+	basePath string // 基础路径
+
 }
 
 // Save 存储
 func (f *fileControlT) Save(name string, data []keyMouTool.NoteT) {
 	if name == "" || len(data) == 0 {
 		return
+	}
+
+	if gene.In(f.fileName, name) {
+		name += "_" + strconv.Itoa(int(time.Now().Unix()))
 	}
 
 	// 打开文件
@@ -81,8 +81,13 @@ func (f *fileControlT) Save(name string, data []keyMouTool.NoteT) {
 	}
 
 	f.fileName = append(f.fileName, name)
-	if f.changeExec != nil {
-		f.changeExec(f.fileName, []string{name})
+	f.current = name
+
+	if err = eventCenter.Event.Publish(topic.FileListChange, &topic.FileListChangeData{
+		ChooseFile: name,
+		Files:      f.fileName,
+	}); err != nil {
+		f.publishErr(err)
 	}
 }
 
@@ -110,19 +115,14 @@ func (f *fileControlT) ReadFile(name string) (data keyMouTool.MulNote) {
 		return dealErr(err)
 	}
 
-	data.AdaptWindow(f.windowsX, f.windowsY)
+	data.AdaptWindow(f.windowsX, f.windowsY) // 适应屏幕
 
 	return
 }
 
-// FileChange 文件变动执行回调
-func (f *fileControlT) FileChange(exec func(names, newNames []string)) {
-	f.changeExec = exec
-}
-
 // Choose 文件选择
 func (f *fileControlT) Choose(name string) error {
-	if !gene.Contain(f.fileName, name) {
+	if !gene.In(f.fileName, name) {
 		return errors.New(language.ErrorSaveFileNameNilStr.ToString())
 	}
 
@@ -137,7 +137,11 @@ func (f *fileControlT) Current() (name string) {
 
 // 扫描文件
 func (f *fileControlT) scanFile() {
-	defer func() { go f.scanFile() }()
+	defer func() {
+		_ = recover()
+		go f.scanFile()
+	}()
+
 	for {
 		var names []string
 		//遍历存储当前文件名字
@@ -152,11 +156,20 @@ func (f *fileControlT) scanFile() {
 
 		// 对比
 		if len(names) != len(f.fileName) || len(gene.Intersection(names, f.fileName)) != len(names) {
-			if f.changeExec != nil {
-				newFile := gene.Exclude(names, f.fileName)
-				f.fileName = names
-				f.changeExec(names, newFile)
+			f.fileName = names
+
+			if !gene.In(names, f.current) {
+				f.current = ""
+				if len(names) > 0 {
+					f.current = names[0]
+				}
 			}
+
+			f.publishErr(eventCenter.Event.Publish(topic.FileListChange, &topic.FileListChangeData{
+				ChooseFile: f.current,
+				Files:      f.fileName,
+			}))
+
 		}
 
 		time.Sleep(2 * time.Second)
@@ -182,7 +195,7 @@ func (f *fileControlT) getWindowRect() {
 // ---------------------------------- 发布事件 ----------------------------------
 
 func (f *fileControlT) publishErr(err error) {
-	_ = eventCenter.Event.Publish(event_topic.ServerError, event_topic.ServerErrorData{
+	_ = eventCenter.Event.Publish(topic.ServerError, &topic.ServerErrorData{
 		ErrInfo: err.Error(),
 	})
 }

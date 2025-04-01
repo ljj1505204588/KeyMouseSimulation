@@ -1,9 +1,10 @@
-package uiComponent
+package component_system
 
 import (
+	"KeyMouseSimulation/internal/server"
 	eventCenter "KeyMouseSimulation/pkg/event"
 	"KeyMouseSimulation/pkg/language"
-	"KeyMouseSimulation/share/event_topic"
+	"KeyMouseSimulation/share/topic"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
 	"strings"
@@ -71,8 +72,8 @@ func (t *SystemT) LanguageChange(data interface{}) (err error) {
 
 func (t *SystemT) register() {
 
-	eventCenter.Event.Register(event_topic.ServerError, t.subShowError)
-	eventCenter.Event.Register(event_topic.ServerStatus, t.subServerStatusChange)
+	eventCenter.Event.Register(topic.ServerError, t.subShowError)
+	eventCenter.Event.Register(topic.ServerStatus, t.subServerStatusChange)
 }
 
 // 订阅错误事件
@@ -82,7 +83,7 @@ func (t *SystemT) subShowError(dataI interface{}) (err error) {
 	}
 
 	// 日志记录
-	var data = dataI.(event_topic.ServerErrorData)
+	var data = dataI.(*topic.ServerErrorData)
 	t.historyErr = append(t.historyErr, data.ErrInfo+" \r\n")
 
 	var hisLen = len(t.historyErr)
@@ -100,13 +101,14 @@ func (t *SystemT) subShowError(dataI interface{}) (err error) {
 
 // 订阅状态变动事件
 func (t *SystemT) subServerStatusChange(data interface{}) (err error) {
-	d := data.(event_topic.ServerStatusChangeData)
+	d := data.(*topic.ServerStatusChangeData)
 
 	for t.statusEdit == nil {
 		time.Sleep(10 * time.Millisecond)
 	}
 
-	if err = t.statusEdit.SetText(d.Show.ToString()); err != nil {
+	var show = server.Svc.StatusShow(d.Status)
+	if err = t.statusEdit.SetText(show); err != nil {
 		return
 	}
 

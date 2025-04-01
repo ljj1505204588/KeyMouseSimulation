@@ -9,14 +9,15 @@ import (
 	eventCenter "KeyMouseSimulation/pkg/event"
 	"KeyMouseSimulation/pkg/language"
 	"KeyMouseSimulation/share/enum"
-	"KeyMouseSimulation/share/event_topic"
+	"KeyMouseSimulation/share/topic"
+	"fmt"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 )
 
-func (c *centerT) DefaultShow() (res map[enum.HotKey]string) {
+func (c *centerT) DefaultShowSign() (res map[enum.HotKey]string) {
 	return map[enum.HotKey]string{
 		enum.HotKeyRecord:   "F7",
 		enum.HotKeyPlayBack: "F8",
@@ -66,14 +67,23 @@ var Center = &centerT{
 }
 
 func init() {
-	eventCenter.Event.Register(event_topic.HotKeySet, Center.hotKeySetHandler)
+	_ = Center.hotKeySetHandler(&topic.HotKeySetData{
+		Set: map[enum.HotKey]keyMouTool.VKCode{
+			enum.HotKeyRecord:   keyMouTool.VKCodeStringMap["F7"],
+			enum.HotKeyPlayBack: keyMouTool.VKCodeStringMap["F8"],
+			enum.HotKeyPause:    keyMouTool.VKCodeStringMap["F9"],
+			enum.HotKeyStop:     keyMouTool.VKCodeStringMap["F10"],
+		},
+	})
+	eventCenter.Event.Register(topic.HotKeySet, Center.hotKeySetHandler)
 
 	// 监听系统退出信号
 	go func() {
 		sigChan := make(chan os.Signal, 1)
-		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 		<-sigChan
 		Center.cleanup()
+		fmt.Println("热键回调已删除.")
 		os.Exit(0)
 	}()
 }
@@ -86,17 +96,20 @@ type centerT struct {
 // 设置热键事件回调函数
 func (c *centerT) hotKeySetHandler(data interface{}) (err error) {
 	defer common.LockSelf(&c.lock)()
-	var dataValue = data.(event_topic.HotKeySetData)
+	var dataValue = data.(*topic.HotKeySetData)
 
-	// 取出维护的
-	var hk, ok = c.hotKeyMap[dataValue.HotKey]
-	if !ok {
-		hk = &hotKeyT{}
-		c.hotKeyMap[dataValue.HotKey] = hk
+	for HotKey, code := range dataValue.Set {
+		// 取出维护的
+		var hk, ok = c.hotKeyMap[HotKey]
+		if !ok {
+			hk = &hotKeyT{}
+			c.hotKeyMap[HotKey] = hk
+		}
+
+		// 设置
+		hk.set(HotKey, 0, code)
 	}
 
-	// 设置
-	hk.set(dataValue.HotKey, 0, dataValue.KeyBoardCodes)
 	return
 }
 

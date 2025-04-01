@@ -2,12 +2,12 @@ package uiComponent
 
 import (
 	eventCenter "KeyMouseSimulation/pkg/event"
-	"KeyMouseSimulation/share/event_topic"
+	"KeyMouseSimulation/share/topic"
 )
 
-func tryPublishErr(err error) {
+func TryPublishErr(err error) {
 	if err != nil {
-		_ = eventCenter.Event.Publish(event_topic.ServerError, event_topic.ServerErrorData{
+		_ = eventCenter.Event.Publish(topic.ServerError, topic.ServerErrorData{
 			ErrInfo: err.Error(),
 		})
 	}

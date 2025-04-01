@@ -68,8 +68,8 @@ func RemoveDuplicate[T comparable](ls ...[]T) (res []T) {
 	return
 }
 
-// Contain 包含
-func Contain[T comparable](l []T, n T) bool {
+// In 包含
+func In[T comparable](l []T, n T) bool {
 	for _, per := range l {
 		if per == n {
 			return true

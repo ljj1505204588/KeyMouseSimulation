@@ -11,9 +11,9 @@ const ( //
 
 func TotalHotkey() []HotKey {
 	return []HotKey{
-		HotKeyStop,
-		HotKeyPause,
 		HotKeyRecord,
 		HotKeyPlayBack,
+		HotKeyStop,
+		HotKeyPause,
 	}
 }

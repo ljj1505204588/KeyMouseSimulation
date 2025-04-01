@@ -1,16 +1,16 @@
-package uiComponent
+package component_menu_items
 
 import (
 	"KeyMouseSimulation/common/gene"
 	"KeyMouseSimulation/common/windowsApi/windowsInput/keyMouTool"
+	"KeyMouseSimulation/internal/ui/components"
 	eventCenter "KeyMouseSimulation/pkg/event"
 	hk "KeyMouseSimulation/pkg/hotkey"
 	"KeyMouseSimulation/pkg/language"
 	"KeyMouseSimulation/share/enum"
-	"KeyMouseSimulation/share/event_topic"
+	"KeyMouseSimulation/share/topic"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
-	"sort"
 	"sync"
 	"time"
 )
@@ -60,64 +60,39 @@ func (t *MenuItemT) hotKeyInit() MenuItem {
 // 设置热键弹窗
 func (t *MenuItemT) setHotKeyPop() {
 	var (
-		setBox      = make(map[enum.HotKey]string)
 		name        = hk.Center.Show()
-		defaultName = hk.Center.DefaultShow()
+		defaultSign = hk.Center.DefaultShowSign()
 		sign        = hk.Center.ShowSign()
 	)
-}
 
-// 设置热键弹窗
-func (t *MenuItemT) setHotKeyPop2() {
-	type hkSetT struct {
-		name   enum.HotKey
-		box    *walk.ComboBox
-		widget []Widget
-	}
-
-	var resetMethod []func()
-
-	var hkSets []hkSetT
+	var mulBox mulHkBoxT
 	for _, key := range enum.TotalHotkey() {
-		var set = hkSetT{name: key, box: &walk.ComboBox{}}
-		set.widget = []Widget{
-			Label{Text: hk.Show(key), ColumnSpan: 1},
-			ComboBox{AssignTo: &set.box, ColumnSpan: 1, Model: keyMouTool.VKCodeStringKeys, Editable: true, Value: hk.ShowSign(key), OnCurrentIndexChanged: func() {
-				setM[set.hk] = set.box.Text()
+		var hkBox = &hkBoxT{
+			name: key,
+			box:  &walk.ComboBox{},
+		}
+		hkBox.widget = []Widget{
+			Label{Text: name[key], ColumnSpan: 1},
+			ComboBox{AssignTo: &hkBox.box, ColumnSpan: 1, Model: keyMouTool.VKCodeStringKeys, Editable: true, Value: sign[key], OnCurrentIndexChanged: func() {
+				hkBox.setSign = hkBox.box.Text()
 			}},
 		}
-
-		hkSets = append(hkSets, set)
-
-		var defKey = key.DefaultKey()
-		resetMethod = append(resetMethod, func() {
-			_ = set.box.SetText(defKey)
-			setM[key] = defKey
-		})
-		setM[key] = key.Key() // 校验重复性
+		mulBox = append(mulBox, hkBox)
 	}
-	sort.Slice(hkSets, func(i, j int) bool {
-		return hkSets[i].name < hkSets[j].name
-	})
 
-	var hkWidget []Widget
-	for _, set := range hkSets {
-		hkWidget = append(hkWidget, set.widget...)
-	}
+	// 拼接页面
+	var hkWidget = mulBox.getWidgets()
 
 	var dlg *walk.Dialog
 	hkWidget = append(hkWidget, []Widget{
+		// 重置按钮
 		PushButton{ColumnSpan: 4, Text: language.ResetStr.ToString(), OnClicked: func() {
-			for _, reset := range resetMethod {
-				reset()
-			}
+			mulBox.resetSign(defaultSign)
 		}},
 
+		// 确认按钮
 		PushButton{AssignTo: &t.acceptPB, ColumnSpan: 2, Text: language.OKStr.ToString(), OnClicked: func() {
-			var keys []string
-			for _, key := range setM {
-				keys = append(keys, key)
-			}
+			var keys = mulBox.getSigns()
 
 			if len(gene.RemoveDuplicate(keys)) != len(keys) {
 				walk.MsgBox(dlg, language.ErrWindowTitleStr.ToString(), language.SetHotKeyErrMessageStr.ToString(), walk.MsgBoxIconInformation)
@@ -136,9 +111,45 @@ func (t *MenuItemT) setHotKeyPop2() {
 	}.Run(*t.mw)
 
 	if cmd == walk.DlgCmdOK {
-		//tryPublishErr(component.MulSetKey(setM))
-		//component.Center.Refresh()
+		uiComponent.TryPublishErr(eventCenter.Event.Publish(topic.HotKeySet, &topic.HotKeySetData{
+			Set: mulBox.getHotKeySet(),
+		}))
 	}
+}
+
+type hkBoxT struct {
+	name    enum.HotKey
+	box     *walk.ComboBox
+	setSign string
+	widget  []Widget
+}
+
+type mulHkBoxT []*hkBoxT
+
+func (m mulHkBoxT) getWidgets() (res []Widget) {
+	for _, box := range m {
+		res = append(res, box.widget...)
+	}
+	return
+}
+func (m mulHkBoxT) resetSign(defSign map[enum.HotKey]string) {
+	for _, hkBox := range m {
+		hkBox.setSign = defSign[hkBox.name]
+		_ = hkBox.box.SetText(hkBox.setSign)
+	}
+}
+func (m mulHkBoxT) getSigns() (keys []string) {
+	for _, box := range m {
+		keys = append(keys, box.setSign)
+	}
+	return
+}
+func (m mulHkBoxT) getHotKeySet() (set map[enum.HotKey]keyMouTool.VKCode) {
+	set = make(map[enum.HotKey]keyMouTool.VKCode)
+	for _, box := range m {
+		set[box.name] = keyMouTool.VKCodeStringMap[box.setSign]
+	}
+	return
 }
 
 // ---------------------------------------- 语言设置 ----------------------------------------
@@ -147,12 +158,12 @@ func (t *MenuItemT) setHotKeyPop2() {
 func (t *MenuItemT) languageInit() MenuItem {
 	return Menu{AssignActionTo: &t.languageMenu, Items: []MenuItem{
 		Action{Text: string(enum.English), OnTriggered: func() {
-			_ = eventCenter.Event.Publish(event_topic.LanguageChange, &event_topic.LanguageChangeData{
+			_ = eventCenter.Event.Publish(topic.LanguageChange, &topic.LanguageChangeData{
 				Typ: enum.English,
 			})
 		}},
 		Action{Text: string(enum.Chinese), OnTriggered: func() {
-			_ = eventCenter.Event.Publish(event_topic.LanguageChange, &event_topic.LanguageChangeData{
+			_ = eventCenter.Event.Publish(topic.LanguageChange, &topic.LanguageChangeData{
 				Typ: enum.Chinese,
 			})
 		}},
@@ -166,11 +177,11 @@ func (t *MenuItemT) LanguageChange(data interface{}) (err error) {
 		time.Sleep(10 * time.Millisecond)
 	}
 
-	tryPublishErr(t.settingMenu.SetText(language.MenuSettingStr.ToString()))         // 设置
-	tryPublishErr(t.languageMenu.SetText(language.MenuItemLanguageStr.ToString()))   // 语言设置
-	tryPublishErr(t.setHotkeyAction.SetText(language.ActionSetHotKeyStr.ToString())) // 热键设置
-	tryPublishErr(t.helpMenu.SetText(language.MenuHelpStr.ToString()))               // 帮助
-	tryPublishErr(t.aboutAction.SetText(language.ActionAboutStr.ToString()))         // 关于
+	uiComponent.TryPublishErr(t.settingMenu.SetText(language.MenuSettingStr.ToString()))         // 设置
+	uiComponent.TryPublishErr(t.languageMenu.SetText(language.MenuItemLanguageStr.ToString()))   // 语言设置
+	uiComponent.TryPublishErr(t.setHotkeyAction.SetText(language.ActionSetHotKeyStr.ToString())) // 热键设置
+	uiComponent.TryPublishErr(t.helpMenu.SetText(language.MenuHelpStr.ToString()))               // 帮助
+	uiComponent.TryPublishErr(t.aboutAction.SetText(language.ActionAboutStr.ToString()))         // 关于
 
 	return
 }

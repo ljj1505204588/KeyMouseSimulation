@@ -4,11 +4,14 @@
 package uiWindows
 
 import (
-	"KeyMouseSimulation/internal/ui"
 	uiComponent "KeyMouseSimulation/internal/ui/components"
+	component_base_button "KeyMouseSimulation/internal/ui/components/base_button"
+	component_config "KeyMouseSimulation/internal/ui/components/config"
+	component_menu_items "KeyMouseSimulation/internal/ui/components/menu_items"
+	component_system "KeyMouseSimulation/internal/ui/components/system"
 	eventCenter "KeyMouseSimulation/pkg/event"
 	"KeyMouseSimulation/pkg/language"
-	"KeyMouseSimulation/share/event_topic"
+	"KeyMouseSimulation/share/topic"
 	"fmt"
 
 	"github.com/lxn/walk"
@@ -18,18 +21,18 @@ import (
 type ControlT struct {
 	mw *walk.MainWindow
 
-	widgets   []ui.KmWidget
-	menuItems []ui.KmMenuItem
+	widgets   []uiComponent.KmWidget
+	menuItems []uiComponent.KmMenuItem
 }
 
 var c = &ControlT{
-	widgets: []ui.KmWidget{
-		&uiComponent.FunctionT{},     // 功能
-		&uiComponent.ConfigManageT{}, // 配置
-		&uiComponent.SystemT{},       // 系统
+	widgets: []uiComponent.KmWidget{
+		&component_base_button.FunctionT{}, // 功能
+		&component_config.ConfigManageT{},  // 配置
+		&component_system.SystemT{},        // 系统
 	},
-	menuItems: []ui.KmMenuItem{
-		&uiComponent.MenuItemT{},
+	menuItems: []uiComponent.KmMenuItem{
+		&component_menu_items.MenuItemT{},
 	},
 }
 
@@ -39,19 +42,19 @@ func (t *ControlT) MWPoint() **walk.MainWindow {
 
 func (t *ControlT) Init() {
 	for _, widget := range t.widgets {
-		eventCenter.Event.Register(event_topic.LanguageChange, widget.LanguageChange)
+		eventCenter.Event.Register(topic.LanguageChange, widget.LanguageChange)
 	}
 	for _, item := range t.menuItems {
-		eventCenter.Event.Register(event_topic.LanguageChange, item.LanguageChange)
+		eventCenter.Event.Register(topic.LanguageChange, item.LanguageChange)
 	}
 
-	eventCenter.Event.Register(event_topic.LanguageChange, func(data interface{}) (err error) {
+	eventCenter.Event.Register(topic.LanguageChange, func(data interface{}) (err error) {
 		t.mw.SetVisible(false)
 		t.mw.SetVisible(true)
 		return nil
 	})
 
-	go eventCenter.Event.Publish(event_topic.LanguageChange, event_topic.LanguageChangeData{})
+	go eventCenter.Event.Publish(topic.LanguageChange, &topic.LanguageChangeData{})
 }
 
 // ----------------------- 主窗口 -----------------------
@@ -67,7 +70,9 @@ func MainWindows() {
 		menuItems = append(menuItems, item.MenuItems(&c.mw)...)
 	}
 
-	var mw = &MainWindow{
+	c.Init()
+
+	_, err := MainWindow{
 		AssignTo: c.MWPoint(),
 		Title:    language.MainWindowTitleStr.ToString(),
 		Size:     Size{Width: 320, Height: 400},
@@ -75,18 +80,9 @@ func MainWindows() {
 		Children: widget,
 		// 工具栏
 		MenuItems: menuItems,
-	}
+	}.Run()
 
-	// 创建窗口后初始化
-	if err := mw.Create(); err != nil {
-		return
-	}
-
-	c.Init()
-	c.mw.Show()
-
-	if _, err := mw.Run(); err != nil {
+	if err != nil {
 		fmt.Println(err.Error())
-		return
 	}
 }

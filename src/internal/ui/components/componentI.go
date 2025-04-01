@@ -1,4 +1,4 @@
-package ui
+package uiComponent
 
 import (
 	"github.com/lxn/walk"

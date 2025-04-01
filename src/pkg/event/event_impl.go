@@ -1,11 +1,11 @@
 package eventCenter
 
-type EventI interface {
-	Register(topic Topic, handler Handler, opts ...Options) // 注册
-	Publish(topic Topic, dataAny interface{}) (err error)   // 同步发布
-	ASyncPublish(topic Topic, dataAny interface{})          // 异步发布
-}
+import "KeyMouseSimulation/share/topic"
 
-type Topic string
+type EventI interface {
+	Register(topic topic.Topic, handler Handler, opts ...Options) // 注册
+	Publish(topic topic.Topic, dataAny interface{}) (err error)   // 同步发布
+	ASyncPublish(topic topic.Topic, dataAny interface{})          // 异步发布
+}
 
 type Handler func(data interface{}) (err error)

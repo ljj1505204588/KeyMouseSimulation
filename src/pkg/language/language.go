@@ -3,14 +3,14 @@ package language
 import (
 	eventCenter "KeyMouseSimulation/pkg/event"
 	"KeyMouseSimulation/share/enum"
-	"KeyMouseSimulation/share/event_topic"
+	"KeyMouseSimulation/share/topic"
 )
 
 var langType enum.LanguageType = enum.Chinese
 
 func init() {
-	eventCenter.Event.Register(event_topic.LanguageChange, func(data interface{}) (err error) {
-		var dataValue = data.(*event_topic.LanguageChangeData)
+	eventCenter.Event.Register(topic.LanguageChange, func(data interface{}) (err error) {
+		var dataValue = data.(*topic.LanguageChangeData)
 		langType = dataValue.Typ
 		return
 	}, eventCenter.SetOrderLv(100))

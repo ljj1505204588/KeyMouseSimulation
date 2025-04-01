@@ -5,7 +5,7 @@ import (
 	"KeyMouseSimulation/common/windowsApi/windowsInput/keyMouTool"
 	eventCenter "KeyMouseSimulation/pkg/event"
 	"KeyMouseSimulation/share/enum"
-	"KeyMouseSimulation/share/event_topic"
+	"KeyMouseSimulation/share/topic"
 	"syscall"
 )
 
@@ -28,7 +28,7 @@ func (h *hotKeyT) set(key enum.HotKey, mod, code keyMouTool.VKCode) {
 			// 检查是否是目标热键
 			if wparam == uintptr(h.vk) {
 				// 触发热键事件
-				eventCenter.Event.ASyncPublish(event_topic.HotKeyEffect, event_topic.HotKeyEffectData{
+				eventCenter.Event.ASyncPublish(topic.HotKeyEffect, topic.HotKeyEffectData{
 					HotKey: h.key,
 				})
 			}

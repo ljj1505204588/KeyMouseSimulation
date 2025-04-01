@@ -1,16 +1,15 @@
-package event_topic
+package topic
 
 import (
 	"KeyMouseSimulation/common/windowsApi/windowsHook"
 	"KeyMouseSimulation/common/windowsApi/windowsInput/keyMouTool"
-	"KeyMouseSimulation/pkg/event"
 )
 
-const WindowsMouseHook eventCenter.Topic = "windows_mouse_hook"        // 鼠标钩子
-const WindowsKeyBoardHook eventCenter.Topic = "windows_key_board_hook" // 键盘钩子
+const WindowsMouseHook Topic = "windows_mouse_hook"        // 鼠标钩子
+const WindowsKeyBoardHook Topic = "windows_key_board_hook" // 键盘钩子
 
-const WindowsMouseInput eventCenter.Topic = "windows_mouse_input"        // 鼠标输入
-const WindowsKeyBoardInput eventCenter.Topic = "windows_key_board_input" // 键盘输入
+const WindowsMouseInput Topic = "windows_mouse_input"        // 鼠标输入
+const WindowsKeyBoardInput Topic = "windows_key_board_input" // 键盘输入
 
 type WindowsMouseHookData struct {
 	Date *windowsHook.MouseEvent // 系统鼠标勾子
