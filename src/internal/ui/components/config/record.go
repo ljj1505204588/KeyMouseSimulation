@@ -29,7 +29,7 @@ func (c *recordConfig) init() {
 		//鼠标路径
 		Label{AssignTo: &c.ifMouseTrackLabel, Text: language.MouseTrackStr.ToString(), ColumnSpan: 4},
 		CheckBox{AssignTo: &c.ifMouseTrackCheck, ColumnSpan: 4, Checked: true, Alignment: AlignHCenterVCenter, OnCheckedChanged: func() {
-			uiComponent.TryPublishErr(conf.RecordMouseTrackConf.SetValue(c.ifMouseTrackCheck.Checked()))
+			conf.RecordMouseTrackConf.SetValue(c.ifMouseTrackCheck.Checked())
 		}},
 	}
 

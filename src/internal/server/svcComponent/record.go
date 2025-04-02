@@ -35,8 +35,7 @@ type RecordServerT struct {
 	mouseHs    []func(data interface{})
 	keyBoardHs []func(data interface{})
 
-	recordMouseTrack bool                    //是否记录鼠标移动路径使用
-	lastMoveEven     *windowsHook.MouseEvent //最后移动事件，配合是否记录鼠标移动路径使用
+	lastMoveEven *windowsHook.MouseEvent //最后移动事件，配合是否记录鼠标移动路径使用
 }
 
 // Start 开始

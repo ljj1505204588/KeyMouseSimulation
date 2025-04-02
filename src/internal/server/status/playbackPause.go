@@ -1,8 +1,6 @@
 package status
 
-import (
-	"KeyMouseSimulation/common/share/enum"
-)
+import "KeyMouseSimulation/share/enum"
 
 // "PlaybackPause" 状态机
 type playbackPauseStatusT struct {

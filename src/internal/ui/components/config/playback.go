@@ -63,12 +63,12 @@ func (c *playbackConfig) disPlay() []Widget {
 // 设置回放速度
 func (c *playbackConfig) setSpeed() {
 	uiComponent.TryPublishErr(c.speedEdit.SetValue(math.Pow(2, float64(c.speedSli.Value()-5))))
-	uiComponent.TryPublishErr(conf.PlaybackSpeedConf.SetValue(c.speedEdit.Value()))
+	conf.PlaybackSpeedConf.SetValue(c.speedEdit.Value())
 }
 
 // 设置回放次数
 func (c *playbackConfig) setPlaybackTimes() {
-	uiComponent.TryPublishErr(conf.PlaybackTimesConf.SetValue(int64(c.playbackTimesEdit.Value())))
+	conf.PlaybackTimesConf.SetValue(int64(c.playbackTimesEdit.Value()))
 }
 
 // 语言变动回调

@@ -1,10 +1,11 @@
 package svcComponent
 
 import (
-	"KeyMouseSimulation/common/gene"
 	"KeyMouseSimulation/common/windowsApi/windowsInput/keyMouTool"
 	conf "KeyMouseSimulation/pkg/config"
 	eventCenter "KeyMouseSimulation/pkg/event"
+	rp_file "KeyMouseSimulation/pkg/file"
+	"KeyMouseSimulation/share/topic"
 	"sync/atomic"
 	"time"
 )
@@ -16,8 +17,6 @@ func GetPlaybackServer() PlayBackServerI {
 		keyMouTool.TYPE_INPUT_MOUSE:    p.mouseInput,
 		keyMouTool.TYPE_INPUT_KEYBOARD: p.keyBoardInput,
 	}
-
-	p.registerHandler()
 
 	go p.playBack()
 	return &p
@@ -40,10 +39,6 @@ type playBackServerT struct {
 	notes      []keyMouTool.NoteT //回放数据
 	notesIndex int64              //当前回放在文件内容位置
 
-	speed       float64 // 回放速度
-	times       int64   // 回放次数
-	remainTimes int64   // 剩余次数
-
 	input map[keyMouTool.InputType]func(note *keyMouTool.NoteT)
 }
 
@@ -55,8 +50,6 @@ type playBackDebug struct {
 // Start 开始
 func (p *playBackServerT) Start(fileName string) {
 	p.tryLoadFile(fileName)
-	conf.SetPlaybackRemainTimes(p.times)
-	conf.PlaybackTimesConf
 
 	p.run = true
 }
@@ -99,11 +92,11 @@ func (p *playBackServerT) checkPlayBackFinish(index int64) bool {
 	if index >= int64(len(p.notes)) {
 		atomic.SwapInt64(&p.notesIndex, 0)
 
-		if p.remainTimes >= 1 {
-			defer component.PlaybackConfig.SetPlaybackRemainTimes(p.remainTimes - 1)
+		if remainTime := conf.PlaybackRemainTimesConf.GetValue(); remainTime >= 1 {
+			defer conf.PlaybackRemainTimesConf.SetValue(remainTime - 1)
 
-			if p.remainTimes == 1 {
-				_ = eventCenter.Event.Publish(events2.PlaybackFinish, events2.PlayBackFinishData{})
+			if remainTime == 1 {
+				_ = eventCenter.Event.Publish(topic.PlaybackFinish, &topic.PlayBackFinishData{})
 				p.run = false
 				return true
 			}
@@ -115,12 +108,12 @@ func (p *playBackServerT) checkPlayBackFinish(index int64) bool {
 
 func (p *playBackServerT) sleep(gap int64) {
 	// 性能优化时候看看能不能按位来操作
-	var slTime = float64(gap) / p.speed
+	var slTime = float64(gap) / conf.PlaybackSpeedConf.GetValue()
 	time.Sleep(time.Duration(slTime))
 }
 
 func (p *playBackServerT) mouseInput(note *keyMouTool.NoteT) {
-	if err := eventCenter.Event.Publish(events2.WindowsMouseInput, events2.WindowsMouseInputData{
+	if err := eventCenter.Event.Publish(topic.WindowsMouseInput, topic.WindowsMouseInputData{
 		Data: &keyMouTool.MouseInputT{
 			X:         note.MouseNote.X,
 			Y:         note.MouseNote.Y,
@@ -134,7 +127,7 @@ func (p *playBackServerT) mouseInput(note *keyMouTool.NoteT) {
 }
 
 func (p *playBackServerT) keyBoardInput(note *keyMouTool.NoteT) {
-	if err := eventCenter.Event.Publish(events2.WindowsKeyBoardInput, events2.WindowsKeyBoardInputData{
+	if err := eventCenter.Event.Publish(topic.WindowsKeyBoardInput, &topic.WindowsKeyBoardInputData{
 		Data: &keyMouTool.KeyInputT{
 			VK:      note.KeyNote.VK,
 			DwFlags: note.KeyNote.DwFlags,
@@ -144,24 +137,11 @@ func (p *playBackServerT) keyBoardInput(note *keyMouTool.NoteT) {
 	}
 }
 
-// 注册回调
-func (p *playBackServerT) registerHandler() {
-	component.PlaybackConfig.SetSpeedChange(true, func(speed float64) {
-		p.speed = gene.Choose(speed > 0, speed, 1)
-	})
-	component.PlaybackConfig.SetPlaybackTimesChange(true, func(times int64) {
-		p.times = gene.Choose(times > 0, times, 1)
-	})
-	component.PlaybackConfig.SetPlaybackRemainTimesChange(false, func(times int64) {
-		p.remainTimes = gene.Choose(times >= 0, times, 0)
-	})
-}
-
 // 加载文件
 func (p *playBackServerT) tryLoadFile(fileName string) {
 	if p.name != fileName {
 		p.run = false
 		p.name = fileName
-		p.notes = p.fileControl.ReadFile(fileName)
+		p.notes = rp_file.FileControl.ReadFile(fileName)
 	}
 }

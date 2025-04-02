@@ -1,8 +1,6 @@
 package status
 
-import (
-	"KeyMouseSimulation/common/share/enum"
-)
+import "KeyMouseSimulation/share/enum"
 
 // "Free" 状态机
 type freeStatusT struct {
