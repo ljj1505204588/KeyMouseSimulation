@@ -3,8 +3,6 @@ package eventCenter
 import (
 	"KeyMouseSimulation/common/common"
 	"KeyMouseSimulation/share/topic"
-	"errors"
-	"fmt"
 	"sort"
 	"sync"
 )
@@ -50,7 +48,8 @@ func (e *factory) Register(topic topic.Topic, handler Handler, opts ...Options) 
 func (e *factory) Publish(topic topic.Topic, data interface{}) (err error) {
 	handlers, ok := e.getHandler(topic)
 	if !ok {
-		return errors.New("topic.Topic Unregistered. ")
+		return // todo 添加日志
+		//return errors.New("topic.Topic Unregistered. ")
 	}
 
 	for _, h := range handlers {
@@ -72,8 +71,9 @@ func (e *factory) ASyncPublish(top topic.Topic, data interface{}) {
 	for _, h := range handlers {
 		go func(h Handler) {
 			if err := h(data); err != nil {
-				var errInfo = fmt.Sprintf("异步执行事件[%s]失败, 错误信息: %s", top, err.Error())
-				_ = e.Publish(topic.ServerError, &topic.ServerErrorData{ErrInfo: errInfo})
+				// todo 添加日志
+				//var errInfo = fmt.Sprintf("异步执行事件[%s]失败, 错误信息: %s", top, err.Error())
+				//_ = e.Publish(topic.ServerError, &topic.ServerErrorData{ErrInfo: errInfo})
 			}
 		}(h)
 	}

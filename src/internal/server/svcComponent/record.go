@@ -4,6 +4,8 @@ import (
 	"KeyMouseSimulation/common/windowsApi/windowsHook"
 	"KeyMouseSimulation/common/windowsApi/windowsInput/keyMouTool"
 	eventCenter "KeyMouseSimulation/pkg/event"
+	rp_file "KeyMouseSimulation/pkg/file"
+	"KeyMouseSimulation/share/topic"
 	"sync"
 	"time"
 )
@@ -62,7 +64,7 @@ func (r *RecordServerT) Stop() {
 
 	r.saveNotes = r.notes
 	r.notes = keyMouTool.MulNote{}
-	var err = eventCenter.Event.Publish(events2.RecordFinish, events2.RecordFinishData{
+	var err = eventCenter.Event.Publish(topic.RecordFinish, &topic.RecordFinishData{
 		Notes: r.saveNotes,
 	})
 	tryPublishServerError(err)
@@ -70,33 +72,30 @@ func (r *RecordServerT) Stop() {
 
 // Save 存储
 func (r *RecordServerT) Save(name string) {
-	r.fileControl.Save(name, r.saveNotes)
+	rp_file.FileControl.Save(name, r.saveNotes)
 }
 
 func (r *RecordServerT) registerHandler() {
-	eventCenter.Event.Register(events2.WindowsMouseHook, func(data interface{}) (err error) {
+	eventCenter.Event.Register(topic.WindowsMouseHook, func(data interface{}) (err error) {
 		for _, per := range r.mouseHs {
 			per(data)
 		}
 		return
 	})
-	eventCenter.Event.Register(events2.WindowsKeyBoardHook, func(data interface{}) (err error) {
+	eventCenter.Event.Register(topic.WindowsKeyBoardHook, func(data interface{}) (err error) {
 		for _, per := range r.keyBoardHs {
 			per(data)
 		}
 		return
 	})
 
-	component.RecordConfig.SetMouseTrackChange(true, func(record bool) {
-		r.recordMouseTrack = record
-	})
 }
 
 // mouseHandler 鼠标记录
 func (r *RecordServerT) mouseHandler(data interface{}) {
 	defer r.lockSelf()()
 
-	var info = data.(events2.WindowsMouseHookData)
+	var info = data.(topic.WindowsMouseHookData)
 	r.notes.AppendMouseNote(r.noteTime, info.Date)
 
 	r.noteTime = info.Date.RecordTime
@@ -106,10 +105,7 @@ func (r *RecordServerT) mouseHandler(data interface{}) {
 func (r *RecordServerT) keyBoardHandler(data interface{}) {
 	defer r.lockSelf()()
 
-	var info = data.(events2.WindowsKeyBoardHookData)
-	if _, ok := component.GetHkByCode(keyMouTool.VKCode(info.Date.VkCode)); ok {
-		return
-	}
+	var info = data.(topic.WindowsKeyBoardHookData)
 
 	r.notes.AppendKeyBoardNote(r.noteTime, info.Date)
 	r.noteTime = info.Date.RecordTime

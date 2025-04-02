@@ -11,11 +11,8 @@ import (
 )
 
 func init() {
-	eventCenter.Event.Register(topic.PlaybackFinish, server.playbackHandler)
-}
-
-var server = &serverT{
-	control: status.NewKmStatusI(),
+	var svc = Svc.(*serverT)
+	eventCenter.Event.Register(topic.PlaybackFinish, svc.playbackHandler)
 }
 
 type serverT struct {
@@ -45,13 +42,16 @@ func (s *serverT) PlayBack() {
 	s.control.Playback(current)
 }
 func (s *serverT) Pause() {
+	defer common.LockSelf(&s.lock)()
 	s.control.Pause()
 }
 
 // Save 存储文件
 func (s *serverT) Save(name string) {
-	s.control.Record()
+	defer common.LockSelf(&s.lock)()
+	s.control.Save(name)
 }
 func (s *serverT) Stop() (save bool) {
-	return
+	defer common.LockSelf(&s.lock)()
+	return s.control.Stop()
 }

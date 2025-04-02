@@ -19,3 +19,7 @@ func (s *freeStatusT) Playback(name string) {
 func (s *freeStatusT) Status() enum.Status {
 	return enum.Free
 }
+
+func (s *freeStatusT) Save(name string) {
+	s.record.Save(name)
+}

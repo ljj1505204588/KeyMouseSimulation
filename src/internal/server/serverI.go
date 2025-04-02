@@ -1,10 +1,13 @@
 package server
 
 import (
+	"KeyMouseSimulation/internal/server/status"
 	"KeyMouseSimulation/share/enum"
 )
 
-var Svc SvcI = &serverT{}
+var Svc SvcI = &serverT{
+	control: status.NewKmStatusI(),
+}
 
 type SvcI interface {
 	StatusShow(status enum.Status) string

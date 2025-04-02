@@ -15,7 +15,8 @@ type KmStatusI interface {
 	Record()              // 记录
 	Playback(name string) // 回放
 	Pause()               // 暂停
-	Stop()                // 停止
+	Stop() (save bool)    // 停止
+	Save(name string)     // 存储
 
 	Status() enum.Status
 	StatusShow(status enum.Status) string
@@ -60,7 +61,7 @@ func (k *kmStatusT) getStatus() enum.Status {
 func (k *kmStatusT) setStatus(e enum.Status) {
 	defer k.lockSelf()()
 	k.KmStatusI = k.statusBox[e]
-	tryPublishErr(eventCenter.Event.Publish(topic.ServerStatus, topic.ServerStatusChangeData{
+	tryPublishErr(eventCenter.Event.Publish(topic.ServerStatus, &topic.ServerStatusChangeData{
 		Status: e,
 	}))
 }
@@ -69,7 +70,7 @@ func (k *kmStatusT) syncServerStatus() {
 	defer func() { go k.syncServerStatus() }()
 
 	for range time.NewTicker(1 * time.Second).C {
-		tryPublishErr(eventCenter.Event.Publish(topic.ServerStatus, topic.ServerStatusChangeData{
+		tryPublishErr(eventCenter.Event.Publish(topic.ServerStatus, &topic.ServerStatusChangeData{
 			Status: k.KmStatusI.Status(),
 		}))
 	}
@@ -90,28 +91,36 @@ type baseStatusT struct {
 }
 
 func (s *baseStatusT) Record() {
-	_ = eventCenter.Event.Publish(topic.ServerError, topic.ServerErrorData{
+	_ = eventCenter.Event.Publish(topic.ServerError, &topic.ServerErrorData{
 		ErrInfo: fmt.Sprintf("[%s]->[%s] %s",
 			s.StatusShow(s.getStatus()), language.RecordStr.ToString(), language.ErrorStatusChangeError.ToString()),
 	})
 }
 
 func (s *baseStatusT) Playback(name string) {
-	_ = eventCenter.Event.Publish(topic.ServerError, topic.ServerErrorData{
+	_ = eventCenter.Event.Publish(topic.ServerError, &topic.ServerErrorData{
 		ErrInfo: fmt.Sprintf("[%s]->[%s] %s",
 			s.StatusShow(s.getStatus()), language.PlayBackStr.ToString(), language.ErrorStatusChangeError.ToString()),
 	})
 }
 
 func (s *baseStatusT) Pause() {
-	_ = eventCenter.Event.Publish(topic.ServerError, topic.ServerErrorData{
+	_ = eventCenter.Event.Publish(topic.ServerError, &topic.ServerErrorData{
 		ErrInfo: fmt.Sprintf("[%s]->[%s] %s",
 			s.StatusShow(s.getStatus()), language.PauseStr.ToString(), language.ErrorStatusChangeError.ToString()),
 	})
 }
 
-func (s *baseStatusT) Stop() {
-	_ = eventCenter.Event.Publish(topic.ServerError, topic.ServerErrorData{
+func (s *baseStatusT) Stop() (save bool) {
+	_ = eventCenter.Event.Publish(topic.ServerError, &topic.ServerErrorData{
+		ErrInfo: fmt.Sprintf("[%s]->[%s] %s",
+			s.StatusShow(s.getStatus()), language.StopStr.ToString(), language.ErrorStatusChangeError.ToString()),
+	})
+	return false
+}
+
+func (s *baseStatusT) Save(name string) {
+	_ = eventCenter.Event.Publish(topic.ServerError, &topic.ServerErrorData{
 		ErrInfo: fmt.Sprintf("[%s]->[%s] %s",
 			s.StatusShow(s.getStatus()), language.StopStr.ToString(), language.ErrorStatusChangeError.ToString()),
 	})
@@ -135,6 +144,6 @@ func (s *baseStatusT) StatusShow(status enum.Status) string {
 
 func tryPublishErr(err error) {
 	if err != nil {
-		_ = eventCenter.Event.Publish(topic.ServerError, topic.ServerErrorData{ErrInfo: err.Error()})
+		_ = eventCenter.Event.Publish(topic.ServerError, &topic.ServerErrorData{ErrInfo: err.Error()})
 	}
 }

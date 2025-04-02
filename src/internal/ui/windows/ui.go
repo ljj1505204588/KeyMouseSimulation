@@ -11,6 +11,7 @@ import (
 	component_system "KeyMouseSimulation/internal/ui/components/system"
 	eventCenter "KeyMouseSimulation/pkg/event"
 	"KeyMouseSimulation/pkg/language"
+	"KeyMouseSimulation/share/enum"
 	"KeyMouseSimulation/share/topic"
 	"fmt"
 
@@ -54,7 +55,9 @@ func (t *ControlT) Init() {
 		return nil
 	})
 
-	go eventCenter.Event.Publish(topic.LanguageChange, &topic.LanguageChangeData{})
+	go eventCenter.Event.Publish(topic.LanguageChange, &topic.LanguageChangeData{
+		Typ: enum.Chinese,
+	})
 }
 
 // ----------------------- 主窗口 -----------------------

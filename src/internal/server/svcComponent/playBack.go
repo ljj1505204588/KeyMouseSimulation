@@ -113,7 +113,7 @@ func (p *playBackServerT) sleep(gap int64) {
 }
 
 func (p *playBackServerT) mouseInput(note *keyMouTool.NoteT) {
-	if err := eventCenter.Event.Publish(topic.WindowsMouseInput, topic.WindowsMouseInputData{
+	if err := eventCenter.Event.Publish(topic.WindowsMouseInput, &topic.WindowsMouseInputData{
 		Data: &keyMouTool.MouseInputT{
 			X:         note.MouseNote.X,
 			Y:         note.MouseNote.Y,

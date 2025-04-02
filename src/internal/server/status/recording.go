@@ -12,9 +12,10 @@ func (s *recordingStatusT) Pause() {
 	s.record.Pause()
 	s.setStatus(enum.RecordPause)
 }
-func (s *recordingStatusT) Stop() {
+func (s *recordingStatusT) Stop() (save bool) {
 	s.record.Stop()
 	s.setStatus(enum.Free)
+	return true
 }
 func (s *recordingStatusT) Status() enum.Status {
 	return enum.Recording

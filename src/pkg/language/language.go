@@ -6,7 +6,7 @@ import (
 	"KeyMouseSimulation/share/topic"
 )
 
-var langType enum.LanguageType = enum.Chinese
+var langType enum.LanguageType = enum.Chinese // todo 改成conf
 
 func init() {
 	eventCenter.Event.Register(topic.LanguageChange, func(data interface{}) (err error) {
@@ -61,7 +61,7 @@ var (
 	PlayBackTimesLabelStr          LanguageKeyI = &languageKeyT{chinese: "回放次数", english: "PlaybackTimes"}
 	CurrentTimesLabelStr           LanguageKeyI = &languageKeyT{chinese: "剩余次数", english: "CurrentTimes"}
 	StatusLabelStr                 LanguageKeyI = &languageKeyT{chinese: "状态", english: "Status"}
-	ErrorLabelStr                  LanguageKeyI = &languageKeyT{chinese: "错误", english: "Error"}
+	ErrorLabelStr                  LanguageKeyI = &languageKeyT{chinese: "错误信息", english: "Error"}
 	SetFileLabelStr                LanguageKeyI = &languageKeyT{chinese: "文件名称：", english: "File:"}
 	AboutMessageStr                LanguageKeyI = &languageKeyT{chinese: "鼠标键盘录制回放.\n版本：0.1v", english: "MouseKey Record And Playback Tool \n Version:0.1v"}
 	SetHotKeyErrMessageStr         LanguageKeyI = &languageKeyT{chinese: "热键设置重复", english: "Hotkey Settings are repeated"}
@@ -80,4 +80,5 @@ var (
 	ErrorSetHotkeyWithoutHotkeyStr LanguageKeyI = &languageKeyT{chinese: "非法的空值热键。", english: "Hotkey is nil. "}
 	ErrorSaveFileNameNilStr        LanguageKeyI = &languageKeyT{chinese: "文件名称为空。", english: "File name is nil. "}
 	ErrorSaveFileNotExist          LanguageKeyI = &languageKeyT{chinese: "文件不存在。", english: "File not exist. "}
+	ErrorTopicUnregistered         LanguageKeyI = &languageKeyT{chinese: "主题未注册。", english: "Topic Unregistered."}
 )
