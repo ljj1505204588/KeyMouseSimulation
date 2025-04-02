@@ -1,54 +1,57 @@
 package server
 
 import (
-	"KeyMouseSimulation/pkg/language"
+	"KeyMouseSimulation/common/common"
+	"KeyMouseSimulation/internal/server/status"
+	eventCenter "KeyMouseSimulation/pkg/event"
+	rp_file "KeyMouseSimulation/pkg/file"
 	"KeyMouseSimulation/share/enum"
+	"KeyMouseSimulation/share/topic"
+	"sync"
 )
 
-var Svc SvcI = &svcT{}
-
-type SvcI interface {
-	StatusShow(status enum.Status) string
-	Record()           // 记录
-	PlayBack()         // 回放
-	Pause()            // 暂停
-	Stop() (save bool) // 停止
-	Save(name string)  // 存储文件
+func init() {
+	eventCenter.Event.Register(topic.PlaybackFinish, server.playbackHandler)
 }
 
-type svcT struct {
+var server = &serverT{
+	control: status.NewKmStatusI(),
 }
 
-func (s *svcT) StatusShow(status enum.Status) string {
-	switch status {
-	case enum.Free:
-		return language.ControlTypeFreeStr.ToString()
-	case enum.Recording:
-		return language.ControlTypeRecordingStr.ToString()
-	case enum.RecordPause:
-		return language.ControlTypeRecordPauseStr.ToString()
-	case enum.Playback:
-		return language.ControlTypePlaybackStr.ToString()
-	case enum.PlaybackPause:
-		return language.ControlTypePlaybackPauseStr.ToString()
-	}
-	return ""
+type serverT struct {
+	lock    sync.Mutex
+	control status.KmStatusI
 }
 
-func (s *svcT) Record() {
+func (s *serverT) playbackHandler(dataI interface{}) (err error) {
+	defer common.LockSelf(&s.lock)()
 
+	s.control.Stop()
+	return
 }
-func (s *svcT) PlayBack() {
 
+func (s *serverT) StatusShow(status enum.Status) string {
+	return s.control.StatusShow(status)
 }
-func (s *svcT) Pause() {
 
+func (s *serverT) Record() {
+	defer common.LockSelf(&s.lock)()
+	s.control.Record()
+}
+func (s *serverT) PlayBack() {
+	defer common.LockSelf(&s.lock)()
+
+	var current = rp_file.FileControl.Current()
+	s.control.Playback(current)
+}
+func (s *serverT) Pause() {
+	s.control.Pause()
 }
 
 // Save 存储文件
-func (s *svcT) Save(name string) {
-
+func (s *serverT) Save(name string) {
+	s.control.Record()
 }
-func (s *svcT) Stop() (save bool) {
+func (s *serverT) Stop() (save bool) {
 	return
 }

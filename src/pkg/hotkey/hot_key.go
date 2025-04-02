@@ -2,11 +2,13 @@ package hk
 
 import (
 	"KeyMouseSimulation/common/windowsApi"
+	"KeyMouseSimulation/common/windowsApi/windowsHook"
 	"KeyMouseSimulation/common/windowsApi/windowsInput/keyMouTool"
 	eventCenter "KeyMouseSimulation/pkg/event"
 	"KeyMouseSimulation/share/enum"
 	"KeyMouseSimulation/share/topic"
 	"syscall"
+	"unsafe"
 )
 
 type hotKeyT struct {
@@ -25,12 +27,18 @@ func (h *hotKeyT) set(key enum.HotKey, mod, code keyMouTool.VKCode) {
 	// 创建钩子回调函数
 	hookProc := func(nCode int32, wparam, lparam uintptr) uintptr {
 		if nCode >= 0 {
+			// 获取键盘事件结构
+			kbdStruct := (*windowsHook.STRUCT_KBDLLHOOKSTRUCT)(unsafe.Pointer(lparam))
+
 			// 检查是否是目标热键
-			if wparam == uintptr(h.vk) {
-				// 触发热键事件
-				eventCenter.Event.ASyncPublish(topic.HotKeyEffect, topic.HotKeyEffectData{
-					HotKey: h.key,
-				})
+			if kbdStruct.VkCode == h.vk {
+				// 检查修饰键状态
+				if h.mod == 0 || (kbdStruct.Flags&h.mod) == h.mod {
+					// 触发热键事件
+					eventCenter.Event.ASyncPublish(topic.HotKeyEffect, &topic.HotKeyEffectData{
+						HotKey: h.key,
+					})
+				}
 			}
 		}
 		// 调用下一个钩子
