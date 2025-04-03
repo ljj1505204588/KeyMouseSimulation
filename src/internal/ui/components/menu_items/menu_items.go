@@ -68,8 +68,9 @@ func (t *MenuItemT) setHotKeyPop() {
 	var mulBox mulHkBoxT
 	for _, key := range enum.TotalHotkey() {
 		var hkBox = &hkBoxT{
-			name: key,
-			box:  &walk.ComboBox{},
+			name:    key,
+			box:     &walk.ComboBox{},
+			setSign: sign[key],
 		}
 		hkBox.widget = []Widget{
 			Label{Text: name[key], ColumnSpan: 1},
@@ -140,14 +141,18 @@ func (m mulHkBoxT) resetSign(defSign map[enum.HotKey]string) {
 }
 func (m mulHkBoxT) getSigns() (keys []string) {
 	for _, box := range m {
-		keys = append(keys, box.setSign)
+		if box.setSign != "" {
+			keys = append(keys, box.setSign)
+		}
 	}
 	return
 }
 func (m mulHkBoxT) getHotKeySet() (set map[enum.HotKey]keyMouTool.VKCode) {
 	set = make(map[enum.HotKey]keyMouTool.VKCode)
 	for _, box := range m {
-		set[box.name] = keyMouTool.VKCodeStringMap[box.setSign]
+		if box.setSign != "" {
+			set[box.name] = keyMouTool.VKCodeStringMap[box.setSign]
+		}
 	}
 	return
 }

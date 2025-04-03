@@ -5,16 +5,14 @@ package hk
 
 import (
 	"KeyMouseSimulation/common/common"
+	"KeyMouseSimulation/common/elegantExit"
 	"KeyMouseSimulation/common/windowsApi/windowsInput/keyMouTool"
 	eventCenter "KeyMouseSimulation/pkg/event"
 	"KeyMouseSimulation/pkg/language"
 	"KeyMouseSimulation/share/enum"
 	"KeyMouseSimulation/share/topic"
 	"fmt"
-	"os"
-	"os/signal"
 	"sync"
-	"syscall"
 )
 
 func (c *centerT) DefaultShowSign() (res map[enum.HotKey]string) {
@@ -77,15 +75,10 @@ func init() {
 	})
 	eventCenter.Event.Register(topic.HotKeySet, Center.hotKeySetHandler)
 
-	// 监听系统退出信号
-	go func() {
-		sigChan := make(chan os.Signal, 1)
-		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
-		<-sigChan
+	elegantExit.AddElegantExit(func() {
 		Center.cleanup()
 		fmt.Println("热键回调已删除.")
-		os.Exit(0)
-	}()
+	})
 }
 
 type centerT struct {

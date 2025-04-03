@@ -16,10 +16,16 @@ type hotKeyT struct {
 	mod  uint32         // 修饰键
 	vk   uint32         // 主键
 	hook syscall.Handle // 钩子句柄
+
+	hotKeyEffectTime int64 // 热键生效时间  // todo 放到外边是不是好些
 }
 
 // Set 设置热键
 func (h *hotKeyT) set(key enum.HotKey, mod, code keyMouTool.VKCode) {
+	if h.hook != 0 {
+		h.cleanup()
+	}
+
 	h.key = key
 	h.mod = uint32(mod)
 	h.vk = uint32(code)
@@ -30,14 +36,17 @@ func (h *hotKeyT) set(key enum.HotKey, mod, code keyMouTool.VKCode) {
 			// 获取键盘事件结构
 			kbdStruct := (*windowsHook.STRUCT_KBDLLHOOKSTRUCT)(unsafe.Pointer(lparam))
 
-			// 检查是否是目标热键
-			if kbdStruct.VkCode == h.vk {
-				// 检查修饰键状态
-				if h.mod == 0 || (kbdStruct.Flags&h.mod) == h.mod {
-					// 触发热键事件
-					eventCenter.Event.ASyncPublish(topic.HotKeyEffect, &topic.HotKeyEffectData{
-						HotKey: h.key,
-					})
+			// 只处理按键按下事件，避免重复触发
+			if wparam == uintptr(windowsHook.WM_KEYDOWN) || wparam == uintptr(windowsHook.WM_SYSKEYDOWN) {
+				// 检查是否是目标热键
+				if kbdStruct.VkCode == h.vk {
+					// 检查修饰键状态
+					if h.mod == 0 || (kbdStruct.Flags&h.mod) == h.mod {
+						// 触发热键事件
+						_ = eventCenter.Event.Publish(topic.HotKeyEffect, &topic.HotKeyEffectData{
+							HotKey: h.key,
+						})
+					}
 				}
 			}
 		}

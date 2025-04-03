@@ -15,6 +15,7 @@ func (s *recordPauseStatusT) Record() {
 func (s *recordPauseStatusT) Stop() (save bool) {
 	s.record.Stop()
 	s.setStatus(enum.Free)
+
 	return true
 }
 func (s *recordPauseStatusT) Status() enum.Status {

@@ -3,6 +3,7 @@ package svcComponent
 import (
 	"KeyMouseSimulation/common/windowsApi/windowsHook"
 	"KeyMouseSimulation/common/windowsApi/windowsInput/keyMouTool"
+	conf "KeyMouseSimulation/pkg/config"
 	eventCenter "KeyMouseSimulation/pkg/event"
 	rp_file "KeyMouseSimulation/pkg/file"
 	"KeyMouseSimulation/share/topic"
@@ -62,12 +63,11 @@ func (r *RecordServerT) Pause() {
 func (r *RecordServerT) Stop() {
 	defer r.lockSelf()()
 
+	r.mouseHs = []func(data interface{}){}
+	r.keyBoardHs = []func(data interface{}){}
+
 	r.saveNotes = r.notes
 	r.notes = keyMouTool.MulNote{}
-	var err = eventCenter.Event.Publish(topic.RecordFinish, &topic.RecordFinishData{
-		Notes: r.saveNotes,
-	})
-	tryPublishServerError(err)
 }
 
 // Save 存储
@@ -91,24 +91,42 @@ func (r *RecordServerT) registerHandler() {
 
 }
 
+// -------------------------------------------- record --------------------------------------------
+
 // mouseHandler 鼠标记录
 func (r *RecordServerT) mouseHandler(data interface{}) {
 	defer r.lockSelf()()
 
-	var info = data.(topic.WindowsMouseHookData)
-	r.notes.AppendMouseNote(r.noteTime, info.Date)
+	var info = data.(*topic.WindowsMouseHookData)
 
+	if !conf.RecordMouseTrackConf.GetValue() {
+		if info.Date.Message == windowsHook.WM_MOUSEMOVE {
+			r.lastMoveEven = info.Date
+			return
+		} else if r.lastMoveEven != nil {
+			// 先把鼠标移动过去
+			r.notes.AppendMouseNote(info.Date.RecordTime, r.lastMoveEven)
+		}
+	}
+
+	r.notes.AppendMouseNote(r.noteTime, info.Date)
 	r.noteTime = info.Date.RecordTime
+
+	// 设置长度
+	conf.RecordLen.SetValue(len(r.notes))
 }
 
 // keyBoardHandler 键盘记录
 func (r *RecordServerT) keyBoardHandler(data interface{}) {
 	defer r.lockSelf()()
 
-	var info = data.(topic.WindowsKeyBoardHookData)
+	var info = data.(*topic.WindowsKeyBoardHookData)
 
 	r.notes.AppendKeyBoardNote(r.noteTime, info.Date)
 	r.noteTime = info.Date.RecordTime
+
+	// 设置长度
+	conf.RecordLen.SetValue(len(r.notes))
 }
 
 func (r *RecordServerT) lockSelf() func() {

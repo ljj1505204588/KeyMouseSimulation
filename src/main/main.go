@@ -2,6 +2,7 @@ package main
 
 import (
 	uiWindows "KeyMouseSimulation/internal/ui/windows"
+	_ "KeyMouseSimulation/pkg/windows"
 	"net/http"
 	_ "net/http/pprof"
 	"time"

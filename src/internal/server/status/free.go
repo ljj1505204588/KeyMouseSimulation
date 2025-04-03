@@ -1,6 +1,9 @@
 package status
 
-import "KeyMouseSimulation/share/enum"
+import (
+	conf "KeyMouseSimulation/pkg/config"
+	"KeyMouseSimulation/share/enum"
+)
 
 // "Free" 状态机
 type freeStatusT struct {
@@ -13,6 +16,10 @@ func (s *freeStatusT) Record() {
 	s.setStatus(enum.Recording)
 }
 func (s *freeStatusT) Playback(name string) {
+	// 重置回放次数
+	var playbackTimes = conf.PlaybackTimesConf.GetValue()
+	conf.PlaybackRemainTimesConf.SetValue(playbackTimes)
+
 	s.playBack.Start(name)
 	s.setStatus(enum.Playback)
 }

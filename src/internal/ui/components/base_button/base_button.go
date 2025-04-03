@@ -3,6 +3,7 @@ package component_base_button
 import (
 	"KeyMouseSimulation/internal/server"
 	"KeyMouseSimulation/internal/ui/components"
+	conf "KeyMouseSimulation/pkg/config"
 	eventCenter "KeyMouseSimulation/pkg/event"
 	hk "KeyMouseSimulation/pkg/hotkey"
 	"KeyMouseSimulation/pkg/language"
@@ -20,6 +21,8 @@ type FunctionT struct {
 	mw      **walk.MainWindow
 	buttons []hotKeyButton
 	widget  []Widget
+
+	isSaving bool // 是否存储中
 }
 
 type hotKeyButton struct {
@@ -32,27 +35,17 @@ type hotKeyButton struct {
 func (t *FunctionT) Init() {
 
 	t.buttons = []hotKeyButton{
-		{name: enum.HotKeyRecord, exec: server.Svc.Record},
-		{name: enum.HotKeyPlayBack, exec: server.Svc.PlayBack},
-		{name: enum.HotKeyPause, exec: server.Svc.Pause},
-		{name: enum.HotKeyStop, exec: t.stopButtonClick},
+		{name: enum.HotKeyRecord, exec: t.buttonWithCheck(server.Svc.Record)},
+		{name: enum.HotKeyPlayBack, exec: t.buttonWithCheck(server.Svc.PlayBack)},
+		{name: enum.HotKeyPause, exec: t.buttonWithCheck(server.Svc.Pause)},
+		{name: enum.HotKeyStop, exec: t.buttonWithCheck(t.stopButtonClick)},
 	}
 
 	for i, but := range t.buttons {
 		t.widget = append(t.widget, PushButton{AssignTo: &(t.buttons[i].PushButton), ColumnSpan: 4, OnClicked: but.exec})
 	}
 
-	// 注册热键触发
-	eventCenter.Event.Register(topic.HotKeyEffect, func(data interface{}) (err error) {
-		var dataValue = data.(*topic.HotKeyEffectData)
-		for _, buttons := range t.buttons {
-			// 执行热键
-			if buttons.name == dataValue.HotKey {
-				buttons.exec()
-			}
-		}
-		return
-	})
+	t.hotKeyRegister()
 }
 
 func (t *FunctionT) DisPlay(mw **walk.MainWindow) []Widget {
@@ -63,13 +56,66 @@ func (t *FunctionT) DisPlay(mw **walk.MainWindow) []Widget {
 
 // --------------------------------------- 按钮功能 ----------------------------------------------
 
+// 按下前校验
+func (t *FunctionT) buttonWithCheck(f func()) (check func()) {
+	check = func() {
+		if !t.isSaving {
+			f()
+		}
+	}
+	return check
+}
+
+// 暂停
 func (t *FunctionT) stopButtonClick() {
+	t.isSaving = true
+	defer func() { t.isSaving = false }()
+
 	// 记录停止，要存储文件
-	if server.Svc.Stop() {
+	if server.Svc.Stop() && conf.RecordLen.GetValue() != 0 {
 		if fileName, ok := t.setFileName(); ok {
 			server.Svc.Save(fileName)
 		}
 	}
+
+	conf.RecordLen.SetValue(0) // todo 考虑这个是否合理
+}
+
+// 按钮显示调整
+func (t *FunctionT) buttonShow() {
+	var (
+		show     = hk.Center.Show()
+		showSign = hk.Center.ShowSign()
+	)
+	for _, but := range t.buttons {
+		var key = but.name
+		uiComponent.TryPublishErr(but.SetText(fmt.Sprintf("%s %s", show[key], showSign[key])))
+	}
+}
+
+// --------------------------------------- 热键 ----------------------------------------------
+
+func (t *FunctionT) hotKeyRegister() {
+
+	// 热键变动
+	eventCenter.Event.Register(topic.HotKeySet, func(data interface{}) (err error) {
+		t.buttonShow()
+		return
+	})
+
+	// 注册热键触发
+	eventCenter.Event.Register(topic.HotKeyEffect, func(data interface{}) (err error) {
+
+		var dataValue = data.(*topic.HotKeyEffectData)
+		for _, buttons := range t.buttons {
+			// 执行热键
+			if buttons.name == dataValue.HotKey {
+				buttons.exec()
+			}
+		}
+
+		return
+	})
 }
 
 // --------------------------------------- 基础功能 ----------------------------------------------
@@ -103,14 +149,7 @@ func (t *FunctionT) LanguageChange(data interface{}) (err error) {
 		time.Sleep(10 * time.Millisecond)
 	}
 
-	var (
-		show     = hk.Center.Show()
-		showSign = hk.Center.ShowSign()
-	)
-	for _, but := range t.buttons {
-		var key = but.name
-		uiComponent.TryPublishErr(but.SetText(fmt.Sprintf("%s %s", show[key], showSign[key])))
-	}
+	t.buttonShow()
 
 	return
 }

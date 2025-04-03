@@ -38,7 +38,7 @@ func (s *serverT) Record() {
 func (s *serverT) PlayBack() {
 	defer common.LockSelf(&s.lock)()
 
-	var current = rp_file.FileControl.Current()
+	var current, _ = rp_file.FileControl.Current()
 	s.control.Playback(current)
 }
 func (s *serverT) Pause() {

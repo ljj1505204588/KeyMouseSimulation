@@ -9,7 +9,6 @@ type Topic string
 
 const ServerStatus Topic = "server_status"     // 服务状态
 const PlaybackFinish Topic = "playback_finish" // 回放结束
-const RecordFinish Topic = "record_finish"     // 记录结束
 
 const ServerError Topic = "server_error" // 错误
 const ButtonClick Topic = "button_click" // 按钮按下
@@ -31,10 +30,6 @@ type ServerErrorData struct {
 }
 
 type PlayBackFinishData struct{}
-
-type RecordFinishData struct {
-	Notes keyMouTool.MulNote
-}
 
 type ButtonClickData struct {
 	Button enum.Button

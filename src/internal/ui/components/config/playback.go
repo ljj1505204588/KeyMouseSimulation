@@ -47,11 +47,17 @@ func (c *playbackConfig) init() {
 
 	// 注册回调
 	eventCenter.Event.Register(topic.ConfigChange, func(data interface{}) (err error) {
-		if confData, ok := data.(topic.ConfigChangeData); ok {
-			if confData.Key == enum.PlaybackTimesConf {
-				uiComponent.TryPublishErr(c.currentTimesEdit.SetValue(float64(confData.Value.(int64))))
-			}
+		var value = data.(*topic.ConfigChangeData)
+
+		switch value.Key {
+		case enum.PlaybackTimesConf:
+			// 回放次数
+			uiComponent.TryPublishErr(c.playbackTimesEdit.SetValue(float64(value.Value.(int64))))
+		case enum.PlaybackRemainTimesConf:
+			// 剩余回放次数
+			uiComponent.TryPublishErr(c.currentTimesEdit.SetValue(float64(value.Value.(int64))))
 		}
+
 		return
 	})
 

@@ -13,6 +13,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -25,7 +26,7 @@ type FileControlI interface {
 	ReadFile(name string) (data keyMouTool.MulNote)
 
 	Choose(name string) error
-	Current() (name string)
+	Current() (name string, files []string)
 }
 
 var FileControl FileControlI
@@ -39,6 +40,7 @@ func init() {
 		f.basePath = filepath.Join(f.basePath, "record")
 		common.MustNil(os.MkdirAll(f.basePath, 0666))
 
+		f.fileCheck()
 		go f.scanFile()
 	}
 	FileControl = &f
@@ -48,8 +50,8 @@ type fileControlT struct {
 	windowsX int // 电脑屏幕宽度
 	windowsY int // 电脑屏幕长度
 
-	current  string   // 当前文件
-	fileName []string // 所有文件
+	current   string   // 当前文件
+	fileNames []string // 所有文件
 
 	basePath string // 基础路径
 
@@ -61,7 +63,7 @@ func (f *fileControlT) Save(name string, data []keyMouTool.NoteT) {
 		return
 	}
 
-	if gene.In(f.fileName, name) {
+	if gene.In(f.fileNames, name) {
 		name += "_" + strconv.Itoa(int(time.Now().Unix()))
 	}
 
@@ -80,15 +82,10 @@ func (f *fileControlT) Save(name string, data []keyMouTool.NoteT) {
 		f.publishErr(err)
 	}
 
-	f.fileName = append(f.fileName, name)
+	f.fileNames = append(f.fileNames, name)
 	f.current = name
 
-	if err = eventCenter.Event.Publish(topic.FileListChange, &topic.FileListChangeData{
-		ChooseFile: name,
-		Files:      f.fileName,
-	}); err != nil {
-		f.publishErr(err)
-	}
+	f.publishFileListChange()
 }
 
 // ReadFile 读取文件
@@ -122,7 +119,7 @@ func (f *fileControlT) ReadFile(name string) (data keyMouTool.MulNote) {
 
 // Choose 文件选择
 func (f *fileControlT) Choose(name string) error {
-	if !gene.In(f.fileName, name) {
+	if !gene.In(f.fileNames, name) {
 		return errors.New(language.ErrorSaveFileNameNilStr.ToString())
 	}
 
@@ -131,8 +128,8 @@ func (f *fileControlT) Choose(name string) error {
 }
 
 // Current 当前选择文件
-func (f *fileControlT) Current() (name string) {
-	return f.current
+func (f *fileControlT) Current() (name string, files []string) {
+	return f.current, f.fileNames
 }
 
 // 扫描文件
@@ -142,37 +139,46 @@ func (f *fileControlT) scanFile() {
 		go f.scanFile()
 	}()
 
+	var ticker = time.NewTicker(2 * time.Second)
 	for {
-		var names []string
-		//遍历存储当前文件名字
-		if fs, err := os.ReadDir(f.basePath); err == nil {
-			for _, per := range fs {
-				if filepath.Ext(per.Name()) == FileExt {
-					name := filepath.Base(per.Name())
-					names = append(names, strings.TrimSuffix(name, FileExt))
-				}
+		f.fileCheck()
+		<-ticker.C
+	}
+}
+func (f *fileControlT) fileCheck() {
+
+	//遍历存储当前文件名字
+	var infos []os.FileInfo
+	var fs, _ = os.ReadDir(f.basePath)
+	for _, per := range fs {
+		if filepath.Ext(per.Name()) == FileExt {
+			var info, _ = per.Info()
+			infos = append(infos, info)
+		}
+	}
+
+	sort.Slice(infos, func(i, j int) bool {
+		return infos[i].ModTime().Unix() < infos[j].ModTime().Unix()
+	})
+	// 按时间排序
+	var names []string
+	for _, info := range infos {
+		name := filepath.Base(info.Name())
+		names = append(names, strings.TrimSuffix(name, FileExt))
+	}
+
+	// 对比
+	if len(names) != len(f.fileNames) || len(gene.Intersection(names, f.fileNames)) != len(names) {
+		f.fileNames = names
+
+		if !gene.In(names, f.current) {
+			f.current = ""
+			if len(names) > 0 {
+				f.current = names[0]
 			}
 		}
 
-		// 对比
-		if len(names) != len(f.fileName) || len(gene.Intersection(names, f.fileName)) != len(names) {
-			f.fileName = names
-
-			if !gene.In(names, f.current) {
-				f.current = ""
-				if len(names) > 0 {
-					f.current = names[0]
-				}
-			}
-
-			f.publishErr(eventCenter.Event.Publish(topic.FileListChange, &topic.FileListChangeData{
-				ChooseFile: f.current,
-				Files:      f.fileName,
-			}))
-
-		}
-
-		time.Sleep(2 * time.Second)
+		f.publishFileListChange()
 	}
 }
 
@@ -194,7 +200,18 @@ func (f *fileControlT) getWindowRect() {
 
 // ---------------------------------- 发布事件 ----------------------------------
 
+func (f *fileControlT) publishFileListChange() {
+	f.publishErr(eventCenter.Event.Publish(topic.FileListChange, &topic.FileListChangeData{
+		ChooseFile: f.current,
+		Files:      f.fileNames,
+	}))
+}
+
 func (f *fileControlT) publishErr(err error) {
+	if err == nil {
+		return
+	}
+
 	_ = eventCenter.Event.Publish(topic.ServerError, &topic.ServerErrorData{
 		ErrInfo: err.Error(),
 	})

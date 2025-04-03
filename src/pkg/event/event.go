@@ -70,8 +70,7 @@ func (e *factory) ASyncPublish(top topic.Topic, data interface{}) {
 
 	for _, h := range handlers {
 		go func(h Handler) {
-			if err := h(data); err != nil {
-				// todo 添加日志
+			if err := h(data); err != nil { // todo 添加日志
 				//var errInfo = fmt.Sprintf("异步执行事件[%s]失败, 错误信息: %s", top, err.Error())
 				//_ = e.Publish(topic.ServerError, &topic.ServerErrorData{ErrInfo: errInfo})
 			}

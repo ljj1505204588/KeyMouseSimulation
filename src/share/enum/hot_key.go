@@ -13,7 +13,7 @@ func TotalHotkey() []HotKey {
 	return []HotKey{
 		HotKeyRecord,
 		HotKeyPlayBack,
-		HotKeyStop,
 		HotKeyPause,
+		HotKeyStop,
 	}
 }

@@ -54,6 +54,7 @@ var (
 	StopStr                        LanguageKeyI = &languageKeyT{chinese: "停止", english: "Stop"}
 	ResetStr                       LanguageKeyI = &languageKeyT{chinese: "重置", english: "Reset"}
 	MouseTrackStr                  LanguageKeyI = &languageKeyT{chinese: "鼠标路径", english: "Mouse Track"}
+	RecordLenStr                   LanguageKeyI = &languageKeyT{chinese: "记录长度", english: "RecordLen"}
 	OKStr                          LanguageKeyI = &languageKeyT{chinese: "确认", english: "OK"}
 	CancelStr                      LanguageKeyI = &languageKeyT{chinese: "取消", english: "Cancel"}
 	FileLabelStr                   LanguageKeyI = &languageKeyT{chinese: "文件", english: "File"}
@@ -63,7 +64,7 @@ var (
 	StatusLabelStr                 LanguageKeyI = &languageKeyT{chinese: "状态", english: "Status"}
 	ErrorLabelStr                  LanguageKeyI = &languageKeyT{chinese: "错误信息", english: "Error"}
 	SetFileLabelStr                LanguageKeyI = &languageKeyT{chinese: "文件名称：", english: "File:"}
-	AboutMessageStr                LanguageKeyI = &languageKeyT{chinese: "鼠标键盘录制回放.\n版本：0.1v", english: "MouseKey Record And Playback Tool \n Version:0.1v"}
+	AboutMessageStr                LanguageKeyI = &languageKeyT{chinese: "鼠标键盘录制回放.\n版本：1.0v", english: "MouseKey Record And Playback Tool \n Version:1.0v"}
 	SetHotKeyErrMessageStr         LanguageKeyI = &languageKeyT{chinese: "热键设置重复", english: "Hotkey Settings are repeated"}
 	SetLanguageChangeMessageStr    LanguageKeyI = &languageKeyT{chinese: "成功!", english: "success!"}
 	ControlTypeFreeStr             LanguageKeyI = &languageKeyT{chinese: "空闲", english: "FREE"}

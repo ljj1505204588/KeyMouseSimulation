@@ -21,16 +21,23 @@ type recordConfig struct {
 	ifMouseTrackLabel *walk.Label
 	ifMouseTrackCheck *walk.CheckBox
 
+	recordLenLabel          *walk.Label
+	recordLenNumLabel       *walk.NumberLabel
+	recordLenLastUpdateTime int64
+
 	widget []Widget
 }
 
 func (c *recordConfig) init() {
 	c.widget = []Widget{
 		//鼠标路径
-		Label{AssignTo: &c.ifMouseTrackLabel, Text: language.MouseTrackStr.ToString(), ColumnSpan: 4},
-		CheckBox{AssignTo: &c.ifMouseTrackCheck, ColumnSpan: 4, Checked: true, Alignment: AlignHCenterVCenter, OnCheckedChanged: func() {
+		Label{AssignTo: &c.ifMouseTrackLabel, Text: language.MouseTrackStr.ToString(), ColumnSpan: 2},
+		CheckBox{AssignTo: &c.ifMouseTrackCheck, ColumnSpan: 2, Checked: true, Alignment: AlignHCenterVCenter, OnCheckedChanged: func() {
 			conf.RecordMouseTrackConf.SetValue(c.ifMouseTrackCheck.Checked())
 		}},
+		// 记录长度
+		Label{AssignTo: &c.recordLenLabel, Text: language.RecordLenStr.ToString(), ColumnSpan: 2},
+		NumberLabel{AssignTo: &c.recordLenNumLabel, Value: 0, ColumnSpan: 2},
 	}
 
 	// 注册回调事件
@@ -38,8 +45,14 @@ func (c *recordConfig) init() {
 		var dataValue = data.(*topic.ConfigChangeData)
 
 		// 监听配置变动
-		if dataValue.Key == enum.RecordMouseTrackConf {
+		switch dataValue.Key {
+		case enum.RecordMouseTrackConf:
 			c.ifMouseTrackCheck.SetChecked(dataValue.Value.(bool))
+		case enum.RecordLenConf:
+			if nowTime := time.Now().Unix(); nowTime-c.recordLenLastUpdateTime >= 1 {
+				_ = c.recordLenNumLabel.SetValue(float64(conf.RecordLen.GetValue()))
+				c.recordLenLastUpdateTime = nowTime
+			}
 		}
 
 		return

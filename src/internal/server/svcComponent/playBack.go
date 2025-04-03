@@ -92,14 +92,22 @@ func (p *playBackServerT) checkPlayBackFinish(index int64) bool {
 	if index >= int64(len(p.notes)) {
 		atomic.SwapInt64(&p.notesIndex, 0)
 
-		if remainTime := conf.PlaybackRemainTimesConf.GetValue(); remainTime >= 1 {
-			defer conf.PlaybackRemainTimesConf.SetValue(remainTime - 1)
+		var remainTime = conf.PlaybackRemainTimesConf.GetValue()
+		if remainTime < 0 {
+			return false
+		}
 
-			if remainTime == 1 {
-				_ = eventCenter.Event.Publish(topic.PlaybackFinish, &topic.PlayBackFinishData{})
-				p.run = false
-				return true
-			}
+		// 剩余次数则减1
+		if remainTime >= 1 {
+			remainTime--
+			conf.PlaybackRemainTimesConf.SetValue(remainTime)
+		}
+
+		// 0次则回放结束
+		if remainTime == 0 {
+			_ = eventCenter.Event.Publish(topic.PlaybackFinish, &topic.PlayBackFinishData{})
+			p.run = false
+			return true
 		}
 
 	}
