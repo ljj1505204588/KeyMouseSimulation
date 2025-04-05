@@ -294,6 +294,8 @@ var VKCodeStringMap = map[string]VKCode{
 	"F12": VK_F12,
 	"+":   VK_ADD,
 	"-":   VK_SUBTRACT,
+	"<":   VK_OEM_COMMA,
+	">":   VK_OEM_PERIOD,
 }
 
 var VKCodeStringMapReverse = gene.Reverse(VKCodeStringMap)

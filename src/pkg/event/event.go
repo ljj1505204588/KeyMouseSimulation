@@ -80,7 +80,7 @@ func (e *factory) ASyncPublish(top topic.Topic, data interface{}) {
 	return
 }
 func (e *factory) getHandler(topic topic.Topic) (list []Handler, ok bool) {
-	defer common.RRLockSelf(&e.RWMutex)()
+	defer common.RLockSelf(&e.RWMutex)()
 
 	var items []*item
 	if items, ok = e.eventMap[topic]; ok {

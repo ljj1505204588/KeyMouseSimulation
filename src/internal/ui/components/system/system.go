@@ -5,11 +5,12 @@ import (
 	eventCenter "KeyMouseSimulation/pkg/event"
 	"KeyMouseSimulation/pkg/language"
 	"KeyMouseSimulation/share/topic"
-	"github.com/lxn/walk"
-	. "github.com/lxn/walk/declarative"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/lxn/walk"
+	"github.com/lxn/walk/declarative"
 )
 
 // SystemT 系统按钮
@@ -25,25 +26,25 @@ type SystemT struct {
 	errorEdit  *walk.TextEdit
 	historyErr []string
 
-	widgets []Widget
+	widgets []declarative.Widget
 }
 
 func (t *SystemT) Init() {
 
-	t.widgets = []Widget{
+	t.widgets = []declarative.Widget{
 		//当前状态
-		Label{AssignTo: &t.statusLabel, ColumnSpan: 2},
-		LineEdit{AssignTo: &t.statusEdit, ColumnSpan: 6, ReadOnly: true},
+		declarative.Label{AssignTo: &t.statusLabel, ColumnSpan: 2},
+		declarative.LineEdit{AssignTo: &t.statusEdit, ColumnSpan: 6, ReadOnly: true},
 
 		//错误信息
-		Label{AssignTo: &t.errorLabel, ColumnSpan: 2},
-		TextEdit{AssignTo: &t.errorEdit, ColumnSpan: 6, ReadOnly: true},
+		declarative.Label{AssignTo: &t.errorLabel, ColumnSpan: 2},
+		declarative.TextEdit{AssignTo: &t.errorEdit, ColumnSpan: 6, ReadOnly: true},
 	}
 
 	t.register()
 }
 
-func (t *SystemT) DisPlay(mw **walk.MainWindow) []Widget {
+func (t *SystemT) DisPlay(mw **walk.MainWindow) []declarative.Widget {
 	t.mw = mw
 	t.Once.Do(t.Init)
 

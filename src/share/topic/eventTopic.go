@@ -1,7 +1,6 @@
 package topic
 
 import (
-	"KeyMouseSimulation/common/windowsApi/windowsInput/keyMouTool"
 	"KeyMouseSimulation/share/enum"
 )
 
@@ -51,7 +50,7 @@ type LanguageChangeData struct {
 }
 
 type HotKeySetData struct {
-	Set map[enum.HotKey]keyMouTool.VKCode
+	Set map[enum.HotKey]string
 }
 
 type HotKeyEffectData struct {

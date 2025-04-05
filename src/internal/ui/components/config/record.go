@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/lxn/walk"
-	. "github.com/lxn/walk/declarative"
+	"github.com/lxn/walk/declarative"
 )
 
 // --------------------------------------- 记录 ----------------------------------------------
@@ -25,19 +25,19 @@ type recordConfig struct {
 	recordLenNumLabel       *walk.NumberLabel
 	recordLenLastUpdateTime int64
 
-	widget []Widget
+	widget []declarative.Widget
 }
 
 func (c *recordConfig) init() {
-	c.widget = []Widget{
+	c.widget = []declarative.Widget{
 		//鼠标路径
-		Label{AssignTo: &c.ifMouseTrackLabel, Text: language.MouseTrackStr.ToString(), ColumnSpan: 2},
-		CheckBox{AssignTo: &c.ifMouseTrackCheck, ColumnSpan: 2, Checked: true, Alignment: AlignHCenterVCenter, OnCheckedChanged: func() {
+		declarative.Label{AssignTo: &c.ifMouseTrackLabel, Text: language.MouseTrackStr.ToString(), ColumnSpan: 2},
+		declarative.CheckBox{AssignTo: &c.ifMouseTrackCheck, ColumnSpan: 2, Checked: true, Alignment: declarative.AlignHCenterVCenter, OnCheckedChanged: func() {
 			conf.RecordMouseTrackConf.SetValue(c.ifMouseTrackCheck.Checked())
 		}},
 		// 记录长度
-		Label{AssignTo: &c.recordLenLabel, Text: language.RecordLenStr.ToString(), ColumnSpan: 2},
-		NumberLabel{AssignTo: &c.recordLenNumLabel, Value: 0, ColumnSpan: 2},
+		declarative.Label{AssignTo: &c.recordLenLabel, Text: language.RecordLenStr.ToString(), ColumnSpan: 2},
+		declarative.NumberLabel{AssignTo: &c.recordLenNumLabel, Value: 0, ColumnSpan: 2},
 	}
 
 	// 注册回调事件
@@ -59,7 +59,7 @@ func (c *recordConfig) init() {
 	})
 }
 
-func (c *recordConfig) disPlay() []Widget {
+func (c *recordConfig) disPlay() []declarative.Widget {
 	return c.widget
 }
 

@@ -3,13 +3,13 @@ package component_config
 import (
 	uiComponent "KeyMouseSimulation/internal/ui/components"
 	eventCenter "KeyMouseSimulation/pkg/event"
-	"KeyMouseSimulation/pkg/file"
+	rp_file "KeyMouseSimulation/pkg/file"
 	"KeyMouseSimulation/pkg/language"
 	"KeyMouseSimulation/share/topic"
 	"time"
 
 	"github.com/lxn/walk"
-	. "github.com/lxn/walk/declarative"
+	"github.com/lxn/walk/declarative"
 )
 
 // --------------------------------------- 文件 ----------------------------------------------
@@ -18,20 +18,20 @@ type fileConfig struct {
 	fileLabel *walk.Label
 	fileBox   *walk.ComboBox
 
-	widget []Widget
+	widget []declarative.Widget
 }
 
 func (c *fileConfig) init() {
 	var name, fileList = rp_file.FileControl.Current()
 
-	c.widget = []Widget{
-		Label{AssignTo: &c.fileLabel, ColumnSpan: 2},
-		ComboBox{AssignTo: &c.fileBox, ColumnSpan: 6, Value: name, Model: fileList, Editable: true, OnCurrentIndexChanged: c.chooseFile},
+	c.widget = []declarative.Widget{
+		declarative.Label{AssignTo: &c.fileLabel, ColumnSpan: 2},
+		declarative.ComboBox{AssignTo: &c.fileBox, ColumnSpan: 6, Value: name, Model: fileList, Editable: true, OnCurrentIndexChanged: c.chooseFile},
 	}
 
 	c.register()
 }
-func (c *fileConfig) disPlay() []Widget {
+func (c *fileConfig) disPlay() []declarative.Widget {
 	return c.widget
 }
 

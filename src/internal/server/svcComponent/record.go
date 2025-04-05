@@ -39,6 +39,7 @@ type RecordServerT struct {
 	keyBoardHs []func(data interface{})
 
 	lastMoveEven *windowsHook.MouseEvent //最后移动事件，配合是否记录鼠标移动路径使用
+
 }
 
 // Start 开始
@@ -97,20 +98,20 @@ func (r *RecordServerT) registerHandler() {
 func (r *RecordServerT) mouseHandler(data interface{}) {
 	defer r.lockSelf()()
 
-	var info = data.(*topic.WindowsMouseHookData)
+	var info = data.(*windowsHook.MouseEvent)
 
 	if !conf.RecordMouseTrackConf.GetValue() {
-		if info.Date.Message == windowsHook.WM_MOUSEMOVE {
-			r.lastMoveEven = info.Date
+		if info.Message == windowsHook.WM_MOUSEMOVE {
+			r.lastMoveEven = info
 			return
 		} else if r.lastMoveEven != nil {
 			// 先把鼠标移动过去
-			r.notes.AppendMouseNote(info.Date.RecordTime, r.lastMoveEven)
+			r.notes.AppendMouseNote(info.RecordTime, r.lastMoveEven)
 		}
 	}
 
-	r.notes.AppendMouseNote(r.noteTime, info.Date)
-	r.noteTime = info.Date.RecordTime
+	r.notes.AppendMouseNote(r.noteTime, info)
+	r.noteTime = info.RecordTime
 
 	// 设置长度
 	conf.RecordLen.SetValue(len(r.notes))
@@ -120,10 +121,10 @@ func (r *RecordServerT) mouseHandler(data interface{}) {
 func (r *RecordServerT) keyBoardHandler(data interface{}) {
 	defer r.lockSelf()()
 
-	var info = data.(*topic.WindowsKeyBoardHookData)
+	var info = data.(*windowsHook.KeyboardEvent)
 
-	r.notes.AppendKeyBoardNote(r.noteTime, info.Date)
-	r.noteTime = info.Date.RecordTime
+	r.notes.AppendKeyBoardNote(r.noteTime, info)
+	r.noteTime = info.RecordTime
 
 	// 设置长度
 	conf.RecordLen.SetValue(len(r.notes))

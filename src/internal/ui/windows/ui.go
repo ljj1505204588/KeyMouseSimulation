@@ -5,10 +5,11 @@ package uiWindows
 
 import (
 	uiComponent "KeyMouseSimulation/internal/ui/components"
-	component_base_button "KeyMouseSimulation/internal/ui/components/base_button"
+	component_base_button "KeyMouseSimulation/internal/ui/components/baseButton"
 	component_config "KeyMouseSimulation/internal/ui/components/config"
-	component_menu_items "KeyMouseSimulation/internal/ui/components/menu_items"
+	component_menu_items "KeyMouseSimulation/internal/ui/components/menuItems"
 	component_system "KeyMouseSimulation/internal/ui/components/system"
+	conf "KeyMouseSimulation/pkg/config"
 	eventCenter "KeyMouseSimulation/pkg/event"
 	"KeyMouseSimulation/pkg/language"
 	"KeyMouseSimulation/share/enum"
@@ -16,7 +17,7 @@ import (
 	"fmt"
 
 	"github.com/lxn/walk"
-	. "github.com/lxn/walk/declarative"
+	"github.com/lxn/walk/declarative"
 )
 
 type ControlT struct {
@@ -56,7 +57,7 @@ func (t *ControlT) Init() {
 	})
 
 	go eventCenter.Event.Publish(topic.LanguageChange, &topic.LanguageChangeData{
-		Typ: enum.Chinese,
+		Typ: enum.LanguageType(conf.LanguageConf.GetValue()),
 	})
 }
 
@@ -64,22 +65,22 @@ func (t *ControlT) Init() {
 
 func MainWindows() {
 	// todo 设置图标
-	var widget []Widget
+	var widget []declarative.Widget
 	for _, component := range c.widgets {
 		widget = append(widget, component.DisPlay(&c.mw)...)
 	}
-	var menuItems []MenuItem
+	var menuItems []declarative.MenuItem
 	for _, item := range c.menuItems {
 		menuItems = append(menuItems, item.MenuItems(&c.mw)...)
 	}
 
 	c.Init()
 
-	_, err := MainWindow{
+	_, err := declarative.MainWindow{
 		AssignTo: c.MWPoint(),
 		Title:    language.MainWindowTitleStr.ToString(),
-		Size:     Size{Width: 320, Height: 400},
-		Layout:   Grid{Columns: 8, Alignment: AlignHNearVCenter},
+		Size:     declarative.Size{Width: 320, Height: 400},
+		Layout:   declarative.Grid{Columns: 8, Alignment: declarative.AlignHNearVCenter},
 		Children: widget,
 		// 工具栏
 		MenuItems: menuItems,

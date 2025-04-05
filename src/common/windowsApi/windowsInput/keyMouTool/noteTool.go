@@ -2,6 +2,7 @@ package keyMouTool
 
 import (
 	"KeyMouseSimulation/common/common"
+	"KeyMouseSimulation/common/gene"
 	"KeyMouseSimulation/common/windowsApi/windowsHook"
 )
 
@@ -11,6 +12,11 @@ type NoteT struct {
 	MouseNote *MouseInputT
 	TimeGap   int64 //Nanosecond
 	timeGap   float64
+}
+
+// GetMouseDW 获取鼠标事件的DWFlags
+func (n *NoteT) GetMouseDW() windowsHook.Message {
+	return mouseDwMapReverse[n.MouseNote.DWFlags]
 }
 
 type MulNote []NoteT
@@ -71,6 +77,9 @@ var mouseDwMap = map[windowsHook.Message]MouseInputDW{
 	windowsHook.WM_MOUSEWHEEL:        DW_MOUSEEVENTF_WHEEL | DW_MOUSEEVENTF_ABSOLUTE,
 	windowsHook.WM_MOUSEHWHEEL:       DW_MOUSEEVENTF_HWHEEL | DW_MOUSEEVENTF_ABSOLUTE, //这个暂时不知道是啥，
 }
+
+var mouseDwMapReverse = gene.Reverse(mouseDwMap)
+
 var keyDwMap = map[windowsHook.Message]KeyBoardInputDW{
 	windowsHook.WM_KEYDOWN: DW_KEYEVENTF_KEYDown,
 	windowsHook.WM_KEYUP:   DW_KEYEVENTF_KEYUP,

@@ -1,19 +1,22 @@
 package language
 
 import (
+	conf "KeyMouseSimulation/pkg/config"
 	eventCenter "KeyMouseSimulation/pkg/event"
 	"KeyMouseSimulation/share/enum"
 	"KeyMouseSimulation/share/topic"
 )
 
-var langType enum.LanguageType = enum.Chinese // todo 改成conf
+var langType = enum.LanguageType(conf.LanguageConf.GetValue()) // todo 改成conf
 
 func init() {
 	eventCenter.Event.Register(topic.LanguageChange, func(data interface{}) (err error) {
 		var dataValue = data.(*topic.LanguageChangeData)
 		langType = dataValue.Typ
+		conf.LanguageConf.SetValue(string(dataValue.Typ))
 		return
 	}, eventCenter.SetOrderLv(100))
+
 }
 
 // -------------------- 语言键 --------------------
@@ -52,6 +55,8 @@ var (
 	PlayBackStr                    LanguageKeyI = &languageKeyT{chinese: "回放", english: "Playback"}
 	PauseStr                       LanguageKeyI = &languageKeyT{chinese: "暂停", english: "Pause"}
 	StopStr                        LanguageKeyI = &languageKeyT{chinese: "停止", english: "Stop"}
+	SpeedUpStr                     LanguageKeyI = &languageKeyT{chinese: "加速", english: "SpeedUp"}
+	SpeedDownStr                   LanguageKeyI = &languageKeyT{chinese: "减速", english: "SpeedDown"}
 	ResetStr                       LanguageKeyI = &languageKeyT{chinese: "重置", english: "Reset"}
 	MouseTrackStr                  LanguageKeyI = &languageKeyT{chinese: "鼠标路径", english: "Mouse Track"}
 	RecordLenStr                   LanguageKeyI = &languageKeyT{chinese: "记录长度", english: "RecordLen"}

@@ -62,9 +62,7 @@ func (s *windowsHookServerT) MouseHook() {
 
 	for {
 		var event = <-s.mouseChan
-		_ = eventCenter.Event.Publish(topic.WindowsMouseHook, &topic.WindowsMouseHookData{
-			Date: event,
-		})
+		_ = eventCenter.Event.Publish(topic.WindowsMouseHook, event)
 	}
 }
 func (s *windowsHookServerT) KeyBoardHook() {
@@ -78,25 +76,20 @@ func (s *windowsHookServerT) KeyBoardHook() {
 
 	for {
 		var event = <-s.keyboardChan
-		_ = eventCenter.Event.Publish(topic.WindowsKeyBoardHook, &topic.WindowsKeyBoardHookData{
-			Date: event,
-		})
+		_ = eventCenter.Event.Publish(topic.WindowsKeyBoardHook, event)
 	}
 }
 
 // -------------------------------------- 输入 --------------------------------------
 
 func (s *windowsHookServerT) MouseInput(data interface{}) (err error) {
-	var input = data.(*topic.WindowsMouseInputData)
 
-	s.mouseSend <- input.Data
+	s.mouseSend <- data.(*keyMouTool.MouseInputT)
 
 	return
 }
 func (s *windowsHookServerT) KeyBoardInput(data interface{}) (err error) {
-	var input = data.(*topic.WindowsKeyBoardInputData)
-
-	s.keySend <- input.Data
+	s.keySend <- data.(*keyMouTool.KeyInputT)
 
 	return
 }

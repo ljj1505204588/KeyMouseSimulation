@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	"github.com/lxn/walk"
-	. "github.com/lxn/walk/declarative"
+	"github.com/lxn/walk/declarative"
 )
 
 type ConfigManageT struct {
@@ -21,7 +21,7 @@ func (t *ConfigManageT) Init() {
 	}
 }
 
-func (t *ConfigManageT) DisPlay(mw **walk.MainWindow) (res []Widget) {
+func (t *ConfigManageT) DisPlay(mw **walk.MainWindow) (res []declarative.Widget) {
 	t.mw = mw
 	t.Once.Do(t.Init)
 
