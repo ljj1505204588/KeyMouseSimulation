@@ -20,7 +20,7 @@ var (
 	PlaybackSpeedConf       = &configKeyT[float64]{key: enum.PlaybackSpeedConf, val: 1.0}
 	PlaybackTimesConf       = &configKeyT[int64]{key: enum.PlaybackTimesConf, val: int64(1)}
 	PlaybackRemainTimesConf = &configKeyT[int64]{key: enum.PlaybackRemainTimesConf, val: int64(1)}
-	LanguageConf            = &configKeyT[string]{key: enum.LanguageConf, val: "zh_CN"}
+	LanguageConf            = &configKeyT[string]{key: enum.LanguageConf, val: "中文"}
 )
 
 // configKeyT 泛型配置键
