@@ -46,6 +46,9 @@ func (t *ControlT) Init() {
 	for _, item := range t.menuItems {
 		eventCenter.Event.Register(topic.LanguageChange, item.LanguageChange)
 	}
+	eventCenter.Event.Register(topic.LanguageChange, func(data interface{}) (err error) {
+		return c.mw.SetTitle(language.MainWindowTitleStr.ToString())
+	})
 
 	eventCenter.Event.Register(topic.LanguageChange, func(data interface{}) (err error) {
 		t.mw.SetVisible(false)
