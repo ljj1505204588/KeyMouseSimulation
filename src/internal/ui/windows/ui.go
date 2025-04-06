@@ -65,7 +65,7 @@ func (t *ControlT) Init() {
 
 func MainWindows() {
 	// 设置图标
-	icon, err := walk.NewIconFromFile(".\\images\\icon_64x64.ico")
+	icon, err := walk.NewIconFromFile(".\\images\\icon_960x960.ico")
 	if err != nil {
 		fmt.Printf("加载图标失败: %v\n", err)
 	}
