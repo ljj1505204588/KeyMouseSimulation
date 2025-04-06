@@ -20,6 +20,7 @@ Go 实现的鼠标键盘按键模拟器 |  Mouse and Keyboard simulator
 
 ### 功能
 
+- 指定程序注入输入，底层模拟驱动输入(有空的话)。
 - 鼠标连点
 - 多平台(mac,linux -- 遥遥无期)
 
