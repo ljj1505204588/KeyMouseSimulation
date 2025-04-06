@@ -14,7 +14,7 @@ Go 实现的鼠标键盘按键模拟器 |  Mouse and Keyboard simulator
 - 热键修改
 ## 下载地址
 
-- 下载地址 ： http://jjinxiamen.com:23001/
+- 下载git项目，直接执行src/main/keyMouse.exe 文件即可。
 
 ## 后续开发内容
 
@@ -45,6 +45,4 @@ Go 实现的鼠标键盘按键模拟器 |  Mouse and Keyboard simulator
 - Playback times control(-1 equal infinite times)
 - Hotkey modification
 
-### download 
 
-- http://jjinxiamen.com:23001/
