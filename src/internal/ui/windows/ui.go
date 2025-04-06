@@ -1,6 +1,3 @@
-//go:build windows
-// +build windows
-
 package uiWindows
 
 import (
@@ -14,8 +11,8 @@ import (
 	"KeyMouseSimulation/pkg/language"
 	"KeyMouseSimulation/share/enum"
 	"KeyMouseSimulation/share/topic"
+	_ "embed"
 	"fmt"
-
 	"github.com/lxn/walk"
 	"github.com/lxn/walk/declarative"
 )
@@ -63,8 +60,16 @@ func (t *ControlT) Init() {
 
 // ----------------------- 主窗口 -----------------------
 
+// //go:embed icon.jpg
+// var icon []byte
+
 func MainWindows() {
-	// todo 设置图标
+	// 设置图标
+	icon, err := walk.NewIconFromFile(".\\images\\icon_64x64.ico")
+	if err != nil {
+		fmt.Printf("加载图标失败: %v\n", err)
+	}
+
 	var widget []declarative.Widget
 	for _, component := range c.widgets {
 		widget = append(widget, component.DisPlay(&c.mw)...)
@@ -76,7 +81,7 @@ func MainWindows() {
 
 	c.Init()
 
-	_, err := declarative.MainWindow{
+	_, err = declarative.MainWindow{
 		AssignTo: c.MWPoint(),
 		Title:    language.MainWindowTitleStr.ToString(),
 		Size:     declarative.Size{Width: 320, Height: 400},
@@ -84,6 +89,7 @@ func MainWindows() {
 		Children: widget,
 		// 工具栏
 		MenuItems: menuItems,
+		Icon:      icon,
 	}.Run()
 
 	if err != nil {
